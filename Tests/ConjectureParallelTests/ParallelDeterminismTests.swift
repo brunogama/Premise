@@ -1,6 +1,8 @@
 import ConjectureCore
+import ConjectureDatabase
 import ConjectureParallel
 import ConjectureStrategies
+import Foundation
 import Testing
 
 @Suite("Parallel Determinism Tests")
@@ -14,7 +16,7 @@ struct ParallelDeterminismTests {
     }
 
     @Test("Same seed produces identical results in parallel and sequential mode")
-    func sameSeedSameResult() async {
+    func sameSeedSameResult() async throws {
         let seed: UInt64 = 42
         let config = PropertyConfig(maxRuns: 50, seed: seed)
 
@@ -32,7 +34,7 @@ struct ParallelDeterminismTests {
             config: config,
             parallelConfig: ParallelConfig(maxConcurrentRuns: 4)
         )
-        let parallelResult = await parallelRunner.run { value in
+        let parallelResult = try await parallelRunner.run { value in
             if value > 900 {
                 throw PropertyFailure(message: "too large: \(value)")
             }
@@ -54,7 +56,7 @@ struct ParallelDeterminismTests {
     }
 
     @Test("Parallel runner returns lowest-index failure regardless of scheduling")
-    func lowestIndexFailure() async {
+    func lowestIndexFailure() async throws {
         // Use a seed and property where multiple indices fail.
         // The property fails on any even value, so many runs will fail.
         let seed: UInt64 = 123
@@ -69,7 +71,7 @@ struct ParallelDeterminismTests {
         // Run multiple times; the result should be deterministic.
         var firstResult: (String, Int)?
         for _ in 0..<5 {
-            let result = await parallelRunner.run { value in
+            let result = try await parallelRunner.run { value in
                 if value % 2 == 0 {
                     throw PropertyFailure(message: "even: \(value)")
                 }
@@ -91,14 +93,14 @@ struct ParallelDeterminismTests {
     }
 
     @Test("Parallel runner passes when all runs pass")
-    func allRunsPass() async {
+    func allRunsPass() async throws {
         let config = PropertyConfig(maxRuns: 30, seed: 99)
         let parallelRunner = ParallelRunner(
             strategy: intStrategy,
             config: config
         )
 
-        let result = await parallelRunner.run { _ in
+        let result = try await parallelRunner.run { _ in
             // Always passes.
         }
 
@@ -110,14 +112,14 @@ struct ParallelDeterminismTests {
     }
 
     @Test("Parallel runner with single run works correctly")
-    func singleRun() async {
+    func singleRun() async throws {
         let config = PropertyConfig(maxRuns: 1, seed: 7)
         let parallelRunner = ParallelRunner(
             strategy: intStrategy,
             config: config
         )
 
-        let result = await parallelRunner.run { _ in
+        let result = try await parallelRunner.run { _ in
             // Always passes.
         }
 
@@ -129,7 +131,7 @@ struct ParallelDeterminismTests {
     }
 
     @Test("Parallel runner replays traces before generation")
-    func replayBeforeGeneration() async {
+    func replayBeforeGeneration() async throws {
         let seed: UInt64 = 55
         let config = PropertyConfig(maxRuns: 10, seed: seed, replayEnabled: true)
 
@@ -141,7 +143,7 @@ struct ParallelDeterminismTests {
             config: config
         )
 
-        let result = await parallelRunner.run(
+        let result = try await parallelRunner.run(
             { value in
                 if value == 999 {
                     throw PropertyFailure(message: "replayed failure")
@@ -158,7 +160,7 @@ struct ParallelDeterminismTests {
     }
 
     @Test("Seed-per-index mapping matches sequential Runner for failure detection")
-    func seedPerIndexMatchesSequential() async {
+    func seedPerIndexMatchesSequential() async throws {
         // Use a deterministic property that fails on specific seed-derived values.
         // Both runners use the same seed formula: baseSeed + UInt64(runIndex).
         let seed: UInt64 = 77
@@ -179,7 +181,7 @@ struct ParallelDeterminismTests {
             config: config,
             parallelConfig: ParallelConfig(maxConcurrentRuns: 4)
         )
-        let parResult = await parRunner.run { value in
+        let parResult = try await parRunner.run { value in
             if value > threshold {
                 throw PropertyFailure(message: "over \(threshold): \(value)")
             }
@@ -197,6 +199,37 @@ struct ParallelDeterminismTests {
         default:
             Issue.record("Sequential and parallel results disagree on pass/fail")
         }
+    }
+
+    @Test("Parallel runner persists failures to shared database")
+    func persistsFailuresToDatabase() async throws {
+        let tmpDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("parallel-persist-\(UUID().uuidString)")
+        let db = FileBackedDatabase(rootDirectory: tmpDir)
+
+        let pid = PropertyIdentity(fileID: "persist-test", line: 1, strategyLabel: "int")
+        let config = PropertyConfig(maxRuns: 20, seed: 42)
+        let runner = ParallelRunner(
+            strategy: intStrategy,
+            config: config,
+            parallelConfig: ParallelConfig(maxConcurrentRuns: 4),
+            propertyID: pid,
+            database: db
+        )
+
+        let result = try await runner.run { value in
+            if value > 500 {
+                throw PropertyFailure(message: "too large: \(value)")
+            }
+        }
+
+        // If it failed, the failure should be persisted.
+        if case .failure = result {
+            let traces = try await db.loadTraces(for: pid)
+            #expect(!traces.isEmpty, "Failure should be persisted to the database")
+        }
+
+        try? FileManager.default.removeItem(at: tmpDir)
     }
 }
 

@@ -1,4 +1,5 @@
 import ConjectureCore
+import ConjectureDatabase
 
 /// Deterministic parallel property runner.
 ///
@@ -32,6 +33,9 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     /// Identity of the property under test.
     public let propertyID: PropertyIdentity
 
+    /// Optional shared persistence for replay and failure storage.
+    private let database: (any ExampleDatabase)?
+
     /// Creates a parallel runner.
     ///
     /// - Parameters:
@@ -39,6 +43,8 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     ///   - config: Per-property execution configuration.
     ///   - parallelConfig: Parallel execution configuration.
     ///   - propertyID: Identity of the property under test.
+    ///   - database: Optional shared persistence for replay-first
+    ///     semantics and failure storage.
     public init(
         strategy: Strategy<Value>,
         config: PropertyConfig = .default,
@@ -47,12 +53,14 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
             fileID: "unknown",
             line: 0,
             strategyLabel: "unknown"
-        )
+        ),
+        database: (any ExampleDatabase)? = nil
     ) {
         self.strategy = strategy
         self.config = config
         self.parallelConfig = parallelConfig
         self.propertyID = propertyID
+        self.database = database
     }
 
     /// Runs the property in parallel with deterministic seed distribution.
@@ -72,10 +80,17 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     public func run(
         _ property: @escaping @Sendable (Value) throws -> Void,
         replayTraces: [ChoiceTrace] = []
-    ) async -> RunResult<Value> {
+    ) async throws -> RunResult<Value> {
+        // Load persisted traces from the database when available.
+        var allReplayTraces = replayTraces
+        if let database {
+            let stored = try await database.loadTraces(for: propertyID)
+            allReplayTraces = stored + replayTraces
+        }
+
         // Replay phase: sequential, matching Runner semantics.
         if config.replayEnabled {
-            for trace in replayTraces {
+            for trace in allReplayTraces {
                 if let failure = runSingle(trace: trace, property: property) {
                     return .failure(failure.record, value: failure.value)
                 }
@@ -86,11 +101,19 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
         let totalRuns = config.maxRuns
 
         // For very small run counts, avoid task group overhead.
+        let result: RunResult<Value>
         if totalRuns <= 1 {
-            return runSequential(baseSeed: baseSeed, totalRuns: totalRuns, property: property)
+            result = runSequential(baseSeed: baseSeed, totalRuns: totalRuns, property: property)
+        } else {
+            result = await runParallel(baseSeed: baseSeed, totalRuns: totalRuns, property: property)
         }
 
-        return await runParallel(baseSeed: baseSeed, totalRuns: totalRuns, property: property)
+        // Persist failures back to the shared database.
+        if case .failure(let record, value: _) = result, let database {
+            try await database.save(record)
+        }
+
+        return result
     }
 
     // MARK: - Private
