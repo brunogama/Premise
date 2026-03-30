@@ -1,6 +1,6 @@
-# Contributing to Conjecture
+# Contributing to Premise
 
-Thank you for contributing to Conjecture.
+Thank you for contributing to Premise.
 This repository uses trunk-based development with `main` as the default trunk.
 
 ## Current Repository Stage
@@ -14,7 +14,7 @@ Until the deterministic engine lands:
 - keep changes small and focused
 - prefer trunk-safe slices that preserve the Phase 1 architecture contract
 - do not let runtime implementation work leak `Testing` or XCTest into
-  `ConjectureCore` or `ConjectureStrategies`
+  `PremiseCore` or `PremiseStrategies`
 - update contributor docs when repository capabilities change
 
 ## Core Expectations

@@ -18,9 +18,9 @@ tech-stack:
 
 key-files:
   created:
-    - Sources/ConjectureDatabase/SQLiteBackedDatabase.swift
-    - Tests/ConjectureDatabaseTests/SQLiteBackedDatabaseTests.swift
-    - Tests/ConjectureDatabaseTests/SQLiteV1CompatibilityTests.swift
+    - Sources/PremiseDatabase/SQLiteBackedDatabase.swift
+    - Tests/PremiseDatabaseTests/SQLiteBackedDatabaseTests.swift
+    - Tests/PremiseDatabaseTests/SQLiteV1CompatibilityTests.swift
   modified: []
 
 key-decisions:
@@ -63,9 +63,9 @@ Each task was committed atomically:
 2. **Task 2: Add round-trip and v1 compatibility tests** - `cb07f54` (test)
 
 ## Files Created/Modified
-- `Sources/ConjectureDatabase/SQLiteBackedDatabase.swift` - Actor implementing ExampleDatabase via SQLite prepared statements
-- `Tests/ConjectureDatabaseTests/SQLiteBackedDatabaseTests.swift` - 5 round-trip tests for save/load/clear lifecycle
-- `Tests/ConjectureDatabaseTests/SQLiteV1CompatibilityTests.swift` - 4 tests for v1 import, future version rejection, cross-backend parity
+- `Sources/PremiseDatabase/SQLiteBackedDatabase.swift` - Actor implementing ExampleDatabase via SQLite prepared statements
+- `Tests/PremiseDatabaseTests/SQLiteBackedDatabaseTests.swift` - 5 round-trip tests for save/load/clear lifecycle
+- `Tests/PremiseDatabaseTests/SQLiteV1CompatibilityTests.swift` - 4 tests for v1 import, future version rejection, cross-backend parity
 
 ## Decisions Made
 - Used `unsafeBitCast(-1, to: sqlite3_destructor_type.self)` (SQLITE_TRANSIENT) for all text and blob bindings to ensure SQLite copies data before Swift closures exit scope
@@ -79,7 +79,7 @@ Each task was committed atomically:
 - **Found during:** Task 1 (SQLiteBackedDatabase implementation)
 - **Issue:** `sqlite3_bind_text` returns `Int32` which propagated as unused result through `withCString`
 - **Fix:** Added `_ =` prefix to suppress the warning since bind results are validated post-step
-- **Files modified:** Sources/ConjectureDatabase/SQLiteBackedDatabase.swift
+- **Files modified:** Sources/PremiseDatabase/SQLiteBackedDatabase.swift
 - **Verification:** Build passes with `-warnings-as-errors`
 - **Committed in:** 5197893 (Task 1 commit)
 

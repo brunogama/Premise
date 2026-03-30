@@ -1,0 +1,106 @@
+@Tutorial(time: 20) {
+   @Intro(title: "Testing Validation Logic") {
+      Validators have a classic property structure: values drawn from the valid
+      space must always pass; values drawn from the invalid space must always
+      fail. Property testing lets you verify both directions comprehensively.
+   }
+
+   @Section(title: "The Validator Under Test") {
+      @ContentAndMedia {
+         You're testing a username validator that enforces these rules:
+
+         - 3 to 20 characters long
+         - Contains only `[a-z0-9_]`
+         - Does not start or end with `_`
+         - Does not contain consecutive underscores (`__`)
+
+         These rules are complex enough that hand-written examples miss edge
+         cases. Property testing explores the space systematically.
+      }
+      @Steps {
+         @Step {
+            Define the `UsernameValidator` with its `validate` function.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s01-validator.swift")
+         }
+      }
+   }
+
+   @Section(title: "Valid Input Always Passes") {
+      @ContentAndMedia {
+         Build a strategy that generates usernames satisfying all rules by
+         construction — so the strategy can only produce valid inputs. Every
+         value it generates must pass validation.
+      }
+      @Steps {
+         @Step {
+            Write a strategy for valid usernames. Generate the content directly
+            in a shape that satisfies the rules, rather than generating random
+            strings and filtering.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s02-valid-strategy.swift")
+         }
+         @Step {
+            Write the "valid always passes" property.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s03-valid-property.swift")
+         }
+      }
+   }
+
+   @Section(title: "Invalid Input Always Fails") {
+      @ContentAndMedia {
+         Build strategies for each kind of invalid input. Each one verifies
+         a specific rule from the validator. Testing the "always fails" side
+         is just as important: a validator that accepts everything trivially
+         satisfies "valid passes" — but catastrophically fails "invalid fails".
+      }
+      @Steps {
+         @Step {
+            Write a strategy for usernames that are too short (under 3 chars).
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s04-too-short.swift")
+         }
+         @Step {
+            Write a strategy for usernames that are too long (over 20 chars).
+            Then write the "invalid always fails" property for both.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s05-too-long.swift")
+         }
+         @Step {
+            Write a strategy for usernames containing disallowed characters.
+            Use `map` to inject a random disallowed character at a random
+            position.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s06-bad-chars.swift")
+         }
+         @Step {
+            Write the final "leading or trailing underscore" invalid case.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s07-leading-underscore.swift")
+         }
+      }
+   }
+
+   @Section(title: "Catching a Validator Bug") {
+      @ContentAndMedia {
+         Introduce a bug where the validator forgets to check for consecutive
+         underscores. The "valid always passes" test continues to pass, but
+         you can add a targeted invalid strategy that catches the gap.
+      }
+      @Steps {
+         @Step {
+            Write a strategy that generates usernames with consecutive
+            underscores, and a property asserting they must fail validation.
+
+            @Code(name: "ValidatorTests.swift", file: "t06-s08-consecutive-underscores.swift")
+         }
+         @Step {
+            Remove the consecutive-underscore check from the validator. Run the
+            tests. The new property immediately finds and reports a counterexample.
+
+            @Code(name: "Terminal", file: "t06-s09-output.txt")
+         }
+      }
+   }
+}

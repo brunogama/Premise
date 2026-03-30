@@ -10,16 +10,25 @@ fail() {
   exit 1
 }
 
-if rg -n '^import (Testing|XCTest)$' Sources/ConjectureCore Sources/ConjectureStrategies >/dev/null; then
-  fail "test framework imports are not allowed in Sources/ConjectureCore or Sources/ConjectureStrategies"
+if rg -n '^import (Testing|XCTest)$' Sources/PremiseCore Sources/PremiseStrategies >/dev/null; then
+  fail "test framework imports are not allowed in Sources/PremiseCore or Sources/PremiseStrategies"
+fi
+
+# Macro targets must not import test frameworks either.
+if [[ -d Sources/PremiseMacrosPlugin ]] && rg -n '^import (Testing|XCTest)$' Sources/PremiseMacrosPlugin >/dev/null 2>&1; then
+  fail "test framework imports are not allowed in Sources/PremiseMacrosPlugin"
+fi
+if [[ -d Sources/PremiseMacros ]] && rg -n '^import (Testing|XCTest)$' Sources/PremiseMacros >/dev/null 2>&1; then
+  fail "test framework imports are not allowed in Sources/PremiseMacros"
 fi
 
 required_literals=(
-  '.library(name: "ConjectureCore", targets: ["ConjectureCore"])'
-  '.library(name: "ConjectureStrategies", targets: ["ConjectureStrategies"])'
-  '.library(name: "ConjectureDatabase", targets: ["ConjectureDatabase"])'
-  '.library(name: "ConjectureTesting", targets: ["ConjectureTesting"])'
-  '.library(name: "ConjectureXCTest", targets: ["ConjectureXCTest"])'
+  '.library(name: "PremiseCore", targets: ["PremiseCore"])'
+  '.library(name: "PremiseStrategies", targets: ["PremiseStrategies"])'
+  '.library(name: "PremiseDatabase", targets: ["PremiseDatabase"])'
+  '.library(name: "PremiseTesting", targets: ["PremiseTesting"])'
+  '.library(name: "PremiseXCTest", targets: ["PremiseXCTest"])'
+  '.library(name: "PremiseMacros", targets: ["PremiseMacros"])'
 )
 
 for literal in "${required_literals[@]}"; do
@@ -28,20 +37,20 @@ for literal in "${required_literals[@]}"; do
   fi
 done
 
-if ! rg -U 'name: "ConjectureStrategies",[[:space:]\n]+dependencies: \["ConjectureCore"\]' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the ConjectureStrategies -> ConjectureCore dependency edge'
+if ! rg -U 'name: "PremiseStrategies",[[:space:]\n]+dependencies: \["PremiseCore"\]' Package.swift >/dev/null; then
+  fail 'Package.swift is missing the PremiseStrategies -> PremiseCore dependency edge'
 fi
 
-if ! rg -U 'name: "ConjectureDatabase",[[:space:]\n]+dependencies: \["ConjectureCore"\]' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the ConjectureDatabase -> ConjectureCore dependency edge'
+if ! rg -U 'name: "PremiseDatabase",[[:space:]\n]+dependencies: \["PremiseCore"\]' Package.swift >/dev/null; then
+  fail 'Package.swift is missing the PremiseDatabase -> PremiseCore dependency edge'
 fi
 
-if ! rg -U 'name: "ConjectureTesting",[[:space:]\n]+dependencies: \[[^]]*"ConjectureCore"[^]]*"ConjectureStrategies"[^]]*"ConjectureDatabase"' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the ConjectureTesting dependency set'
+if ! rg -U 'name: "PremiseTesting",[[:space:]\n]+dependencies: \[[^]]*"PremiseCore"[^]]*"PremiseStrategies"[^]]*"PremiseDatabase"' Package.swift >/dev/null; then
+  fail 'Package.swift is missing the PremiseTesting dependency set'
 fi
 
-if ! rg -U 'name: "ConjectureXCTest",[[:space:]\n]+dependencies: \[[^]]*"ConjectureCore"[^]]*"ConjectureStrategies"[^]]*"ConjectureDatabase"' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the ConjectureXCTest dependency set'
+if ! rg -U 'name: "PremiseXCTest",[[:space:]\n]+dependencies: \[[^]]*"PremiseCore"[^]]*"PremiseStrategies"[^]]*"PremiseDatabase"' Package.swift >/dev/null; then
+  fail 'Package.swift is missing the PremiseXCTest dependency set'
 fi
 
 printf 'boundary validation passed\n'

@@ -1,12 +1,12 @@
 # Technology Stack
 
-**Project:** Conjecture
+**Project:** Premise
 **Researched:** 2026-03-30
 **Scope:** Stack-only research for a Swift-native property-based testing framework with fixed ARD constraints
 
 ## Recommendation
 
-Build Conjecture as a pure Swift Package Manager package with `// swift-tools-version: 6.1` and `swiftLanguageModes: [.v6]`. Keep `ConjectureCore` and `ConjectureStrategies` free of test framework and persistence-framework imports, ship thin test-only adapters for `Testing` and XCTest, use Foundation-only file persistence in v1, and add SQLite in v2 behind a dedicated storage boundary instead of letting a database abstraction leak into the engine.
+Build Premise as a pure Swift Package Manager package with `// swift-tools-version: 6.1` and `swiftLanguageModes: [.v6]`. Keep `PremiseCore` and `PremiseStrategies` free of test framework and persistence-framework imports, ship thin test-only adapters for `Testing` and XCTest, use Foundation-only file persistence in v1, and add SQLite in v2 behind a dedicated storage boundary instead of letting a database abstraction leak into the engine.
 
 Use official SwiftPM package traits for the optional coverage-guided and SMT-backed add-ons. Traits are additive by design in SwiftPM 6.1+, which matches the ARD requirement that v2 and later extensions must not remove or alter the v1 API surface.
 
@@ -25,13 +25,13 @@ Use official SwiftPM package traits for the optional coverage-guided and SMT-bac
 
 | Target | Dependencies | Purpose | Why This Shape | Confidence |
 |--------|--------------|---------|----------------|------------|
-| `ConjectureCore` | none | Engine, trace model, shrinking, replay, protocol-witness execution | Keeps the hot path isolated from persistence, test runners, and optional extensions. | HIGH |
-| `ConjectureStrategies` | `ConjectureCore` | Built-in strategy witnesses and combinators | Lets users depend on strategies without importing test adapters or persistence backends. | HIGH |
-| `ConjectureDatabase` | `ConjectureCore`, Foundation; v2 may add SQLite backend target | Failure storage protocols plus concrete stores | Persistence is important, but it is still infrastructure, not engine logic. Keep it on its own boundary. | HIGH |
-| `ConjectureTesting` | `ConjectureCore`, `ConjectureStrategies`, optional `ConjectureDatabase` | Swift Testing adapter | SwiftPM target docs explicitly allow test libraries, but warn that `Testing`-using targets should terminate in test contexts only. | HIGH |
-| `ConjectureXCTest` | `ConjectureCore`, `ConjectureStrategies`, optional `ConjectureDatabase` | XCTest adapter | Same boundary rule as `ConjectureTesting`, but preserves XCTest compatibility and performance tooling. | HIGH |
-| `ConjectureCoverageGuided` | `ConjectureCore`; optional low-level instrumentation helper target | Opt-in coverage-guided exploration | Keeps instrumentation, unsafe flags, and experimental compiler hooks out of the default build. | MEDIUM |
-| `ConjectureSMT` | `ConjectureCore`; solver dependency only when trait-enabled | Opt-in solver-backed provider | Preserves the engine boundary and avoids forcing a solver stack on default users. | MEDIUM |
+| `PremiseCore` | none | Engine, trace model, shrinking, replay, protocol-witness execution | Keeps the hot path isolated from persistence, test runners, and optional extensions. | HIGH |
+| `PremiseStrategies` | `PremiseCore` | Built-in strategy witnesses and combinators | Lets users depend on strategies without importing test adapters or persistence backends. | HIGH |
+| `PremiseDatabase` | `PremiseCore`, Foundation; v2 may add SQLite backend target | Failure storage protocols plus concrete stores | Persistence is important, but it is still infrastructure, not engine logic. Keep it on its own boundary. | HIGH |
+| `PremiseTesting` | `PremiseCore`, `PremiseStrategies`, optional `PremiseDatabase` | Swift Testing adapter | SwiftPM target docs explicitly allow test libraries, but warn that `Testing`-using targets should terminate in test contexts only. | HIGH |
+| `PremiseXCTest` | `PremiseCore`, `PremiseStrategies`, optional `PremiseDatabase` | XCTest adapter | Same boundary rule as `PremiseTesting`, but preserves XCTest compatibility and performance tooling. | HIGH |
+| `PremiseCoverageGuided` | `PremiseCore`; optional low-level instrumentation helper target | Opt-in coverage-guided exploration | Keeps instrumentation, unsafe flags, and experimental compiler hooks out of the default build. | MEDIUM |
+| `PremiseSMT` | `PremiseCore`; solver dependency only when trait-enabled | Opt-in solver-backed provider | Preserves the engine boundary and avoids forcing a solver stack on default users. | MEDIUM |
 
 ### Testing Stack
 
@@ -47,7 +47,7 @@ Use official SwiftPM package traits for the optional coverage-guided and SMT-bac
 |-------|------------|---------|---------|-----|------------|
 | v1 local store | Foundation `Codable` + `JSONEncoder` / `JSONDecoder` + `Data.write` + `FileManager` | toolchain / SDK | File-backed failure persistence | Zero extra dependencies, easy versioned record formats, portable, and fully adequate for v1. | HIGH |
 | v2 SQLite backend | SQLite C API behind a SwiftPM `systemLibrary` target such as `CSQLite` | recommend SQLite `3.51.3+` or a documented backport containing the 2026 WAL-reset fix | SQLite WAL failure store | Minimal dependency surface, explicit control over WAL pragmas and checkpointing, and better fit than an app-centric ORM/query DSL for a narrow framework backend. | MEDIUM |
-| Alternative v2 backend if the storage layer grows | `GRDB.swift` | `7.10.0` current release in upstream README | Higher-level SQLite toolkit | Use only if `ConjectureDatabase` grows into a richer query, migration, or observation layer. GRDB is mature and concurrency-aware, but it is more library than this framework likely needs. | MEDIUM |
+| Alternative v2 backend if the storage layer grows | `GRDB.swift` | `7.10.0` current release in upstream README | Higher-level SQLite toolkit | Use only if `PremiseDatabase` grows into a richer query, migration, or observation layer. GRDB is mature and concurrency-aware, but it is more library than this framework likely needs. | MEDIUM |
 
 ### Docs and Build Tooling
 
@@ -106,23 +106,23 @@ Use official SwiftPM package traits for the optional coverage-guided and SMT-bac
 ```text
 Package.swift
 Sources/
-  ConjectureCore/
-  ConjectureStrategies/
-  ConjectureDatabase/
+  PremiseCore/
+  PremiseStrategies/
+  PremiseDatabase/
     FileStore/              # v1 Foundation-backed persistence
     SQLiteStore/            # v2 only, behind a dedicated storage boundary
-  ConjectureTesting/        # import Testing; test-only adapter
-  ConjectureXCTest/         # import XCTest; test-only adapter
-  ConjectureCoverageGuided/ # optional, trait-gated
-  ConjectureSMT/            # optional, trait-gated
+  PremiseTesting/        # import Testing; test-only adapter
+  PremiseXCTest/         # import XCTest; test-only adapter
+  PremiseCoverageGuided/ # optional, trait-gated
+  PremiseSMT/            # optional, trait-gated
   CSQLite/                  # system library target when SQLite lands
 Tests/
-  ConjectureCoreTests/
-  ConjectureStrategiesTests/
-  ConjectureDatabaseTests/
-  ConjectureTestingIntegrationTests/
-  ConjectureXCTestIntegrationTests/
-  ConjecturePerformanceTests/   # XCTest measure-based
+  PremiseCoreTests/
+  PremiseStrategiesTests/
+  PremiseDatabaseTests/
+  PremiseTestingIntegrationTests/
+  PremiseXCTestIntegrationTests/
+  PremisePerformanceTests/   # XCTest measure-based
 Documentation.docc/
 Plugins/                        # only if you add package-local plugins later
 ```
@@ -133,7 +133,7 @@ Plugins/                        # only if you add package-local plugins later
 2. Keep XCTest for adapter compatibility tests and performance measurements.
 3. Use parameterized tests heavily for generator distributions, replay cases, and shrink oracles.
 4. Use serialization traits or separate test targets for anything that touches shared files or global process state.
-5. Keep adapter tests above the engine boundary. `ConjectureCore` must be test-framework-agnostic.
+5. Keep adapter tests above the engine boundary. `PremiseCore` must be test-framework-agnostic.
 
 ## Persistence Approach
 
@@ -149,14 +149,14 @@ Plugins/                        # only if you add package-local plugins later
 - Prefer a narrow SQLite wrapper over a general-purpose ORM as the default backend.
 - Turn on WAL explicitly, and own your checkpoint policy.
 - Gate WAL use on the actual SQLite version in the process, because SQLite documented a WAL-reset bug fixed on 2026-03-13 in `3.51.3`, with backports to `3.50.7` and `3.44.6`.
-- If the database layer starts needing migrations, query composition, observation, or richer error surface area, reevaluate GRDB as an additive dependency inside `ConjectureDatabase`, not in core.
+- If the database layer starts needing migrations, query composition, observation, or richer error surface area, reevaluate GRDB as an additive dependency inside `PremiseDatabase`, not in core.
 
 ## What Not To Use
 
 | Category | Do Not Use | Why | Use Instead |
 |----------|------------|-----|-------------|
 | Package source of truth | Xcode project files, CocoaPods, Carthage | The framework is package-first and must remain SwiftPM-native. Extra package managers add no value here. | SwiftPM only |
-| Core target dependencies | `Testing` or XCTest in `ConjectureCore` or `ConjectureStrategies` | SwiftPM warns testing libraries should only terminate in test contexts, and the ARD requires core isolation. | Thin adapter targets only |
+| Core target dependencies | `Testing` or XCTest in `PremiseCore` or `PremiseStrategies` | SwiftPM warns testing libraries should only terminate in test contexts, and the ARD requires core isolation. | Thin adapter targets only |
 | v1 persistence | GRDB or SQLite.swift in the initial release | v1 only needs deterministic local failure storage. A database dependency is premature. | Foundation-only file store |
 | Default v2 SQLite abstraction | SQLite.swift | Nice query DSL, but it does not buy much for a narrow failure store and does not offer a stronger concurrency story than a direct backend or GRDB. | Raw SQLite wrapper first; GRDB only if the storage layer grows |
 | Documentation stack | Jazzy as the primary docs path | DocC is the official Swift documentation system and integrates directly with SwiftPM. | DocC + `swift-docc-plugin` |
@@ -171,7 +171,7 @@ Plugins/                        # only if you add package-local plugins later
 import PackageDescription
 
 let package = Package(
-    name: "Conjecture",
+    name: "Premise",
     platforms: [
         .macOS(.v13),
         .iOS(.v16),
@@ -180,11 +180,11 @@ let package = Package(
         .visionOS(.v1),
     ],
     products: [
-        .library(name: "ConjectureCore", targets: ["ConjectureCore"]),
-        .library(name: "ConjectureStrategies", targets: ["ConjectureStrategies"]),
-        .library(name: "ConjectureDatabase", targets: ["ConjectureDatabase"]),
-        .library(name: "ConjectureTesting", targets: ["ConjectureTesting"]),
-        .library(name: "ConjectureXCTest", targets: ["ConjectureXCTest"]),
+        .library(name: "PremiseCore", targets: ["PremiseCore"]),
+        .library(name: "PremiseStrategies", targets: ["PremiseStrategies"]),
+        .library(name: "PremiseDatabase", targets: ["PremiseDatabase"]),
+        .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
+        .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     ],
     traits: [
         .trait(name: "CoverageGuided"),
@@ -195,16 +195,16 @@ let package = Package(
     ],
     swiftLanguageModes: [.v6],
     targets: [
-        .target(name: "ConjectureCore"),
-        .target(name: "ConjectureStrategies", dependencies: ["ConjectureCore"]),
-        .target(name: "ConjectureDatabase", dependencies: ["ConjectureCore"]),
-        .target(name: "ConjectureTesting", dependencies: [
-            "ConjectureCore", "ConjectureStrategies", "ConjectureDatabase",
+        .target(name: "PremiseCore"),
+        .target(name: "PremiseStrategies", dependencies: ["PremiseCore"]),
+        .target(name: "PremiseDatabase", dependencies: ["PremiseCore"]),
+        .target(name: "PremiseTesting", dependencies: [
+            "PremiseCore", "PremiseStrategies", "PremiseDatabase",
         ]),
-        .target(name: "ConjectureXCTest", dependencies: [
-            "ConjectureCore", "ConjectureStrategies", "ConjectureDatabase",
+        .target(name: "PremiseXCTest", dependencies: [
+            "PremiseCore", "PremiseStrategies", "PremiseDatabase",
         ]),
-        .testTarget(name: "ConjectureCoreTests", dependencies: ["ConjectureCore"]),
+        .testTarget(name: "PremiseCoreTests", dependencies: ["PremiseCore"]),
     ]
 )
 ```
@@ -215,7 +215,7 @@ let package = Package(
 swift build -Xswiftc -warnings-as-errors
 swift test
 swift package --allow-writing-to-directory ./docs generate-documentation \
-  --target ConjectureCore --output-path ./docs
+  --target PremiseCore --output-path ./docs
 ```
 
 ### SQLite when v2 lands

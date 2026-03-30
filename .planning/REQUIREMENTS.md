@@ -1,139 +1,106 @@
-# Requirements: Conjecture
+# Requirements: Premise v1.1
 
 **Defined:** 2026-03-30
 **Core Value:** Swift developers can write property tests that automatically produce minimal, replayable failures while the core engine stays fast, deterministic, and strict-concurrency-safe.
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Core Engine
+### Trace Format
 
-- [x] **CORE-01**: Test authors can run properties through an engine-first
-      choice-trace model that records every generation decision needed for
-      replay and shrinking.
-- [ ] **CORE-02**: A failing property can be replayed deterministically from a
-      recorded trace and reproduce the same counterexample.
-- [ ] **CORE-03**: A failing property is shrunk structurally at the trace/span
-      level until Conjecture finds a smaller still-failing counterexample or
-      reaches the configured shrink limit.
-- [ ] **CORE-04**: `ConjectureCore` compiles under Swift 6 strict concurrency
-      without importing `swift-testing` or XCTest.
-- [ ] **CORE-05**: Strategy and provider execution in the hot path preserves
-      protocol-witness dispatch rather than existential storage.
+- [ ] **TRAC-01**: The engine persists and replays traces using a compact binary
+      CBOR format with a 4-byte magic header and 2-byte version field per the ARD
+      specification.
+- [ ] **TRAC-02**: The engine rejects traces with unsupported version bytes by
+      throwing a typed `TraceError.unsupportedVersion` error rather than
+      silently misreading.
+- [ ] **TRAC-03**: V1.0 JSON-encoded traces can be migrated to the binary format
+      through an explicit conversion path.
 
-### Strategies
+### Engine Internals
 
-- [ ] **STRA-01**: Test authors can generate bounded integers, booleans,
-      floating-point values, bytes, strings, optionals, and collections using
-      built-in strategies.
-- [ ] **STRA-02**: Test authors can compose strategies with `map`, `flatMap`,
-      `filter`, `oneOf`, `frequency`, and recursive composition helpers.
-- [ ] **STRA-03**: Built-in strategies include deterministic edge-case-aware
-      generation for boundaries such as zero, empty values, and range limits.
-- [ ] **STRA-04**: Test authors can define custom strategy witnesses without
-      coupling custom generators to adapter-specific APIs.
+- [ ] **ENGI-01**: The PRNG uses the SplitMix64 algorithm with the exact
+      multiply/XOR-shift sequence specified in the ARD.
+- [ ] **ENGI-02**: The span stack uses a fixed-capacity tuple (zero heap
+      allocation) rather than an array, matching the ARD's SpanStack design.
+- [ ] **ENGI-03**: RunResult distinguishes between `.newFailure` (first discovery)
+      and `.knownFailure` (replay of persisted trace) so adapters can report
+      them differently.
+- [ ] **ENGI-04**: Debug builds include a SpanValidator that asserts balanced
+      span push/pop after every draw, plus round-trip trace serialization
+      verification.
 
-### Persistence And Replay
+### Coverage Integration
 
-- [x] **PERS-01**: Conjecture persists failing examples locally through a
-      file-backed database in v1.
-- [x] **PERS-02**: Conjecture replays persisted failures for a property before
-      generating fresh examples for that property.
-- [x] **PERS-03**: Failure artifacts use an explicit, versioned trace and
-      failure-record format that can be validated on load.
-- [x] **PERS-04**: Conjecture rejects unsupported future trace versions
-      explicitly instead of silently misreading them.
+- [ ] **COVR-02**: The coverage-guided provider integrates with LLVM
+      SanitizerCoverage via a C shim that reads `__sanitizer_cov_pcs_init` edge
+      data at runtime.
+- [ ] **COVR-03**: The coverage-guided provider falls back to standard PRNG when
+      SanitizerCoverage instrumentation is not available.
 
-### Adapters And Authoring
+### Tooling
 
-- [x] **ADPT-01**: Swift developers can author properties through a
-      `swift-testing` adapter using `forAll`.
-- [x] **ADPT-02**: Swift developers can author properties through an XCTest
-      adapter using `conjecture_forAll`.
-- [x] **ADPT-03**: Property authors can configure per-property execution knobs
-      such as run count, shrink limit, draw budget, replay behavior, and seed.
-- [x] **ADPT-04**: Failure output includes the minimal example, run/shrink
-      counts, and replay instructions.
-- [x] **ADPT-05**: Property authoring works naturally with async/throws test
-      code under Swift 6 strict concurrency.
+- [ ] **TOOL-01**: A `ConjReplay` SwiftPM command plugin allows replaying a
+      stored trace from the command line without writing a test.
+- [ ] **TOOL-02**: The runner supports structured JSON-Lines output mode for CI
+      pipeline consumption alongside the default human-readable format.
+- [ ] **TOOL-03**: A build plugin fails the build if restricted imports (e.g.,
+      `swift-testing` in `PremiseCore`) appear in the wrong target.
 
-### Package And Delivery
+### Telemetry
 
-- [ ] **PACK-01**: Consumers can adopt Conjecture as layered SwiftPM products:
-      `ConjectureCore`, `ConjectureStrategies`, `ConjectureDatabase`,
-      `ConjectureTesting`, and `ConjectureXCTest`.
-- [ ] **PACK-02**: The package enforces a one-way target dependency graph so
-      core, strategy, persistence, and adapter layers do not leak back into
-      each other.
-- [ ] **PACK-03**: The package can be built and tested through `swift build`
-      and `swift test` with warnings treated as errors.
+- [ ] **TELM-02**: Telemetry can be injected via `PropertyConfig.telemetry` so
+      the runner emits events without requiring a separate module import.
 
-## v2 Requirements
+### Documentation
 
-### Storage And Execution
-
-- **SQLI-01**: Users can switch to a SQLite WAL-backed failure store without
-  changing the v1 property authoring APIs.
-- **PARA-01**: Users can run properties in parallel with deterministic seed
-  distribution and a single shared persistence contract.
-- [x] **COVR-01**: Users can opt into coverage-guided exploration through an
-  additive extension target that does not affect the default build.
-- [x] **TELE-01**: Users can attach telemetry hooks to observe run, replay, and
-  shrink events without changing core engine semantics.
-- **SMT-01**: Users can opt into an SMT-backed provider as an extension target
-  rather than a mandatory dependency.
-- **COMP-01**: V2 remains backward-compatible with v1 replay artifacts and
-  public APIs while rejecting incompatible newer trace formats when loaded by
-  older engines.
+- [ ] **DOCS-01**: A Documentation.docc catalog provides structured API reference
+      for all public types across all modules.
+- [ ] **DOCS-02**: A getting-started tutorial walks a new user from package
+      dependency to first passing property test.
+- [ ] **DOCS-03**: A strategy authoring guide explains how to build custom
+      `Strategy<A>` witnesses with composition, shrinking, and spans.
+- [ ] **DOCS-04**: A migration guide explains the v1 file-backed to v2 SQLite
+      upgrade path and trace format evolution.
+- [ ] **DOCS-05**: The README is rewritten with real examples, feature overview,
+      installation instructions, and links to DocC articles.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Remote or network-backed failure storage | The product scope keeps persistence local in v1 and local/SQLite in v2. |
-| Hosted service or SaaS features | Conjecture is a package and local test-time tool, not an online platform. |
-| Stateful/model-based testing DSL in v1 | It would expand the surface area before the single-property engine, replay, and shrinking contracts are proven. |
-| Bespoke assertion language | Swift developers already have `#expect`, `#require`, and XCTest assertions. |
-| Huge domain-specific generator packs in the initial release | A strong core strategies layer and extension points matter more than early breadth. |
-| Default-on coverage instrumentation | SanitizerCoverage remains an additive, toolchain-sensitive v2 capability. |
-| Remote corpus sharing or collaborative databases | That adds auth, sync, and privacy concerns outside the current product scope. |
+| Remote trace storage or sync | Local-first architecture; plugin concern for future milestone |
+| Stateful/model-based testing DSL | Engine and strategy contracts must stabilize first |
+| Performance benchmarking suite | Important but separate milestone concern |
+| Xcode source editor integration | Requires Xcode plugin infrastructure outside package scope |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 2 | Complete |
-| CORE-02 | Phase 2 | Pending |
-| CORE-03 | Phase 2 | Pending |
-| CORE-04 | Phase 1 | Pending |
-| CORE-05 | Phase 1 | Pending |
-| STRA-01 | Phase 2 | Pending |
-| STRA-02 | Phase 2 | Pending |
-| STRA-03 | Phase 2 | Pending |
-| STRA-04 | Phase 2 | Pending |
-| PERS-01 | Phase 3 | Complete |
-| PERS-02 | Phase 3 | Complete |
-| PERS-03 | Phase 3 | Complete |
-| PERS-04 | Phase 3 | Complete |
-| ADPT-01 | Phase 4 | Complete |
-| ADPT-02 | Phase 4 | Complete |
-| ADPT-03 | Phase 4 | Complete |
-| ADPT-04 | Phase 4 | Complete |
-| ADPT-05 | Phase 4 | Complete |
-| PACK-01 | Phase 1 | Pending |
-| PACK-02 | Phase 1 | Pending |
-| PACK-03 | Phase 1 | Pending |
-| SQLI-01 | Phase 5 | Complete |
-| PARA-01 | Phase 6 | Pending |
-| COVR-01 | Phase 6 | Complete |
-| TELE-01 | Phase 6 | Complete |
-| SMT-01 | Phase 6 | Complete |
-| COMP-01 | Phase 5 | Complete |
+| TRAC-01 | Phase 7 | Pending |
+| TRAC-02 | Phase 7 | Pending |
+| TRAC-03 | Phase 7 | Pending |
+| ENGI-01 | Phase 7 | Pending |
+| ENGI-02 | Phase 7 | Pending |
+| ENGI-03 | Phase 7 | Pending |
+| ENGI-04 | Phase 7 | Pending |
+| COVR-02 | Phase 8 | Pending |
+| COVR-03 | Phase 8 | Pending |
+| TOOL-01 | Phase 9 | Pending |
+| TOOL-02 | Phase 9 | Pending |
+| TOOL-03 | Phase 9 | Pending |
+| TELM-02 | Phase 9 | Pending |
+| DOCS-01 | Phase 10 | Pending |
+| DOCS-02 | Phase 10 | Pending |
+| DOCS-03 | Phase 10 | Pending |
+| DOCS-04 | Phase 10 | Pending |
+| DOCS-05 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
-- Mapped to phases: 21
-- Unmapped: 0 ✓
+- v1.1 requirements: 18 total
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 after roadmap creation*

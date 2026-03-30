@@ -1,0 +1,19 @@
+swift test
+Build complete!
+◇ Test sortedOutputIsOrdered() started
+✓ Test sortedOutputIsOrdered() passed (0.048s)   ← the order property PASSES
+
+◇ Test sortedOutputContainsSameElements() started
+✗ Test sortedOutputContainsSameElements() failed
+
+Premise found a counterexample after 7 runs and 9 shrink steps.
+
+  Strategy : arrays(of: integers(in: -500...500), length: 0...30)
+  Value    : [0, 0, 0, 0]
+
+  Failure  : Expectation failed: (array.sorted() == mySort(array))
+             array.sorted() → [0, 0, 0, 0]
+             mySort(array)  → [0, 0, 0]
+
+  Note: the order property passed even though the sort is broken.
+  Testing multiple independent properties catches different bug classes.

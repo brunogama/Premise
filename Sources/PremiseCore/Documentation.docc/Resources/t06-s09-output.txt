@@ -1,0 +1,17 @@
+swift test
+✓ validUsernameAlwaysPasses     passed
+✓ tooShortUsernameAlwaysFails   passed
+✓ tooLongUsernameAlwaysFails    passed
+✓ invalidCharacterAlwaysFails   passed
+✓ leadingUnderscoreAlwaysFails  passed
+✗ consecutiveUnderscoresAlwaysFail FAILED
+
+Premise found a counterexample after 1 run.
+
+  Strategy : map(strings(from:length: 2...16))
+  Value    : "aab__z"
+
+  Failure  : Expected to catch ValidationError.consecutiveUnderscores,
+             but no error was thrown.
+
+  The validator accepted "aab__z" — the consecutive-underscore check is missing.

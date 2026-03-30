@@ -25,18 +25,18 @@ tech-stack:
     - Shared draw API for fresh and replay providers
 key-files:
   created:
-    - Sources/ConjectureCore/ChoiceTrace.swift
-    - Sources/ConjectureCore/ConjectureData.swift
-    - Sources/ConjectureCore/PseudoRandomProvider.swift
-    - Sources/ConjectureCore/ReplayProvider.swift
-    - Tests/ConjectureCoreTests/ChoiceTraceTests.swift
-    - Tests/ConjectureCoreTests/PrimitiveProviderTests.swift
+    - Sources/PremiseCore/ChoiceTrace.swift
+    - Sources/PremiseCore/PremiseData.swift
+    - Sources/PremiseCore/PseudoRandomProvider.swift
+    - Sources/PremiseCore/ReplayProvider.swift
+    - Tests/PremiseCoreTests/ChoiceTraceTests.swift
+    - Tests/PremiseCoreTests/PrimitiveProviderTests.swift
   modified:
-    - Sources/ConjectureCore/PrimitiveProvider.swift
-    - Sources/ConjectureCore/ConjectureCore.swift
+    - Sources/PremiseCore/PrimitiveProvider.swift
+    - Sources/PremiseCore/PremiseCore.swift
 key-decisions:
   - "Recorded raw draw values in the trace so replay and later shrinking can operate on stable provider outputs rather than reconstructed semantic values."
-  - "Kept ConjectureData copyable via a provider box so trace-aware generation remains deterministic without forcing reference semantics into the public API."
+  - "Kept PremiseData copyable via a provider box so trace-aware generation remains deterministic without forcing reference semantics into the public API."
 patterns-established:
   - "Every draw in the engine hot path leaves an explicit trace entry."
   - "Fresh generation and replay generation share the same draw surface."
@@ -59,7 +59,7 @@ completed: 2026-03-30
 - **Files modified:** 6
 
 ## Accomplishments
-- Added `ChoiceTrace` and trace-aware `ConjectureData` so every draw can be replayed deterministically.
+- Added `ChoiceTrace` and trace-aware `PremiseData` so every draw can be replayed deterministically.
 - Implemented deterministic fresh and replay providers with the same provider contract.
 - Added determinism tests for trace recording, Codable round-trips, and replay behavior.
 
@@ -71,12 +71,12 @@ Implemented in the working tree during Phase 2 execution.
 2. **Task 2: Add fresh and replay providers with determinism tests** - working tree changes
 
 ## Files Created/Modified
-- `Sources/ConjectureCore/ChoiceTrace.swift` - Trace entries and span metadata.
-- `Sources/ConjectureCore/ConjectureData.swift` - Mutable draw state and trace recording.
-- `Sources/ConjectureCore/PseudoRandomProvider.swift` - Deterministic fresh provider.
-- `Sources/ConjectureCore/ReplayProvider.swift` - Trace-backed replay provider.
-- `Tests/ConjectureCoreTests/ChoiceTraceTests.swift` - Trace round-trip coverage.
-- `Tests/ConjectureCoreTests/PrimitiveProviderTests.swift` - Seed and replay determinism tests.
+- `Sources/PremiseCore/ChoiceTrace.swift` - Trace entries and span metadata.
+- `Sources/PremiseCore/PremiseData.swift` - Mutable draw state and trace recording.
+- `Sources/PremiseCore/PseudoRandomProvider.swift` - Deterministic fresh provider.
+- `Sources/PremiseCore/ReplayProvider.swift` - Trace-backed replay provider.
+- `Tests/PremiseCoreTests/ChoiceTraceTests.swift` - Trace round-trip coverage.
+- `Tests/PremiseCoreTests/PrimitiveProviderTests.swift` - Seed and replay determinism tests.
 
 ## Decisions Made
 - Stored raw provider draws in the trace so the shrinker can replay and mutate candidates without inventing unrelated values.

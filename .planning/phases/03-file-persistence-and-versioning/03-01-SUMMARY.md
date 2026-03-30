@@ -19,12 +19,12 @@ tech-stack:
 
 key-files:
   created:
-    - Sources/ConjectureDatabase/PersistenceFormats.swift
-    - Sources/ConjectureDatabase/PersistenceCompatibility.swift
-    - Sources/ConjectureDatabase/PersistenceCodec.swift
-    - Tests/ConjectureDatabaseTests/PersistenceFormatCompatibilityTests.swift
+    - Sources/PremiseDatabase/PersistenceFormats.swift
+    - Sources/PremiseDatabase/PersistenceCompatibility.swift
+    - Sources/PremiseDatabase/PersistenceCodec.swift
+    - Tests/PremiseDatabaseTests/PersistenceFormatCompatibilityTests.swift
   modified:
-    - Sources/ConjectureCore/ConjectureCore.swift
+    - Sources/PremiseCore/PremiseCore.swift
     - Package.swift
 
 key-decisions:
@@ -68,12 +68,12 @@ Each task was committed atomically:
 2. **Task 2: Add compatibility tests for versioned decode behavior** - `190bd8c` (test)
 
 ## Files Created/Modified
-- `Sources/ConjectureDatabase/PersistenceFormats.swift` - PersistedFailureRecordV1 versioned envelope DTO
-- `Sources/ConjectureDatabase/PersistenceCompatibility.swift` - PersistenceCompatibilityError and PersistenceVersionPolicy
-- `Sources/ConjectureDatabase/PersistenceCodec.swift` - Bidirectional codec with version validation
-- `Tests/ConjectureDatabaseTests/PersistenceFormatCompatibilityTests.swift` - Round-trip and version rejection tests
-- `Sources/ConjectureCore/ConjectureCore.swift` - Removed duplicate Phase 1 placeholder types
-- `Package.swift` - Added ConjectureCore dependency to ConjectureDatabaseTests target
+- `Sources/PremiseDatabase/PersistenceFormats.swift` - PersistedFailureRecordV1 versioned envelope DTO
+- `Sources/PremiseDatabase/PersistenceCompatibility.swift` - PersistenceCompatibilityError and PersistenceVersionPolicy
+- `Sources/PremiseDatabase/PersistenceCodec.swift` - Bidirectional codec with version validation
+- `Tests/PremiseDatabaseTests/PersistenceFormatCompatibilityTests.swift` - Round-trip and version rejection tests
+- `Sources/PremiseCore/PremiseCore.swift` - Removed duplicate Phase 1 placeholder types
+- `Package.swift` - Added PremiseCore dependency to PremiseDatabaseTests target
 
 ## Decisions Made
 - Version policy uses ClosedRange<Int> to allow multi-version support when v2 formats arrive
@@ -83,12 +83,12 @@ Each task was committed atomically:
 
 ### Auto-fixed Issues
 
-**1. [Rule 3 - Blocking] Removed duplicate type definitions in ConjectureCore.swift**
+**1. [Rule 3 - Blocking] Removed duplicate type definitions in PremiseCore.swift**
 - **Found during:** Task 1 (build verification)
-- **Issue:** ConjectureCore.swift contained Phase 1 placeholder definitions of ChoiceTrace, ConjectureData, and FailureRecord that conflicted with the evolved separate files from Phase 2
-- **Fix:** Replaced the old placeholder content with the evolved FailureRecord (with runCount, shrinkCount, timestamp, engineVersion fields) and removed duplicate ChoiceTrace and ConjectureData
-- **Files modified:** Sources/ConjectureCore/ConjectureCore.swift
-- **Verification:** swift build --target ConjectureDatabase passes with zero warnings
+- **Issue:** PremiseCore.swift contained Phase 1 placeholder definitions of ChoiceTrace, PremiseData, and FailureRecord that conflicted with the evolved separate files from Phase 2
+- **Fix:** Replaced the old placeholder content with the evolved FailureRecord (with runCount, shrinkCount, timestamp, engineVersion fields) and removed duplicate ChoiceTrace and PremiseData
+- **Files modified:** Sources/PremiseCore/PremiseCore.swift
+- **Verification:** swift build --target PremiseDatabase passes with zero warnings
 - **Committed in:** b2af5c7 (Task 1 commit)
 
 ---

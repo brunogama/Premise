@@ -1,0 +1,99 @@
+@Tutorial(time: 15) {
+   @Intro(title: "Testing Numeric Invariants") {
+      Mathematical laws — commutativity, associativity, identity elements —
+      make excellent properties. They're universally quantified statements
+      about your code that hold for any valid input.
+   }
+
+   @Section(title: "Algebraic Laws as Properties") {
+      @ContentAndMedia {
+         Many operations obey mathematical laws you learned in school.
+         These laws can be translated directly into property tests:
+
+         - **Commutativity**: `a ⊕ b == b ⊕ a`
+         - **Associativity**: `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)`
+         - **Identity**: `a ⊕ identity == a`
+         - **Idempotence**: `f(f(x)) == f(x)`
+
+         If your function claims to implement one of these operations, you can
+         verify it holds for all generated inputs — not just the examples you
+         thought of.
+      }
+      @Steps {
+         @Step {
+            Start with a custom `Money` type that wraps an integer cent amount.
+            It has an `add` operation you want to verify.
+
+            @Code(name: "MoneyTests.swift", file: "t05-s01-money-type.swift")
+         }
+      }
+   }
+
+   @Section(title: "Commutativity") {
+      @ContentAndMedia {
+         Commutativity means the order of operands doesn't matter:
+         `add(a, b) == add(b, a)`. This is the easiest law to verify and
+         catches many ordering bugs.
+      }
+      @Steps {
+         @Step {
+            Write a strategy for `Money` values, then verify commutativity
+            for the `add` operation.
+
+            @Code(name: "MoneyTests.swift", file: "t05-s02-commutativity.swift")
+         }
+      }
+   }
+
+   @Section(title: "Associativity") {
+      @ContentAndMedia {
+         Associativity means grouping doesn't matter:
+         `add(add(a,b), c) == add(a, add(b,c))`. This is crucial for operations
+         used in fold/reduce pipelines, where the grouping of operations varies.
+      }
+      @Steps {
+         @Step {
+            Write the associativity property. Three independent `Money` values
+            are generated using a tuple-like approach with `flatMap`.
+
+            @Code(name: "MoneyTests.swift", file: "t05-s03-associativity.swift")
+         }
+      }
+   }
+
+   @Section(title: "Identity Element") {
+      @ContentAndMedia {
+         An identity element leaves any value unchanged when combined with it.
+         For addition the identity is 0; for multiplication it's 1.
+      }
+      @Steps {
+         @Step {
+            Verify that `Money.zero` is an identity element for `add`.
+
+            @Code(name: "MoneyTests.swift", file: "t05-s04-identity.swift")
+         }
+      }
+   }
+
+   @Section(title: "Catching a Bug") {
+      @ContentAndMedia {
+         Introduce an overflow bug in the `add` operation. The commutativity
+         property still passes, but the associativity property finds an input
+         where grouping order produces different overflow truncation.
+      }
+      @Steps {
+         @Step {
+            Introduce a buggy `add` that silently overflows for large values.
+
+            @Code(name: "MoneyTests.swift", file: "t05-s05-buggy-add.swift")
+         }
+         @Step {
+            Run the properties. Associativity fails; commutativity and identity
+            still pass. The counterexample shows the exact three values where
+            grouping order affects the overflow.
+
+            @Code(name: "Terminal", file: "t05-s06-output.txt")
+         }
+      }
+   }
+}

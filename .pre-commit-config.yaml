@@ -1,0 +1,96 @@
+# Pre-commit hooks configuration
+# Install with: pip install pre-commit && pre-commit install
+
+default_install_hook_types: [ pre-commit, commit-msg ]
+default_stages: [ pre-commit ]
+
+repos:
+- repo: local
+  hooks:
+  - id: swift-beautifier
+    name: ✨ Formatting Swift code...
+    entry: swift-format -i --configuration .swift-format
+    language: system
+    files: \.swift$
+    exclude: ^Tests/.*/Resources/
+    pass_filenames: true
+
+  - id: swift-sheriff
+    name: 🤠 Linting Swift code...
+    entry: bash -c 'swiftlint lint --fix "$@" && swiftlint lint --strict "$@"' --
+    language: system
+    files: \.swift$
+    exclude: ^Tests/.*/Resources/
+    pass_filenames: true
+
+  - id: branch-guardian
+    name: 🚫 Checking branch protection...
+    entry: bash -c 'BRANCH=$(git rev-parse --abbrev-ref HEAD); if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then echo "🛑 Direct commits to $BRANCH branch are not allowed! Use feature branches and PRs instead 🚀"; exit 1; fi'
+    language: system
+    pass_filenames: false
+    always_run: true
+
+  - id: license-year-updater
+    name: 📅 Updating LICENSE year...
+    entry: bash -c 'if [ -f "LICENSE" ]; then CURRENT_YEAR=$(date +"%Y"); sed -i "" "s/Copyright (c) [0-9]\\{4\\}/Copyright (c) $CURRENT_YEAR/" LICENSE; fi'
+    language: system
+    files: ^LICENSE$
+    pass_filenames: false
+    always_run: true
+
+  - id: prevent-swift-disabled-files
+    name: 🚫 Preventing .swift.disabled files from being committed...
+    entry: bash -c 'if git diff --cached --name-only | grep -q "\.swift\.disabled$"; then echo "🛑 .swift.disabled files are temporary disabled test files and should not be committed!"; echo "Please remove or rename these files before committing:"; git diff --cached --name-only | grep "\.swift\.disabled$"; exit 1; fi'
+    language: system
+    pass_filenames: false
+    always_run: true
+
+  - id: protect-essential-files
+    name: 🛡️ Protecting essential files from deletion...
+    entry: bash -c 'PROTECTED_FILES=("AGENTS.md" "CLAUDE.md" "CODE_OF_CONDUCT.md" "CONTRIBUTING.md" "Dangerfile.swift" "LICENSE" "RELEASING.md" "RULES.md" "SECURITY.md" "WORKFLOW.md" "spi.yml" ".swiftlint.yml" ".swift-format" ".pre-commit-config.yaml" ".periphery.yml" ".mcp.json" ".gitmessage" ".gitignore" ".coderabbit.yaml" ".bead-config.yaml"); for file in "${PROTECTED_FILES[@]}"; do if git diff --cached --name-status | grep -q "^D.*$file$"; then echo "🛑 Essential file $file cannot be removed!"; echo "This file is protected and must remain in the repository."; exit 1; fi; done'
+    language: system
+    pass_filenames: false
+    always_run: true
+
+  - id: shellcheck-scripts
+    name: 🐚 Checking shell scripts with ShellCheck...
+    entry: shellcheck
+    language: system
+    files: \.(sh|bash)$
+    pass_filenames: true
+
+  - id: makefile-check
+    name: 🔨 Checking Makefiles...
+    entry: bash -c 'for file in "$@"; do echo "Checking $file..."; if ! make -n -f "$file" >/dev/null 2>&1; then echo "❌ Makefile $file has syntax errors"; exit 1; fi; done'
+    language: system
+    files: ^(Makefile|.*\.mk)$
+    pass_filenames: true
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: trailing-whitespace
+    name: 🧹 Removing trailing whitespace...
+    exclude: \.md$
+  - id: end-of-file-fixer
+    name: 📝 Adding final newlines...
+  - id: check-yaml
+    name: 🔍 Checking YAML syntax...
+  - id: check-added-large-files
+    name: 📏 Checking file sizes...
+    args: [ '--maxkb=1000' ]
+  - id: check-merge-conflict
+    name: ⚔️ Checking for merge conflicts...
+  - id: check-case-conflict
+    name: 🔤 Checking filename case conflicts...
+  - id: mixed-line-ending
+    name: 📐 Fixing line endings...
+    args: [ '--fix=lf' ]
+
+# Global configuration
+fail_fast: true
+default_language_version:
+  swift: "6.0"
+
+# Hook execution order optimization
+minimum_pre_commit_version: 3.0.0

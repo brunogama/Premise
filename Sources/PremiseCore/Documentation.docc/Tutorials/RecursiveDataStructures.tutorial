@@ -1,0 +1,112 @@
+@Tutorial(time: 25) {
+   @Intro(title: "Generating Recursive Data Structures") {
+      Trees, JSON, abstract syntax trees, and nested configurations are all
+      recursive by nature. Premise's `recursive` combinator generates them
+      correctly — controlling depth, balancing leaves and branches, and
+      keeping the engine from generating infinitely deep structures.
+   }
+
+   @Section(title: "The Challenge with Recursive Types") {
+      @ContentAndMedia {
+         A naïve recursive strategy would call itself indefinitely. The
+         `recursive` combinator solves this by separating the generation into
+         two strategies: a leaf strategy for the base case, and a branch
+         strategy that takes a smaller version of the whole strategy.
+
+         `RecursiveStrategyConfig` controls the balance:
+         - `depth` caps the maximum nesting level
+         - `desiredSize` is the weight of the leaf strategy at each level
+         - `expectedBranchSize` is the weight of the branch strategy
+
+         Higher leaf weight → shallower structures on average.
+         Higher branch weight → deeper structures.
+      }
+      @Steps {
+         @Step {
+            Define a binary expression tree. The `indirect` keyword is needed
+            because the enum references itself.
+
+            @Code(name: "TreeTests.swift", file: "t09-s01-tree-type.swift")
+         }
+      }
+   }
+
+   @Section(title: "Building the Strategy") {
+      @ContentAndMedia {
+         The `recursive` combinator takes a leaf strategy and a closure that
+         accepts a strategy for a one-level-smaller tree and returns a strategy
+         for a one-level-bigger tree.
+      }
+      @Steps {
+         @Step {
+            Write the leaf strategy — a `Strategy<Expr>` that generates
+            only `.num` values.
+
+            @Code(name: "TreeTests.swift", file: "t09-s02-leaf.swift")
+         }
+         @Step {
+            Write the full recursive strategy. The `build` closure receives
+            a `smaller` strategy and uses it to generate the children
+            of `.add` and `.mul` nodes.
+
+            @Code(name: "TreeTests.swift", file: "t09-s03-recursive.swift")
+         }
+         @Step {
+            Experiment with the config values. Increasing `depth` allows deeper
+            trees but makes generation slower. Increasing `desiredSize` relative
+            to `expectedBranchSize` produces shallower trees with more leaves.
+
+            @Code(name: "TreeTests.swift", file: "t09-s04-config.swift")
+         }
+      }
+   }
+
+   @Section(title: "Properties of the Expression Tree") {
+      @ContentAndMedia {
+         Write properties that verify the expression evaluator. A correct
+         evaluator must satisfy the algebraic laws that define addition and
+         multiplication.
+      }
+      @Steps {
+         @Step {
+            Write an evaluator function for the expression tree.
+
+            @Code(name: "TreeTests.swift", file: "t09-s05-evaluator.swift")
+         }
+         @Step {
+            Write a property that verifies the commutativity of addition:
+            swapping left and right operands of `.add` must produce the same
+            value.
+
+            @Code(name: "TreeTests.swift", file: "t09-s06-commutativity-property.swift")
+         }
+         @Step {
+            Write a property that verifies the distributive law:
+            `a * (b + c) == a*b + a*c`. Use `flatMap` to generate the three
+            sub-expressions.
+
+            @Code(name: "TreeTests.swift", file: "t09-s07-distributive-property.swift")
+         }
+      }
+   }
+
+   @Section(title: "JSON-Like Structures") {
+      @ContentAndMedia {
+         The same pattern applies to JSON. Here the leaf and branch distinction
+         maps naturally to primitive values vs. arrays and objects.
+      }
+      @Steps {
+         @Step {
+            Define a `JSON` enum and build a recursive strategy for it.
+
+            @Code(name: "TreeTests.swift", file: "t09-s08-json-strategy.swift")
+         }
+         @Step {
+            Write a property that verifies a JSON pretty-printer and parser
+            are inverses: `parse(prettyPrint(json)) == json`.
+
+            @Code(name: "TreeTests.swift", file: "t09-s09-json-roundtrip.swift")
+         }
+      }
+   }
+}

@@ -1,0 +1,10 @@
+# Option A: Commit the trace directory so all machines replay the same failures.
+git add .premise/
+git commit -m "chore: commit Premise failure traces as regression cases"
+
+# Option B: Clear the stored trace for a specific property if it's no longer needed.
+# (Use the database's clear(for:) API in code, or simply delete the file.)
+rm .premise/examples/43616368652e73776966742334322...json
+
+# Option C: Ignore the directory in git and let each machine discover failures fresh.
+echo ".premise/" >> .gitignore

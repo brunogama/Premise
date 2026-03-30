@@ -5,15 +5,15 @@
 - Full-repo `swiftlint lint --strict --config .swiftlint.yml` fails on unrelated
   future-phase test files already present in the worktree but outside plan
   `02-01` scope:
-  - `Tests/ConjectureStrategiesTests/StrategyCompositionTests.swift`
+  - `Tests/PremiseStrategiesTests/StrategyCompositionTests.swift`
     - `multiline_function_chains`
-  - `Tests/ConjectureStrategiesTests/RecursiveStrategyTests.swift`
+  - `Tests/PremiseStrategiesTests/RecursiveStrategyTests.swift`
     - `prefer_self_in_static_references`
-  - `Tests/ConjectureCoreTests/EndToEndShrinkingTests.swift`
+  - `Tests/PremiseCoreTests/EndToEndShrinkingTests.swift`
     - `line_length`
-  - `Tests/ConjectureCoreTests/StructuralShrinkingTests.swift`
+  - `Tests/PremiseCoreTests/StructuralShrinkingTests.swift`
     - `line_length`
-  - `Tests/ConjectureCoreTests/RunnerFailureTests.swift`
+  - `Tests/PremiseCoreTests/RunnerFailureTests.swift`
     - `line_length`
-  - `Tests/ConjectureCoreTests/RunnerReplayTests.swift`
+  - `Tests/PremiseCoreTests/RunnerReplayTests.swift`
     - `line_length`

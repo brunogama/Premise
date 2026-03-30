@@ -7,7 +7,7 @@ tags: [coverage-guidance, bitmap, actor, sendable, sidecar, extension-module]
 requires:
   - phase: 06-guided-execution-and-extensions
     plan: 01
-    provides: SwiftPM trait-gated manifest with ConjectureCoverageGuided target
+    provides: SwiftPM trait-gated manifest with PremiseCoverageGuided target
 provides:
   - CoverageMap bitmap-based edge tracker with merge and diff
   - CoverageGuide protocol for stateless coverage scoring
@@ -21,13 +21,13 @@ tech-stack:
 
 key-files:
   created:
-    - Sources/ConjectureCoverageGuided/CoverageMap.swift
-    - Sources/ConjectureCoverageGuided/CoverageGuide.swift
-    - Sources/ConjectureCoverageGuided/EdgeCountGuide.swift
-    - Sources/ConjectureCoverageGuided/CoverageTracker.swift
-    - Tests/ConjectureCoverageGuidedTests/CoverageMapTests.swift
+    - Sources/PremiseCoverageGuided/CoverageMap.swift
+    - Sources/PremiseCoverageGuided/CoverageGuide.swift
+    - Sources/PremiseCoverageGuided/EdgeCountGuide.swift
+    - Sources/PremiseCoverageGuided/CoverageTracker.swift
+    - Tests/PremiseCoverageGuidedTests/CoverageMapTests.swift
   modified:
-    - Tests/ConjectureCoverageGuidedTests/CoverageGuidanceIsolationTests.swift
+    - Tests/PremiseCoverageGuidedTests/CoverageGuidanceIsolationTests.swift
 
 key-decisions:
   - "Separated stateless CoverageGuide protocol from stateful CoverageTracker actor for clean concurrency"
@@ -67,17 +67,17 @@ completed: 2026-03-30
 
 ## Task Commits
 
-1. **Task 1: Implement ConjectureCoverageGuided module** - `419f6a7` (feat)
+1. **Task 1: Implement PremiseCoverageGuided module** - `419f6a7` (feat)
 
 ## Files Created/Modified
 
-- `Sources/ConjectureCoverageGuided/CoverageMap.swift` - Bitmap-based edge coverage tracker
-- `Sources/ConjectureCoverageGuided/CoverageGuide.swift` - Stateless scoring protocol and CoverageScore value type
-- `Sources/ConjectureCoverageGuided/EdgeCountGuide.swift` - Novel edge count scoring implementation
-- `Sources/ConjectureCoverageGuided/CoverageTracker.swift` - Actor for thread-safe cumulative coverage state
-- `Tests/ConjectureCoverageGuidedTests/CoverageMapTests.swift` - 10 tests for map operations
-- `Tests/ConjectureCoverageGuidedTests/CoverageGuidanceIsolationTests.swift` - 8 tests for guide, tracker, and sidecar isolation
-- `Sources/ConjectureCoverageGuided/ConjectureCoverageGuided.swift` - Removed stub namespace marker
+- `Sources/PremiseCoverageGuided/CoverageMap.swift` - Bitmap-based edge coverage tracker
+- `Sources/PremiseCoverageGuided/CoverageGuide.swift` - Stateless scoring protocol and CoverageScore value type
+- `Sources/PremiseCoverageGuided/EdgeCountGuide.swift` - Novel edge count scoring implementation
+- `Sources/PremiseCoverageGuided/CoverageTracker.swift` - Actor for thread-safe cumulative coverage state
+- `Tests/PremiseCoverageGuidedTests/CoverageMapTests.swift` - 10 tests for map operations
+- `Tests/PremiseCoverageGuidedTests/CoverageGuidanceIsolationTests.swift` - 8 tests for guide, tracker, and sidecar isolation
+- `Sources/PremiseCoverageGuided/PremiseCoverageGuided.swift` - Removed stub namespace marker
 
 ## Decisions Made
 
@@ -105,7 +105,7 @@ None - coverage-guided module is opt-in via SwiftPM CoverageGuided trait.
 ## Next Phase Readiness
 
 - Coverage guidance types are ready for integration with guided runners
-- CoverageTracker can be composed with parallel execution when ConjectureParallel lands
+- CoverageTracker can be composed with parallel execution when PremiseParallel lands
 - The CoverageGuide protocol is extensible for future scoring strategies beyond edge counting
 
 ## Self-Check: PASSED

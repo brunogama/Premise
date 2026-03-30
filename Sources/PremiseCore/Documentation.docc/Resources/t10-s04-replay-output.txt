@@ -1,0 +1,11 @@
+swift test     # second run, no code changes
+Build complete!
+◇ Test cacheInsertionIsIdempotent() started
+
+  [Replay] Replaying stored trace (2 entries)…
+  [Replay] key = "a", value = 0 → FAIL (as before)
+
+✗ Test cacheInsertionIsIdempotent() failed after 0.002 seconds
+
+  Same counterexample as before: key = "a", value = 0
+  Stored trace was replayed — no fresh random generation needed.

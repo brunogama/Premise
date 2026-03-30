@@ -1,0 +1,11 @@
+# Periphery configuration for SwiftPM-only CI scans.
+# https://github.com/peripheryapp/periphery
+
+retain_public: true
+format: xcode
+
+# Exclude test and fixture directories from unused-symbol reporting to reduce
+# noise in CI output. Sub-package source under Packages/ is intentionally
+# included so that Periphery reports unused symbols in the core library.
+report_exclude:
+  - Tests

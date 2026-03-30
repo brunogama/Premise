@@ -7,7 +7,7 @@ tags: [parallel, task-group, deterministic-seeding, sendable, structured-concurr
 requires:
   - phase: 06-guided-execution-and-extensions
     plan: 01
-    provides: trait-gated ConjectureParallel target in Package.swift
+    provides: trait-gated PremiseParallel target in Package.swift
 provides:
   - ParallelRunner with deterministic seed-per-index mapping
   - ParallelConfig for concurrent run limits
@@ -20,9 +20,9 @@ tech-stack:
 
 key-files:
   created:
-    - Sources/ConjectureParallel/ParallelConfig.swift
-    - Sources/ConjectureParallel/ParallelRunner.swift
-    - Tests/ConjectureParallelTests/ParallelDeterminismTests.swift
+    - Sources/PremiseParallel/ParallelConfig.swift
+    - Sources/PremiseParallel/ParallelRunner.swift
+    - Tests/PremiseParallelTests/ParallelDeterminismTests.swift
   modified: []
 
 decisions:
@@ -37,7 +37,7 @@ metrics:
   files: 4
 ---
 
-# Phase 06 Plan 02: ConjectureParallel Deterministic Parallel Execution Summary
+# Phase 06 Plan 02: PremiseParallel Deterministic Parallel Execution Summary
 
 ParallelRunner distributes property runs across a Swift task group with seed-per-index mapping matching the sequential Runner contract, using a ResultCollector actor to normalize results by lowest failure index.
 

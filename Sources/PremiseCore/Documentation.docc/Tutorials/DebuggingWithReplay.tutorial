@@ -1,0 +1,100 @@
+@Tutorial(time: 20) {
+   @Intro(title: "Debugging a Failure with Replay") {
+      When Premise finds a failure it saves the minimised trace to disk and
+      replays it on every subsequent run. This tutorial shows you what that
+      looks like in practice and how to use replay to debug failures quickly.
+   }
+
+   @Section(title: "A Property That Fails") {
+      @ContentAndMedia {
+         Start with a simple but buggy function: a cache that is supposed to
+         be idempotent. Inserting a value twice should produce the same result
+         as inserting it once. A bug in the implementation violates this.
+      }
+      @Steps {
+         @Step {
+            Define the `BuggyCache` and write a property asserting idempotence.
+
+            @Code(name: "ReplayTests.swift", file: "t10-s01-buggy-cache.swift")
+         }
+         @Step {
+            Run the test. Premise finds a failure and reports the
+            minimised counterexample. Note the failure output and the
+            `.premise/examples/` path shown in the error.
+
+            @Code(name: "Terminal", file: "t10-s02-first-failure.txt")
+         }
+      }
+   }
+
+   @Section(title: "How the Trace is Stored") {
+      @ContentAndMedia {
+         After the first failure, Premise writes a JSON file into
+         `.premise/examples/`. Each file corresponds to one property,
+         identified by its source file, line number, and strategy label.
+      }
+      @Steps {
+         @Step {
+            Look at the generated trace file. It contains the minimised
+            ``ChoiceTrace`` — the sequence of choices that reproduces the
+            smallest failing input.
+
+            @Code(name: "Terminal", file: "t10-s03-trace-file.txt")
+         }
+         @Step {
+            Run the test a second time *without changing any code*. The engine
+            loads the stored trace and replays it immediately — you see the
+            same failure without waiting for random generation to rediscover it.
+
+            @Code(name: "Terminal", file: "t10-s04-replay-output.txt")
+         }
+      }
+   }
+
+   @Section(title: "Using Replay to Debug") {
+      @ContentAndMedia {
+         Because the replay is deterministic, you can add `print` statements,
+         attach breakpoints in Xcode, or add extra assertions — and the exact
+         same inputs will be exercised every time.
+      }
+      @Steps {
+         @Step {
+            Add a `print` statement inside the property closure and run again.
+            The same values are passed to the closure as in the first failure.
+
+            @Code(name: "ReplayTests.swift", file: "t10-s05-debug-print.swift")
+         }
+         @Step {
+            Fix the bug in `BuggyCache`. Run the tests again. The stored trace
+            is replayed, passes, and fresh generation also passes. The stored
+            trace remains — it is now a permanent regression case.
+
+            @Code(name: "ReplayTests.swift", file: "t10-s06-fixed.swift")
+         }
+         @Step {
+            (Optional) Clear the stored trace manually if you no longer want
+            it replayed, or commit the `.premise/examples/` directory to
+            ensure CI always verifies the regression.
+
+            @Code(name: "Terminal", file: "t10-s07-clear-or-commit.txt")
+         }
+      }
+   }
+
+   @Section(title: "Replaying with a Fixed Seed") {
+      @ContentAndMedia {
+         An alternative to file-backed replay is fixing the random seed.
+         A fixed seed produces the same sequence of inputs on every run.
+         This is useful for quick reproducibility during development, but
+         it does not persist across code changes that alter the strategy.
+      }
+      @Steps {
+         @Step {
+            Set `seed` in `PropertyConfig` to pin the random sequence.
+            The property will run the same 100 inputs every time.
+
+            @Code(name: "ReplayTests.swift", file: "t10-s08-fixed-seed.swift")
+         }
+      }
+   }
+}

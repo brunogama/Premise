@@ -1,0 +1,121 @@
+@Tutorial(time: 20) {
+   @Intro(title: "Using Combinators") {
+      Premise's combinators let you compose complex strategies from simple
+      ones without writing low-level draw code. This tutorial covers `map`,
+      `flatMap`, `filter`, `oneOf`, and `frequency` through practical examples.
+   }
+
+   @Section(title: "map: Transform Values") {
+      @ContentAndMedia {
+         `map` applies a transformation to every generated value. It's the
+         simplest combinator and the one you'll use most often.
+      }
+      @Steps {
+         @Step {
+            Use `map` to generate even integers from a range of all integers.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s01-map.swift")
+         }
+         @Step {
+            Chain `map` to convert integers to a domain type.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s02-map-chain.swift")
+         }
+      }
+   }
+
+   @Section(title: "flatMap: Dependent Generation") {
+      @ContentAndMedia {
+         `flatMap` generates one value and uses it to choose a strategy for
+         the next value. This is essential when fields have dependencies.
+      }
+      @Steps {
+         @Step {
+            Use `flatMap` to generate a pair where the second value always
+            falls within a range derived from the first.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s03-flatmap.swift")
+         }
+         @Step {
+            Build a non-empty array with a length that is drawn first and
+            used to constrain the element strategy.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s04-flatmap-array.swift")
+         }
+      }
+   }
+
+   @Section(title: "filter: Postcondition Enforcement") {
+      @ContentAndMedia {
+         `filter` keeps only values that satisfy a predicate. Use it for
+         light constraints; heavy filtering wastes draw budget.
+      }
+      @Steps {
+         @Step {
+            Filter to odd numbers from a small range.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s05-filter.swift")
+         }
+         @Step {
+            Compare with the direct approach using `map`. The direct approach
+            is always preferred when possible.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s06-filter-vs-map.swift")
+         }
+      }
+   }
+
+   @Section(title: "oneOf: Uniform Choice") {
+      @ContentAndMedia {
+         `oneOf` picks one strategy from a list with equal probability.
+         Use it to mix concrete special values with generated ones.
+      }
+      @Steps {
+         @Step {
+            Generate HTTP status codes from a fixed set plus a random range.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s07-oneof.swift")
+         }
+         @Step {
+            Use `oneOf` to generate an enum with both trivial and complex cases.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s08-oneof-enum.swift")
+         }
+      }
+   }
+
+   @Section(title: "frequency: Weighted Choice") {
+      @ContentAndMedia {
+         `frequency` is like `oneOf` with weights. Assign higher weight to
+         the cases most likely to expose bugs.
+      }
+      @Steps {
+         @Step {
+            Generate request payloads where empty and very-large payloads are
+            overrepresented, because they're the most likely to cause bugs.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s09-frequency.swift")
+         }
+      }
+   }
+
+   @Section(title: "Composing Multiple Combinators") {
+      @ContentAndMedia {
+         Real strategies combine multiple combinators. The result reads
+         like a specification of the value's structure.
+      }
+      @Steps {
+         @Step {
+            Build a complete `NetworkRequest` strategy by chaining `oneOf`,
+            `flatMap`, and `map`.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s10-composed.swift")
+         }
+         @Step {
+            Write a property using the composed strategy.
+
+            @Code(name: "CombinatorTests.swift", file: "t08-s11-property.swift")
+         }
+      }
+   }
+}

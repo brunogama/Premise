@@ -1,0 +1,6 @@
+swift test
+Build complete!
+◇ Test contactRoundTripsJSON() started
+✓ Test contactRoundTripsJSON() passed (0.091 seconds)
+  Ran 100 generated Contact values through JSON encode → decode round-trip.
+  All passed.

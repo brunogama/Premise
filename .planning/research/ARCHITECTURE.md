@@ -6,9 +6,9 @@
 
 ## Recommended Architecture
 
-Conjecture should be one Swift package with a strict one-way target graph. `ConjectureCore` owns the engine, trace semantics, replay inputs, shrink orchestration, and provider-facing execution contracts. `ConjectureStrategies` owns compositional strategy witnesses and the standard strategy catalog. `ConjectureDatabase` owns versioned persistence envelopes, migrations, and the single actor that serializes all file or SQLite access. `ConjectureTesting` and `ConjectureXCTest` stay thin and only translate between test-framework expectations and the shared core runner.
+Premise should be one Swift package with a strict one-way target graph. `PremiseCore` owns the engine, trace semantics, replay inputs, shrink orchestration, and provider-facing execution contracts. `PremiseStrategies` owns compositional strategy witnesses and the standard strategy catalog. `PremiseDatabase` owns versioned persistence envelopes, migrations, and the single actor that serializes all file or SQLite access. `PremiseTesting` and `PremiseXCTest` stay thin and only translate between test-framework expectations and the shared core runner.
 
-That shape fits the current SwiftPM model well. The PackageDescription docs still describe targets as the basic module boundary and products as assemblies of targets, and the current `swift build` / `swift test` toolchain exposes `--explicit-target-dependency-import-check`, which is the right guardrail to stop layer violations before they become architectural drift. Conjecture should lean into that: explicit target dependencies in `Package.swift`, no by-name shortcuts for internal layers, and CI that fails on undeclared imports.
+That shape fits the current SwiftPM model well. The PackageDescription docs still describe targets as the basic module boundary and products as assemblies of targets, and the current `swift build` / `swift test` toolchain exposes `--explicit-target-dependency-import-check`, which is the right guardrail to stop layer violations before they become architectural drift. Premise should lean into that: explicit target dependencies in `Package.swift`, no by-name shortcuts for internal layers, and CI that fails on undeclared imports.
 
 For concurrency, keep the hot path synchronous and value-oriented. Swift 6 mode enables full data-race safety checking for package targets, and Swift 6.2 changes around `nonisolated` async execution make implicit behavior easier to get wrong if public APIs are vague. The engine loop, trace building, replay, and shrinking should therefore be synchronous functions over `struct` state and `Sendable` witnesses. Actors belong at the edges: persistence, optional telemetry aggregation, and any future shared coverage frontier. Public async APIs that intentionally inherit caller isolation should spell that explicitly; do not rely on evolving defaults.
 
@@ -17,57 +17,57 @@ For v2, add leaf targets instead of reopening v1 seams. SQLite WAL persistence, 
 ### Target Graph
 
 ```text
-ConjectureCore
-├── ConjectureStrategies
-├── ConjectureDatabase
-│   └── ConjectureSQLite (v2)
-├── ConjectureTesting
-├── ConjectureXCTest
-├── ConjectureCoverage (v2)
-├── ConjectureParallel (v2)
-├── ConjectureTelemetry (v2)
-└── ConjectureSMT (v2)
+PremiseCore
+├── PremiseStrategies
+├── PremiseDatabase
+│   └── PremiseSQLite (v2)
+├── PremiseTesting
+├── PremiseXCTest
+├── PremiseCoverage (v2)
+├── PremiseParallel (v2)
+├── PremiseTelemetry (v2)
+└── PremiseSMT (v2)
 ```
 
 Recommended dependency directions:
 
-- `ConjectureStrategies` -> `ConjectureCore`
-- `ConjectureDatabase` -> `ConjectureCore`
-- `ConjectureTesting` -> `ConjectureCore`, `ConjectureStrategies`, `ConjectureDatabase`
-- `ConjectureXCTest` -> `ConjectureCore`, `ConjectureStrategies`, `ConjectureDatabase`
-- `ConjectureSQLite` -> `ConjectureDatabase`
-- `ConjectureCoverage` -> `ConjectureCore`, `ConjectureDatabase`
-- `ConjectureParallel` -> `ConjectureCore`, `ConjectureDatabase`, optionally `ConjectureCoverage`
-- `ConjectureTelemetry` -> `ConjectureCore`, optionally `ConjectureDatabase`
-- `ConjectureSMT` -> `ConjectureCore`, optionally `ConjectureStrategies`
+- `PremiseStrategies` -> `PremiseCore`
+- `PremiseDatabase` -> `PremiseCore`
+- `PremiseTesting` -> `PremiseCore`, `PremiseStrategies`, `PremiseDatabase`
+- `PremiseXCTest` -> `PremiseCore`, `PremiseStrategies`, `PremiseDatabase`
+- `PremiseSQLite` -> `PremiseDatabase`
+- `PremiseCoverage` -> `PremiseCore`, `PremiseDatabase`
+- `PremiseParallel` -> `PremiseCore`, `PremiseDatabase`, optionally `PremiseCoverage`
+- `PremiseTelemetry` -> `PremiseCore`, optionally `PremiseDatabase`
+- `PremiseSMT` -> `PremiseCore`, optionally `PremiseStrategies`
 
-If SQLite C interop needs its own target, make it an internal implementation detail behind `ConjectureSQLite` rather than a public-facing product.
+If SQLite C interop needs its own target, make it an internal implementation detail behind `PremiseSQLite` rather than a public-facing product.
 
 ### Component Boundaries
 
 | Component | Responsibility | Communicates With |
 |-----------|---------------|-------------------|
-| `ConjectureCore` | Engine state machine, choice trace, replay cursor, shrink orchestration, deterministic run outcomes, provider/witness contracts, stable semantic trace model | Called by adapters, strategies, database codecs, and v2 leaf modules |
-| `ConjectureStrategies` | Public strategy builders, combinators, recursive composition helpers, witness factories, domain-specific generation conveniences | Depends on `ConjectureCore` only |
-| `ConjectureDatabase` | Versioned failure/trace envelopes, file-backed persistence for v1, actor-owned storage facade, migration hooks, replay lookup APIs | Consumes `ConjectureCore` trace/outcome types; used by adapters and v2 storage modules |
-| `ConjectureTesting` | `swift-testing` integration, attachments, assertion translation, property author ergonomics | Calls `ConjectureCore`, `ConjectureStrategies`, `ConjectureDatabase` |
-| `ConjectureXCTest` | XCTest integration, failure formatting, replay helpers for XCTest users | Calls `ConjectureCore`, `ConjectureStrategies`, `ConjectureDatabase` |
-| `ConjectureSQLite` (v2) | SQLite-backed storage engine, WAL/checkpoint policy, indexes for replay/failure lookup, storage implementation behind database facade | Implements `ConjectureDatabase` storage contract |
-| `ConjectureCoverage` (v2) | Coverage artifact import, frontier scoring, guidance snapshots, optional feedback signals for scheduler/provider selection | Reads persisted run metadata; feeds ranked guidance to `ConjectureParallel` or adapters |
-| `ConjectureParallel` (v2) | Task-group scheduling, worker isolation, seed distribution, result fan-in, cancellation policy | Runs isolated `ConjectureCore` workers; writes through `ConjectureDatabase`; optionally reads `ConjectureCoverage` |
-| `ConjectureTelemetry` (v2) | Structured events, metrics sinks, trace/run counters, observability hooks | Subscribes to core outcomes and persistence events without affecting engine control flow |
-| `ConjectureSMT` (v2) | Optional solver-backed provider implementations that satisfy existing core/provider seams | Implements `ConjectureCore` provider contracts |
+| `PremiseCore` | Engine state machine, choice trace, replay cursor, shrink orchestration, deterministic run outcomes, provider/witness contracts, stable semantic trace model | Called by adapters, strategies, database codecs, and v2 leaf modules |
+| `PremiseStrategies` | Public strategy builders, combinators, recursive composition helpers, witness factories, domain-specific generation conveniences | Depends on `PremiseCore` only |
+| `PremiseDatabase` | Versioned failure/trace envelopes, file-backed persistence for v1, actor-owned storage facade, migration hooks, replay lookup APIs | Consumes `PremiseCore` trace/outcome types; used by adapters and v2 storage modules |
+| `PremiseTesting` | `swift-testing` integration, attachments, assertion translation, property author ergonomics | Calls `PremiseCore`, `PremiseStrategies`, `PremiseDatabase` |
+| `PremiseXCTest` | XCTest integration, failure formatting, replay helpers for XCTest users | Calls `PremiseCore`, `PremiseStrategies`, `PremiseDatabase` |
+| `PremiseSQLite` (v2) | SQLite-backed storage engine, WAL/checkpoint policy, indexes for replay/failure lookup, storage implementation behind database facade | Implements `PremiseDatabase` storage contract |
+| `PremiseCoverage` (v2) | Coverage artifact import, frontier scoring, guidance snapshots, optional feedback signals for scheduler/provider selection | Reads persisted run metadata; feeds ranked guidance to `PremiseParallel` or adapters |
+| `PremiseParallel` (v2) | Task-group scheduling, worker isolation, seed distribution, result fan-in, cancellation policy | Runs isolated `PremiseCore` workers; writes through `PremiseDatabase`; optionally reads `PremiseCoverage` |
+| `PremiseTelemetry` (v2) | Structured events, metrics sinks, trace/run counters, observability hooks | Subscribes to core outcomes and persistence events without affecting engine control flow |
+| `PremiseSMT` (v2) | Optional solver-backed provider implementations that satisfy existing core/provider seams | Implements `PremiseCore` provider contracts |
 
 ## Data Flow
 
 ### v1 execution flow
 
-1. A user-facing adapter in `ConjectureTesting` or `ConjectureXCTest` builds a property plan from strategy witnesses and runner configuration.
-2. `ConjectureCore` executes the property with a synchronous engine loop that records a semantic `Trace` and an outcome.
-3. If the run fails, `ConjectureCore` shrinks using the same trace-first model and emits a final minimized failure artifact.
-4. The adapter sends that artifact to the `ConjectureDatabase` actor.
-5. `ConjectureDatabase` writes a versioned envelope to the v1 file backend and returns a stable replay handle.
-6. Replay goes back through `ConjectureDatabase` to recover the persisted envelope, then into `ConjectureCore` to deterministically rerun from the trace.
+1. A user-facing adapter in `PremiseTesting` or `PremiseXCTest` builds a property plan from strategy witnesses and runner configuration.
+2. `PremiseCore` executes the property with a synchronous engine loop that records a semantic `Trace` and an outcome.
+3. If the run fails, `PremiseCore` shrinks using the same trace-first model and emits a final minimized failure artifact.
+4. The adapter sends that artifact to the `PremiseDatabase` actor.
+5. `PremiseDatabase` writes a versioned envelope to the v1 file backend and returns a stable replay handle.
+6. Replay goes back through `PremiseDatabase` to recover the persisted envelope, then into `PremiseCore` to deterministically rerun from the trace.
 
 ```text
 Adapter -> Strategy Witnesses -> Core Runner -> Trace/Outcome
@@ -81,10 +81,10 @@ Adapter -> Strategy Witnesses -> Core Runner -> Trace/Outcome
 
 ### v2 extension flow
 
-1. `ConjectureParallel` starts multiple isolated worker tasks, each with its own engine state, seed, and trace buffer.
+1. `PremiseParallel` starts multiple isolated worker tasks, each with its own engine state, seed, and trace buffer.
 2. Workers never share mutable engine state. Shared resources are actor-owned services only: persistence, optional telemetry, optional coverage frontier.
-3. `ConjectureSQLite` replaces the v1 file backend behind the database facade without changing adapter or core call sites.
-4. `ConjectureCoverage` ingests coverage artifacts or alternate feedback out of band, updates guidance state, and hands snapshots to the next scheduling pass.
+3. `PremiseSQLite` replaces the v1 file backend behind the database facade without changing adapter or core call sites.
+4. `PremiseCoverage` ingests coverage artifacts or alternate feedback out of band, updates guidance state, and hands snapshots to the next scheduling pass.
 
 ```text
 Parallel Scheduler -> N isolated Core workers
@@ -105,28 +105,28 @@ Coverage import -> Coverage Actor -> Scheduler snapshot for future runs
    - Add explicit target dependencies in `Package.swift`.
    - Turn on `--explicit-target-dependency-import-check error` in CI from day one to keep boundaries honest.
 
-2. **Build `ConjectureCore` before anything else**
+2. **Build `PremiseCore` before anything else**
    - Define trace semantics, replay cursor, shrink orchestration, deterministic runner state, and provider contracts.
    - Keep the public API synchronous where possible.
 
-3. **Build `ConjectureStrategies` on top of frozen core contracts**
+3. **Build `PremiseStrategies` on top of frozen core contracts**
    - Standardize the protocol-witness shape here, not in adapters.
    - Require witness containers to be `Sendable` so v2 parallelism does not force a redesign.
 
-4. **Build `ConjectureDatabase` before the adapters become feature-rich**
+4. **Build `PremiseDatabase` before the adapters become feature-rich**
    - Ship the v1 file-backed implementation inside an actor-owned facade.
    - Freeze stable persistence envelopes and replay handles now.
-   - Keep all on-disk versioning and migrations here, not in `ConjectureCore`.
+   - Keep all on-disk versioning and migrations here, not in `PremiseCore`.
 
-5. **Build `ConjectureTesting` and `ConjectureXCTest` last in v1**
+5. **Build `PremiseTesting` and `PremiseXCTest` last in v1**
    - Keep them thin: authoring sugar, failure presentation, attachments, and replay ergonomics only.
    - They should not invent engine semantics, persistence rules, or shrink behavior.
 
 6. **Add v2 as inward-facing leaves**
-   - `ConjectureSQLite` first, because it replaces storage plumbing without changing the core.
-   - `ConjectureParallel` next, because the engine and witnesses are already `Sendable`.
-   - `ConjectureCoverage` after that, because current Swift/LLVM coverage flows are post-run and should remain a sidecar.
-   - `ConjectureTelemetry` and `ConjectureSMT` last, as optional integrations.
+   - `PremiseSQLite` first, because it replaces storage plumbing without changing the core.
+   - `PremiseParallel` next, because the engine and witnesses are already `Sendable`.
+   - `PremiseCoverage` after that, because current Swift/LLVM coverage flows are post-run and should remain a sidecar.
+   - `PremiseTelemetry` and `PremiseSMT` last, as optional integrations.
 
 ## Patterns to Follow
 
@@ -140,25 +140,25 @@ Coverage import -> Coverage Actor -> Scheduler snapshot for future runs
 import PackageDescription
 
 let package = Package(
-    name: "Conjecture",
+    name: "Premise",
     products: [
-        .library(name: "ConjectureCore", targets: ["ConjectureCore"]),
-        .library(name: "ConjectureStrategies", targets: ["ConjectureStrategies"]),
-        .library(name: "ConjectureDatabase", targets: ["ConjectureDatabase"]),
-        .library(name: "ConjectureTesting", targets: ["ConjectureTesting"]),
-        .library(name: "ConjectureXCTest", targets: ["ConjectureXCTest"]),
+        .library(name: "PremiseCore", targets: ["PremiseCore"]),
+        .library(name: "PremiseStrategies", targets: ["PremiseStrategies"]),
+        .library(name: "PremiseDatabase", targets: ["PremiseDatabase"]),
+        .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
+        .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     ],
     targets: [
-        .target(name: "ConjectureCore"),
-        .target(name: "ConjectureStrategies", dependencies: ["ConjectureCore"]),
-        .target(name: "ConjectureDatabase", dependencies: ["ConjectureCore"]),
+        .target(name: "PremiseCore"),
+        .target(name: "PremiseStrategies", dependencies: ["PremiseCore"]),
+        .target(name: "PremiseDatabase", dependencies: ["PremiseCore"]),
         .target(
-            name: "ConjectureTesting",
-            dependencies: ["ConjectureCore", "ConjectureStrategies", "ConjectureDatabase"]
+            name: "PremiseTesting",
+            dependencies: ["PremiseCore", "PremiseStrategies", "PremiseDatabase"]
         ),
         .target(
-            name: "ConjectureXCTest",
-            dependencies: ["ConjectureCore", "ConjectureStrategies", "ConjectureDatabase"]
+            name: "PremiseXCTest",
+            dependencies: ["PremiseCore", "PremiseStrategies", "PremiseDatabase"]
         ),
     ]
 )
@@ -166,7 +166,7 @@ let package = Package(
 
 ### Pattern 2: Synchronous engine, async edges
 **What:** The engine loop and witness execution stay synchronous and allocation-light; actors and async calls are reserved for persistence and other shared services.
-**When:** All hot-path code in `ConjectureCore` and `ConjectureStrategies`.
+**When:** All hot-path code in `PremiseCore` and `PremiseStrategies`.
 **Example:**
 
 ```swift
@@ -189,7 +189,7 @@ public actor FailureStore {
 ```
 
 ### Pattern 3: Storage-agnostic persistence facade
-**What:** `ConjectureDatabase` owns the public persistence API and delegates to file or SQLite drivers internally.
+**What:** `PremiseDatabase` owns the public persistence API and delegates to file or SQLite drivers internally.
 **When:** From v1 onward.
 **Why:** This keeps v2 SQLite additive instead of forcing a public API rename from “files” to “database”.
 
@@ -201,24 +201,24 @@ public actor FailureStore {
 ## Anti-Patterns to Avoid
 
 ### Anti-Pattern 1: Letting adapters own engine behavior
-**What:** `ConjectureTesting` or `ConjectureXCTest` starts implementing shrinking, replay, or trace decisions.
+**What:** `PremiseTesting` or `PremiseXCTest` starts implementing shrinking, replay, or trace decisions.
 **Why bad:** It forks semantics by test framework and makes v2 parallelism or persistence refactors adapter-specific.
-**Instead:** Keep adapters as presentation and integration shells over `ConjectureCore`.
+**Instead:** Keep adapters as presentation and integration shells over `PremiseCore`.
 
 ### Anti-Pattern 2: Making strategy witnesses async or actor-bound
 **What:** Witness closures require `await`, actors, or captured mutable reference state in the hot path.
 **Why bad:** Parallel execution then forces `Sendable` retrofits, actor hops, or witness redesign.
 **Instead:** Keep witnesses synchronous and `Sendable`; isolate external mutable state before it reaches the core.
 
-### Anti-Pattern 3: Exposing SQLite in the public `ConjectureDatabase` API
+### Anti-Pattern 3: Exposing SQLite in the public `PremiseDatabase` API
 **What:** Public APIs return SQL rows, connection handles, pragma knobs, or WAL policy types.
 **Why bad:** v1 becomes storage-coupled and v2 is no longer additive.
-**Instead:** Expose replay handles, failure queries, and storage-neutral records; keep SQLite types internal to `ConjectureSQLite`.
+**Instead:** Expose replay handles, failure queries, and storage-neutral records; keep SQLite types internal to `PremiseSQLite`.
 
 ### Anti-Pattern 4: Multi-connection WAL design as the default
 **What:** v2 opens multiple write-capable SQLite connections and checkpoints from arbitrary tasks.
 **Why bad:** SQLite WAL still allows only one writer, long readers can starve checkpoints, and the official WAL docs now note a rare corruption bug fixed in `3.51.3` on 2026-03-13 for concurrent checkpoint/write races.
-**Instead:** Use one actor-owned writable connection, short-lived reads, and controlled checkpoint policy. If Conjecture eventually needs multi-connection WAL behavior, pin or vendor a SQLite version that includes the fix.
+**Instead:** Use one actor-owned writable connection, short-lived reads, and controlled checkpoint policy. If Premise eventually needs multi-connection WAL behavior, pin or vendor a SQLite version that includes the fix.
 
 ### Anti-Pattern 5: Treating exported code coverage JSON as hot-path engine input
 **What:** The core engine waits on coverage export or parses `llvm-cov` JSON while generating examples.
@@ -229,12 +229,12 @@ public actor FailureStore {
 
 | Risk | Why It Happens | Guardrail |
 |------|----------------|-----------|
-| `ConjectureCore` starts importing I/O, paths, or SQL concerns | Persistence arrives after core APIs are already public | Freeze `ConjectureDatabase` early; reject filesystem and SQLite symbols in core review |
-| `ConjectureStrategies` captures non-`Sendable` mutable reference state | Witness closures are ergonomic places to stash context | Require `Sendable` witness containers and parallel-worker tests before v1 API freeze |
+| `PremiseCore` starts importing I/O, paths, or SQL concerns | Persistence arrives after core APIs are already public | Freeze `PremiseDatabase` early; reject filesystem and SQLite symbols in core review |
+| `PremiseStrategies` captures non-`Sendable` mutable reference state | Witness closures are ergonomic places to stash context | Require `Sendable` witness containers and parallel-worker tests before v1 API freeze |
 | Adapters accumulate domain logic | Test-framework UX work often feels “small” and slips inward | Keep adapter target counts and public entry points intentionally small; shared fixtures test common behavior once |
-| `ConjectureDatabase` leaks storage implementation details | SQLite is tempting to expose once it exists | Storage-neutral public protocols and DTOs only; keep SQL and checkpoint policy internal |
+| `PremiseDatabase` leaks storage implementation details | SQLite is tempting to expose once it exists | Storage-neutral public protocols and DTOs only; keep SQL and checkpoint policy internal |
 | v2 parallelism forces core API rewrites | Witnesses or run outcomes were not designed for task boundaries | Make core state, outcomes, and witnesses `Sendable` from the start |
-| Coverage guidance demands engine hooks everywhere | The first implementation is often tool-driven rather than architecture-driven | Restrict coverage to an event import/snapshot seam owned by `ConjectureCoverage` |
+| Coverage guidance demands engine hooks everywhere | The first implementation is often tool-driven rather than architecture-driven | Restrict coverage to an event import/snapshot seam owned by `PremiseCoverage` |
 
 ## Scalability Considerations
 

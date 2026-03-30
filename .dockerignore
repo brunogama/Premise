@@ -1,0 +1,53 @@
+# Git
+.git/
+.gitignore
+
+# Build artifacts
+.build/
+!.build/checkouts/
+!.build/repositories/
+!.build/workspace-state.json
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+*.dSYM/
+*.ipa
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Logs
+*.log
+
+# Coverage reports
+*.profdata
+*.profraw
+coverage/
+.coverage
+
+# Cache
+.cache/
+
+# Node modules (if any)
+node_modules/

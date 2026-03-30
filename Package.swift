@@ -1,9 +1,55 @@
 // swift-tools-version: 6.1
 
 import PackageDescription
+import Foundation
+
+#if canImport(CompilerPluginSupport)
+import CompilerPluginSupport
+#endif
+
+// MARK: - Macro Build Mode
+//
+// By default, PremiseMacros uses a pre-built binary plugin so users
+// don't need to compile swift-syntax (~5 min). Set the environment variable
+// PREMISE_MACRO_SOURCE=1 to build the macro plugin from source instead.
+//
+//   PREMISE_MACRO_SOURCE=1 swift build
+//
+let buildMacroFromSource =
+  ProcessInfo.processInfo
+  .environment["PREMISE_MACRO_SOURCE"] != nil
+
+// MARK: - Macro Targets
+
+let macroPluginTarget: Target
+let macroDependencies: [Package.Dependency]
+
+if buildMacroFromSource {
+  macroPluginTarget = .macro(
+    name: "PremiseMacrosPlugin",
+    dependencies: [
+      .product(name: "SwiftSyntax", package: "swift-syntax"),
+      .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+      .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+    ]
+  )
+  macroDependencies = [
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1")
+  ]
+} else {
+  macroPluginTarget = .binaryTarget(
+    name: "PremiseMacrosPlugin",
+    url:
+      "https://github.com/brunogama/Premise/releases/latest/download/PremiseMacrosPlugin.artifactbundle.zip",
+    checksum: "0000000000000000000000000000000000000000000000000000000000000000"
+  )
+  macroDependencies = []
+}
+
+// MARK: - Package
 
 let package = Package(
-  name: "Conjecture",
+  name: "SwiftPremise",
   platforms: [
     .macOS(.v13),
     .iOS(.v16),
@@ -12,14 +58,16 @@ let package = Package(
     .visionOS(.v1),
   ],
   products: [
-    .library(name: "ConjectureCore", targets: ["ConjectureCore"]),
-    .library(name: "ConjectureStrategies", targets: ["ConjectureStrategies"]),
-    .library(name: "ConjectureDatabase", targets: ["ConjectureDatabase"]),
-    .library(name: "ConjectureTesting", targets: ["ConjectureTesting"]),
-    .library(name: "ConjectureXCTest", targets: ["ConjectureXCTest"]),
-    .library(name: "ConjectureParallel", targets: ["ConjectureParallel"]),
-    .library(name: "ConjectureTelemetry", targets: ["ConjectureTelemetry"]),
+    .library(name: "PremiseCore", targets: ["PremiseCore"]),
+    .library(name: "PremiseStrategies", targets: ["PremiseStrategies"]),
+    .library(name: "PremiseDatabase", targets: ["PremiseDatabase"]),
+    .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
+    .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
+    .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
+    .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
+    .library(name: "PremiseMacros", targets: ["PremiseMacros"]),
   ],
+  dependencies: macroDependencies,
   traits: [
     .trait(name: "CoverageGuided"),
     .trait(name: "Telemetry"),
@@ -27,59 +75,64 @@ let package = Package(
     .default(enabledTraits: []),
   ],
   targets: [
-    // MARK: - v1 Core Targets
-
-    .target(name: "ConjectureCore"),
+    .target(name: "PremiseCore"),
     .target(
-      name: "ConjectureStrategies",
-      dependencies: ["ConjectureCore"]
+      name: "PremiseStrategies",
+      dependencies: ["PremiseCore"]
     ),
     .target(
-      name: "ConjectureDatabase",
-      dependencies: ["ConjectureCore"]
+      name: "PremiseDatabase",
+      dependencies: ["PremiseCore"]
     ),
     .target(
-      name: "ConjectureTesting",
+      name: "PremiseTesting",
       dependencies: [
-        "ConjectureCore",
-        "ConjectureStrategies",
-        "ConjectureDatabase",
+        "PremiseCore",
+        "PremiseStrategies",
+        "PremiseDatabase",
       ]
     ),
     .target(
-      name: "ConjectureXCTest",
+      name: "PremiseXCTest",
       dependencies: [
-        "ConjectureCore",
-        "ConjectureStrategies",
-        "ConjectureDatabase",
+        "PremiseCore",
+        "PremiseStrategies",
+        "PremiseDatabase",
       ]
     ),
 
-    // MARK: - v2 Extension Targets
+    .target(
+      name: "PremiseParallel",
+      dependencies: ["PremiseCore", "PremiseDatabase"]
+    ),
+    .target(
+      name: "PremiseTelemetry",
+      dependencies: ["PremiseCore"]
+    ),
+
+    // Macro plugin target — binary or source depending on env var.
+    macroPluginTarget,
 
     .target(
-      name: "ConjectureParallel",
-      dependencies: ["ConjectureCore", "ConjectureDatabase"]
+      name: "PremiseMacros",
+      dependencies: ["PremiseMacrosPlugin"]
     ),
+
     .target(
-      name: "ConjectureTelemetry",
-      dependencies: ["ConjectureCore"]
-    ),
-    .target(
-      name: "ConjectureCoverageGuided",
-      dependencies: ["ConjectureCore"],
+      name: "PremiseCoverageGuided",
+      dependencies: ["PremiseCore"],
       swiftSettings: [
-        .define("CONJECTURE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
+        .define("PREMISE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
       ]
     ),
     .target(
-      name: "ConjectureSMT",
+      name: "PremiseSMT",
       dependencies: [
-        "ConjectureCore",
+        "PremiseCore",
         .target(name: "CZ3", condition: .when(traits: ["SMT"])),
       ],
       swiftSettings: [
-        .define("CONJECTURE_SMT", .when(traits: ["SMT"]))
+        .define("PREMISE_SMT", .when(traits: ["SMT"]))
       ]
     ),
     .systemLibrary(
@@ -91,72 +144,72 @@ let package = Package(
     // MARK: - v1 Test Targets
 
     .testTarget(
-      name: "ConjectureCoreTests",
+      name: "PremiseCoreTests",
       dependencies: [
-        "ConjectureCore",
-        "ConjectureStrategies",
+        "PremiseCore",
+        "PremiseStrategies",
       ]
     ),
     .testTarget(
-      name: "ConjectureStrategiesTests",
-      dependencies: ["ConjectureStrategies"]
+      name: "PremiseStrategiesTests",
+      dependencies: ["PremiseStrategies"]
     ),
     .testTarget(
-      name: "ConjectureDatabaseTests",
+      name: "PremiseDatabaseTests",
       dependencies: [
-        "ConjectureCore",
-        "ConjectureDatabase",
+        "PremiseCore",
+        "PremiseDatabase",
       ]
     ),
     .testTarget(
-      name: "ConjectureTestingIntegrationTests",
-      dependencies: ["ConjectureTesting"]
+      name: "PremiseTestingIntegrationTests",
+      dependencies: ["PremiseTesting"]
     ),
     .testTarget(
-      name: "ConjectureXCTestIntegrationTests",
-      dependencies: ["ConjectureXCTest"]
+      name: "PremiseXCTestIntegrationTests",
+      dependencies: ["PremiseXCTest"]
     ),
     .testTarget(
-      name: "ConjectureAdapterContractTests",
+      name: "PremiseAdapterContractTests",
       dependencies: [
-        "ConjectureCore",
-        "ConjectureStrategies",
-        "ConjectureDatabase",
-        "ConjectureTesting",
-        "ConjectureXCTest",
+        "PremiseCore",
+        "PremiseStrategies",
+        "PremiseDatabase",
+        "PremiseTesting",
+        "PremiseXCTest",
       ]
     ),
 
     // MARK: - v2 Extension Test Targets
 
     .testTarget(
-      name: "ConjectureParallelTests",
+      name: "PremiseParallelTests",
       dependencies: [
-        "ConjectureParallel",
-        "ConjectureCore",
-        "ConjectureStrategies",
+        "PremiseParallel",
+        "PremiseCore",
+        "PremiseStrategies",
       ]
     ),
     .testTarget(
-      name: "ConjectureTelemetryTests",
+      name: "PremiseTelemetryTests",
       dependencies: [
-        "ConjectureTelemetry",
-        "ConjectureCore",
-        "ConjectureStrategies",
+        "PremiseTelemetry",
+        "PremiseCore",
+        "PremiseStrategies",
       ]
     ),
     .testTarget(
-      name: "ConjectureCoverageGuidedTests",
+      name: "PremiseCoverageGuidedTests",
       dependencies: [
-        "ConjectureCoverageGuided",
-        "ConjectureCore",
+        "PremiseCoverageGuided",
+        "PremiseCore",
       ]
     ),
     .testTarget(
-      name: "ConjectureSMTTests",
+      name: "PremiseSMTTests",
       dependencies: [
-        "ConjectureSMT",
-        "ConjectureCore",
+        "PremiseSMT",
+        "PremiseCore",
       ]
     ),
   ],

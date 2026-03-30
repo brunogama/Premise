@@ -1,0 +1,74 @@
+@Tutorial(time: 15) {
+   @Intro(title: "Your First Property Test (XCTest)") {
+      Use Premise from an XCTest suite. The engine is the same; only the
+      entry point changes from `forAll` to `premise_forAll`.
+   }
+
+   @Section(title: "Add the Dependency") {
+      @ContentAndMedia {
+         Import `PremiseXCTest` instead of `PremiseTesting` for the
+         XCTest-compatible entry point. `PremiseStrategies` is the same
+         regardless of the adapter you use.
+      }
+      @Steps {
+         @Step {
+            Add Premise to your `Package.swift`. For an XCTest target,
+            depend on `PremiseXCTest` and `PremiseStrategies`.
+
+            @Code(name: "Package.swift", file: "t02-s01-package.swift")
+         }
+      }
+   }
+
+   @Section(title: "Write a Property in XCTest") {
+      @ContentAndMedia {
+         `premise_forAll` works exactly like `forAll` but reports failures
+         through `XCTFail` with the minimised counterexample and a replay
+         instruction. It's `async throws`, so mark your test method accordingly.
+      }
+      @Steps {
+         @Step {
+            Create an `XCTestCase` subclass. Import `XCTest`,
+            `PremiseXCTest`, and `PremiseStrategies`.
+
+            @Code(name: "SortTests.swift", file: "t02-s02-imports.swift")
+         }
+         @Step {
+            Write a property that checks a basic sort invariant: the sorted
+            output must always be in non-decreasing order.
+
+            @Code(name: "SortTests.swift", file: "t02-s03-property.swift")
+         }
+         @Step {
+            Add a second property: the sorted output must contain exactly
+            the same elements as the original (no elements lost or added).
+            Two properties covering independent invariants are better than
+            one property trying to check everything.
+
+            @Code(name: "SortTests.swift", file: "t02-s04-two-properties.swift")
+         }
+         @Step {
+            Run `swift test`. Both properties pass across 100 generated
+            arrays each.
+
+            @Code(name: "Terminal", file: "t02-s05-output.txt")
+         }
+      }
+   }
+
+   @Section(title: "Configure the Run Count") {
+      @ContentAndMedia {
+         `PropertyConfig` lets you tune execution. Increase the run count for
+         deeper exploration, set a seed for reproducible sequences, or reduce
+         the run count for fast feedback during development.
+      }
+      @Steps {
+         @Step {
+            Pass a custom `PropertyConfig` to increase the run count to 500
+            and fix the random seed for this property.
+
+            @Code(name: "SortTests.swift", file: "t02-s06-config.swift")
+         }
+      }
+   }
+}

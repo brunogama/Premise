@@ -2,26 +2,26 @@
 phase: "04"
 plan: "01"
 subsystem: adapters
-tags: [swift-testing, xctest, forAll, conjecture_forAll, adapter]
+tags: [swift-testing, xctest, forAll, premise_forAll, adapter]
 dependency_graph:
-  requires: [ConjectureCore, ConjectureDatabase, ConjectureStrategies, ReplayFirstExecutor]
-  provides: [forAll, conjecture_forAll, FailureFormatter, XCTestFailureFormatter]
-  affects: [ConjectureTesting, ConjectureXCTest]
+  requires: [PremiseCore, PremiseDatabase, PremiseStrategies, ReplayFirstExecutor]
+  provides: [forAll, premise_forAll, FailureFormatter, XCTestFailureFormatter]
+  affects: [PremiseTesting, PremiseXCTest]
 tech_stack:
   added: []
   patterns: [ReplayFirstExecutor-driven adapter, source-location passthrough, XCTExpectFailure for expected-failure tests]
 key_files:
   created:
-    - Sources/ConjectureTesting/FailureFormatter.swift
-    - Sources/ConjectureXCTest/XCTestFailureFormatter.swift
-    - Tests/ConjectureTestingIntegrationTests/ForAllIntegrationTests.swift
-    - Tests/ConjectureXCTestIntegrationTests/ConjectureForAllIntegrationTests.swift
+    - Sources/PremiseTesting/FailureFormatter.swift
+    - Sources/PremiseXCTest/XCTestFailureFormatter.swift
+    - Tests/PremiseTestingIntegrationTests/ForAllIntegrationTests.swift
+    - Tests/PremiseXCTestIntegrationTests/PremiseForAllIntegrationTests.swift
   modified:
-    - Sources/ConjectureTesting/ForAll.swift
-    - Sources/ConjectureXCTest/ConjectureForAll.swift
+    - Sources/PremiseTesting/ForAll.swift
+    - Sources/PremiseXCTest/PremiseForAll.swift
 decisions:
   - Used fileID (module-relative) rather than filePath (absolute) for PropertyIdentity to keep hex-encoded database filenames within filesystem limits
-  - Kept FailureFormatter internal to each adapter module to avoid cross-dependencies between ConjectureTesting and ConjectureXCTest
+  - Kept FailureFormatter internal to each adapter module to avoid cross-dependencies between PremiseTesting and PremiseXCTest
 metrics:
   duration: 4min
   completed: 2026-03-30
@@ -29,7 +29,7 @@ metrics:
 
 # Phase 04 Plan 01: Test Framework Adapter Implementations Summary
 
-Replaced Phase 1 placeholder stubs with working swift-testing forAll and XCTest conjecture_forAll adapters wired through ReplayFirstExecutor with structured failure diagnostics.
+Replaced Phase 1 placeholder stubs with working swift-testing forAll and XCTest premise_forAll adapters wired through ReplayFirstExecutor with structured failure diagnostics.
 
 ## What Was Done
 
@@ -38,8 +38,8 @@ Replaced Phase 1 placeholder stubs with working swift-testing forAll and XCTest 
 - Created `FailureFormatter` for structured counterexample output (value, error, run/shrink counts, replay instruction).
 - Supports per-property config and async/throws closures under Swift 6 strict concurrency.
 
-### Task 2: XCTest conjecture_forAll adapter (61118da)
-- Replaced the no-op placeholder with a working `conjecture_forAll` that drives `ReplayFirstExecutor` and reports failures via `XCTFail` at the caller's source location.
+### Task 2: XCTest premise_forAll adapter (61118da)
+- Replaced the no-op placeholder with a working `premise_forAll` that drives `ReplayFirstExecutor` and reports failures via `XCTFail` at the caller's source location.
 - Created `XCTestFailureFormatter` with the same structured output format.
 - Added `fileID` parameter (defaulted to `#fileID`) for module-relative property identity.
 
@@ -59,8 +59,8 @@ Replaced Phase 1 placeholder stubs with working swift-testing forAll and XCTest 
 **1. [Rule 1 - Bug] Fixed file name too long error in XCTest adapter**
 - **Found during:** Task 3
 - **Issue:** XCTest's `#filePath` returns the full absolute path which, when hex-encoded for the FileBackedDatabase filename, exceeds macOS's 255-byte filename limit.
-- **Fix:** Added `fileID` parameter defaulted to `#fileID` (module-relative path) to the `conjecture_forAll` signature, keeping `file` for XCTFail source location.
-- **Files modified:** Sources/ConjectureXCTest/ConjectureForAll.swift
+- **Fix:** Added `fileID` parameter defaulted to `#fileID` (module-relative path) to the `premise_forAll` signature, keeping `file` for XCTFail source location.
+- **Files modified:** Sources/PremiseXCTest/PremiseForAll.swift
 - **Commit:** 7214f7a
 
 ## Decisions Made

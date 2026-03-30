@@ -12,7 +12,7 @@ requires:
 provides:
   - ReplayFirstExecutor bridging Runner and ExampleDatabase
   - Integration test coverage for replay ordering and failure persistence
-affects: [ConjectureTesting, ConjectureXCTest, phase-04]
+affects: [PremiseTesting, PremiseXCTest, phase-04]
 
 tech-stack:
   added: []
@@ -20,10 +20,10 @@ tech-stack:
 
 key-files:
   created:
-    - Sources/ConjectureDatabase/ReplayFirstExecutor.swift
-    - Tests/ConjectureDatabaseTests/ReplayOrderingIntegrationTests.swift
-    - Sources/ConjectureCore/Runner.swift
-    - Sources/ConjectureCore/RunResult.swift
+    - Sources/PremiseDatabase/ReplayFirstExecutor.swift
+    - Tests/PremiseDatabaseTests/ReplayOrderingIntegrationTests.swift
+    - Sources/PremiseCore/Runner.swift
+    - Sources/PremiseCore/RunResult.swift
   modified: []
 
 key-decisions:
@@ -65,13 +65,13 @@ Each task was committed atomically:
 2. **Task 2: Add integration tests for replay-before-fresh behavior** - `df658b3` (test)
 
 ## Files Created/Modified
-- `Sources/ConjectureDatabase/ReplayFirstExecutor.swift` - Replay-first executor bridging Runner and ExampleDatabase
-- `Tests/ConjectureDatabaseTests/ReplayOrderingIntegrationTests.swift` - Integration tests for replay ordering and persistence
-- `Sources/ConjectureCore/Runner.swift` - Property runner with replay-first run method (added as dependency)
-- `Sources/ConjectureCore/RunResult.swift` - Result enum for property runs (added as dependency)
+- `Sources/PremiseDatabase/ReplayFirstExecutor.swift` - Replay-first executor bridging Runner and ExampleDatabase
+- `Tests/PremiseDatabaseTests/ReplayOrderingIntegrationTests.swift` - Integration tests for replay ordering and persistence
+- `Sources/PremiseCore/Runner.swift` - Property runner with replay-first run method (added as dependency)
+- `Sources/PremiseCore/RunResult.swift` - Result enum for property runs (added as dependency)
 
 ## Decisions Made
-- ReplayFirstExecutor uses composition (accepts Runner and ExampleDatabase) rather than subclassing, keeping ConjectureCore storage-neutral
+- ReplayFirstExecutor uses composition (accepts Runner and ExampleDatabase) rather than subclassing, keeping PremiseCore storage-neutral
 - Runner marked Sendable to satisfy strict concurrency requirements in Swift 6 mode
 
 ## Deviations from Plan
@@ -82,15 +82,15 @@ Each task was committed atomically:
 - **Found during:** Task 1
 - **Issue:** Runner.swift and RunResult.swift did not exist in this worktree branch, blocking ReplayFirstExecutor compilation
 - **Fix:** Created both files matching the phase 02 implementation
-- **Files modified:** Sources/ConjectureCore/Runner.swift, Sources/ConjectureCore/RunResult.swift
-- **Verification:** swift build --target ConjectureDatabase passes with zero warnings
+- **Files modified:** Sources/PremiseCore/Runner.swift, Sources/PremiseCore/RunResult.swift
+- **Verification:** swift build --target PremiseDatabase passes with zero warnings
 - **Committed in:** e7d0d02
 
 **2. [Rule 1 - Bug] Runner missing Sendable conformance**
 - **Found during:** Task 1
 - **Issue:** Runner struct not conforming to Sendable caused compilation error in Swift 6 strict concurrency mode when stored in Sendable ReplayFirstExecutor
 - **Fix:** Added `: Sendable` conformance to Runner declaration
-- **Files modified:** Sources/ConjectureCore/Runner.swift
+- **Files modified:** Sources/PremiseCore/Runner.swift
 - **Verification:** swift build passes with -warnings-as-errors
 - **Committed in:** e7d0d02
 
@@ -108,7 +108,7 @@ None - no external service configuration required.
 ## Next Phase Readiness
 - Replay-first execution path complete and tested
 - Ready for adapter integration in phase 04
-- ConjectureTesting and ConjectureXCTest can wire through ReplayFirstExecutor
+- PremiseTesting and PremiseXCTest can wire through ReplayFirstExecutor
 
 ---
 *Phase: 03-file-persistence-and-versioning*

@@ -1,0 +1,10 @@
+swift test
+Build complete!
+◇ Test parserNeverCrashes() started
+
+  Parallel execution: 100 runs across 4 concurrent tasks.
+  All runs completed.
+
+✓ Test parserNeverCrashes() passed (1.52 seconds)
+  Sequential equivalent would have taken ~5 seconds.
+  Speedup factor: ~3.3x (limited by maxConcurrentRuns: 4).

@@ -17,27 +17,27 @@ affects: []
 
 tech-stack:
   added: []
-  patterns: ["conditional compilation via #if CONJECTURE_SMT", "RAII solver context with inc_ref/dec_ref"]
+  patterns: ["conditional compilation via #if PREMISE_SMT", "RAII solver context with inc_ref/dec_ref"]
 
 key-files:
   created:
-    - Sources/ConjectureSMT/Z3Context.swift
-    - Sources/ConjectureSMT/Z3VersionPolicy.swift
-    - Sources/ConjectureSMT/Z3Availability.swift
-    - Sources/ConjectureSMT/SMTProvider.swift
+    - Sources/PremiseSMT/Z3Context.swift
+    - Sources/PremiseSMT/Z3VersionPolicy.swift
+    - Sources/PremiseSMT/Z3Availability.swift
+    - Sources/PremiseSMT/SMTProvider.swift
   modified:
-    - Sources/ConjectureSMT/ConjectureSMT.swift
-    - Tests/ConjectureSMTTests/SMTProviderOptInTests.swift
+    - Sources/PremiseSMT/PremiseSMT.swift
+    - Tests/PremiseSMTTests/SMTProviderOptInTests.swift
 
 key-decisions:
-  - "Used #if CONJECTURE_SMT conditional compilation to gate all Z3-dependent code so module compiles without Z3 installed"
+  - "Used #if PREMISE_SMT conditional compilation to gate all Z3-dependent code so module compiles without Z3 installed"
   - "Z3Context is @unchecked Sendable with documented single-threaded access requirement rather than actor to avoid overhead"
   - "SMTProvider delegates to PseudoRandomProvider for fallback when SMT trait is disabled"
   - "Minimum Z3 version set to 4.12.0 to cover widely available releases"
 
 patterns-established:
   - "RAII Z3 context: inc_ref on create, dec_ref in deinit for deterministic solver cleanup"
-  - "Compile-time feature gate: #if CONJECTURE_SMT for all CZ3 imports and Z3 API calls"
+  - "Compile-time feature gate: #if PREMISE_SMT for all CZ3 imports and Z3 API calls"
 
 requirements-completed: [SMT-01]
 
@@ -45,9 +45,9 @@ duration: 2min
 completed: 2026-03-30
 ---
 
-# Phase 06 Plan 04: ConjectureSMT Solver-Backed Provider Summary
+# Phase 06 Plan 04: PremiseSMT Solver-Backed Provider Summary
 
-**Z3 solver wrapper with RAII lifecycle, version policy, and SMT-backed PrimitiveProvider behind CONJECTURE_SMT conditional compilation**
+**Z3 solver wrapper with RAII lifecycle, version policy, and SMT-backed PrimitiveProvider behind PREMISE_SMT conditional compilation**
 
 ## Performance
 
@@ -71,15 +71,15 @@ Each task was committed atomically:
 2. **Task 2: Add SMT provider opt-in tests with graceful Z3 skip** - `f913d03` (test)
 
 ## Files Created/Modified
-- `Sources/ConjectureSMT/Z3Context.swift` - RAII Z3 context/solver wrapper with constraint operations
-- `Sources/ConjectureSMT/Z3VersionPolicy.swift` - Version policy with minimum baseline and runtime detection
-- `Sources/ConjectureSMT/Z3Availability.swift` - Compile-time availability gate enum
-- `Sources/ConjectureSMT/SMTProvider.swift` - PrimitiveProvider conforming SMT provider with fallback
-- `Sources/ConjectureSMT/ConjectureSMT.swift` - Updated module namespace marker
-- `Tests/ConjectureSMTTests/SMTProviderOptInTests.swift` - 8 tests covering version policy, availability, and provider behavior
+- `Sources/PremiseSMT/Z3Context.swift` - RAII Z3 context/solver wrapper with constraint operations
+- `Sources/PremiseSMT/Z3VersionPolicy.swift` - Version policy with minimum baseline and runtime detection
+- `Sources/PremiseSMT/Z3Availability.swift` - Compile-time availability gate enum
+- `Sources/PremiseSMT/SMTProvider.swift` - PrimitiveProvider conforming SMT provider with fallback
+- `Sources/PremiseSMT/PremiseSMT.swift` - Updated module namespace marker
+- `Tests/PremiseSMTTests/SMTProviderOptInTests.swift` - 8 tests covering version policy, availability, and provider behavior
 
 ## Decisions Made
-- Used `#if CONJECTURE_SMT` conditional compilation to gate all Z3-dependent code so the module compiles cleanly without Z3 installed
+- Used `#if PREMISE_SMT` conditional compilation to gate all Z3-dependent code so the module compiles cleanly without Z3 installed
 - Z3Context uses `@unchecked Sendable` with documented single-threaded access requirement rather than actor isolation to avoid unnecessary overhead in solver-intensive paths
 - SMTProvider delegates to PseudoRandomProvider as fallback when SMT trait is disabled, maintaining PrimitiveProvider conformance
 - Minimum Z3 version set to 4.12.0 to cover widely available releases while excluding pre-stable API versions
@@ -101,7 +101,7 @@ None.
 None - no external service configuration required. Users who want SMT support should install Z3 (`brew install z3`) and build with `--traits SMT`.
 
 ## Next Phase Readiness
-- ConjectureSMT module is feature-complete for SMT-01 requirement
+- PremiseSMT module is feature-complete for SMT-01 requirement
 - Z3 solver operations are ready for constraint-based generation when trait is enabled
 - All Phase 06 extension modules are now implemented
 

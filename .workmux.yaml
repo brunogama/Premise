@@ -1,0 +1,50 @@
+project_root: .
+trunk_branch: main
+default_agent: "pi"
+
+templates:
+  feature:
+    branch_prefix: "feature/"
+    quality_gates:
+      - test
+    post_create:
+      - "echo 'Feature workspace ready'"
+    tmux:
+      layout: "even-vertical"
+      panes:
+        - "$WORKMUX_AGENT_CMD"
+
+  bugfix:
+    branch_prefix: "bugfix/"
+    quality_gates:
+      - test
+    tmux:
+      layout: "even-vertical"
+      panes:
+        - "$WORKMUX_AGENT_CMD"
+
+  refactor:
+    branch_prefix: "refactor/"
+    quality_gates:
+      - test
+    tmux:
+      layout: "even-vertical"
+      panes:
+        - "$WORKMUX_AGENT_CMD"
+
+  spike:
+    branch_prefix: "spike/"
+    quality_gates: []
+    tmux:
+      layout: "even-horizontal"
+      panes:
+        - "$WORKMUX_AGENT_CMD"
+
+  release:
+    branch_prefix: "release/"
+    quality_gates:
+      - test
+    tmux:
+      layout: "even-vertical"
+      panes:
+        - "$WORKMUX_AGENT_CMD"

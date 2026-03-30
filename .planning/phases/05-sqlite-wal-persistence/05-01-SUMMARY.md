@@ -6,18 +6,18 @@ tags: [sqlite, wal, schema, runtime-gate]
 dependency_graph:
   requires: []
   provides: [SQLiteError, SQLiteRuntimeGate, SQLiteConnection, SQLiteSchema]
-  affects: [ConjectureDatabase]
+  affects: [PremiseDatabase]
 tech_stack:
   added: [SQLite3]
   patterns: [runtime-gating, WAL-mode, versioned-schema]
 key_files:
   created:
-    - Sources/ConjectureDatabase/SQLiteError.swift
-    - Sources/ConjectureDatabase/SQLiteRuntimeGate.swift
-    - Sources/ConjectureDatabase/SQLiteConnection.swift
-    - Sources/ConjectureDatabase/SQLiteSchema.swift
-    - Tests/ConjectureDatabaseTests/SQLiteRuntimeGateTests.swift
-    - Tests/ConjectureDatabaseTests/SQLiteSchemaTests.swift
+    - Sources/PremiseDatabase/SQLiteError.swift
+    - Sources/PremiseDatabase/SQLiteRuntimeGate.swift
+    - Sources/PremiseDatabase/SQLiteConnection.swift
+    - Sources/PremiseDatabase/SQLiteSchema.swift
+    - Tests/PremiseDatabaseTests/SQLiteRuntimeGateTests.swift
+    - Tests/PremiseDatabaseTests/SQLiteSchemaTests.swift
   modified: []
 decisions:
   - Used enum namespaces (SQLiteRuntimeGate, SQLiteSchema) for stateless utility types
@@ -74,7 +74,7 @@ SQLite WAL runtime gate, typed errors, connection lifecycle with pragma configur
 - **Found during:** Task 2 verification
 - **Issue:** `sqlite3_bind_text` with `nil` destructor caused text parameter to not bind correctly in test helper
 - **Fix:** Replaced parameterized query with inline string in test-only helper
-- **Files modified:** Tests/ConjectureDatabaseTests/SQLiteSchemaTests.swift
+- **Files modified:** Tests/PremiseDatabaseTests/SQLiteSchemaTests.swift
 
 ## Known Stubs
 

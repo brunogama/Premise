@@ -1,0 +1,15 @@
+version: 1
+
+builder:
+  configs:
+    - documentation_targets: [PremiseCore]
+      scheme: PremiseCore
+
+platforms:
+  - iOS: "16.0"
+  - macOS: "13.0"
+  - tvOS: "16.0"
+  - watchOS: "9.0"
+
+swift_versions:
+  - "6.0"

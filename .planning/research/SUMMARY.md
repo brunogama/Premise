@@ -1,13 +1,13 @@
 # Project Research Summary
 
-**Project:** Conjecture
+**Project:** Premise
 **Domain:** Swift-native property-based testing framework
 **Researched:** 2026-03-30
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Conjecture should be built as a SwiftPM-first property-based testing framework
+Premise should be built as a SwiftPM-first property-based testing framework
 with a deterministic trace engine at the center, thin `swift-testing` and
 XCTest adapters at the edge, and persistence treated as a storage boundary
 rather than part of the engine. The consistent pattern across
@@ -20,7 +20,7 @@ and shrinking deterministic, and only then add adapters and opt-in extensions.
 The recommended v1 approach is narrow and opinionated: SwiftPM `6.1+`,
 `swiftLanguageModes: [.v6]`, a synchronous and `Sendable` core, a composable
 strategy layer, structural shrinking, trace-first replay, and a Foundation-only
-file store with versioned failure records. That combination gives Conjecture the
+file store with versioned failure records. That combination gives Premise the
 minimum credible product: standard-runner integration, async/throws-safe Swift 6
 authoring, minimized failures, and durable local replay.
 
@@ -38,7 +38,7 @@ phase must include runtime gating or a pinned distribution plan.
 ### Recommended Stack
 
 The stack recommendation is intentionally conservative. Keep the framework as a
-pure Swift package, keep `ConjectureCore` and `ConjectureStrategies` free of
+pure Swift package, keep `PremiseCore` and `PremiseStrategies` free of
 test frameworks and storage implementation details, and make all v2 capability
 growth additive through leaf targets and package traits instead of widening the
 core API.
@@ -58,7 +58,7 @@ See [STACK.md](./STACK.md) for the full stack matrix and package structure.
 
 ### Expected Features
 
-The research is clear about the launch bar: Conjecture is not credible without
+The research is clear about the launch bar: Premise is not credible without
 standard-runner adapters, async/throws-safe authoring, a serious strategy
 library, automatic shrinking, deterministic replay, and local persistence that
 replays saved failures before fresh generation. Those are table stakes for this
@@ -90,11 +90,11 @@ See [FEATURES.md](./FEATURES.md) for the full landscape and dependency graph.
 ### Architecture Approach
 
 Architecture research strongly favors one Swift package with a strict one-way
-target graph. `ConjectureCore` owns the engine state machine, typed trace,
-replay cursor, shrinking, and provider contracts. `ConjectureStrategies` owns
-strategy builders and composition. `ConjectureDatabase` owns versioned failure
+target graph. `PremiseCore` owns the engine state machine, typed trace,
+replay cursor, shrinking, and provider contracts. `PremiseStrategies` owns
+strategy builders and composition. `PremiseDatabase` owns versioned failure
 envelopes, migrations, and the single actor that serializes file or SQLite I/O.
-`ConjectureTesting` and `ConjectureXCTest` stay thin and translate framework
+`PremiseTesting` and `PremiseXCTest` stay thin and translate framework
 expectations into shared core behavior. All later features land as inward-facing
 leaf targets, never as new back-edges into v1 modules.
 
@@ -102,16 +102,16 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full target graph and data
 flow.
 
 **Major components:**
-1. `ConjectureCore` — deterministic engine, typed trace, replay, shrinking,
+1. `PremiseCore` — deterministic engine, typed trace, replay, shrinking,
    provider contracts, and stable run outcomes.
-2. `ConjectureStrategies` — public strategy catalog, witness factories, and
+2. `PremiseStrategies` — public strategy catalog, witness factories, and
    compositional generation helpers.
-3. `ConjectureDatabase` — storage-neutral persistence facade, versioned replay
+3. `PremiseDatabase` — storage-neutral persistence facade, versioned replay
    artifacts, and actor-owned file/SQLite backends.
-4. `ConjectureTesting` and `ConjectureXCTest` — thin adapters for runner
+4. `PremiseTesting` and `PremiseXCTest` — thin adapters for runner
    integration, diagnostics, and replay ergonomics.
-5. v2 leaf modules (`ConjectureSQLite`, `ConjectureParallel`,
-   `ConjectureCoverage`, `ConjectureTelemetry`, `ConjectureSMT`) — optional
+5. v2 leaf modules (`PremiseSQLite`, `PremiseParallel`,
+   `PremiseCoverage`, `PremiseTelemetry`, `PremiseSMT`) — optional
    capabilities built on stable v1 seams.
 
 ### Critical Pitfalls
@@ -121,7 +121,7 @@ The early roadmap must be organized to prevent the core rewrites described in
 integration work before the deterministic core is frozen.
 
 1. **Ambient nondeterminism leaks into replay** — make the trace the sole
-   authority for generation decisions; ban mutable globals in `ConjectureCore`;
+   authority for generation decisions; ban mutable globals in `PremiseCore`;
    prove serial replay invariance before any parallelism work.
 2. **Shrinking edits realized values instead of the trace** — define shrinking
    as deterministic trace editing and lock in shrink invariance tests early.
@@ -156,7 +156,7 @@ them.
 **Delivers:** Typed trace model, replay cursor, deterministic engine loop,
 provider contracts, composable standard strategies, edge-case scheduling, and a
 golden shrink/replay corpus.
-**Uses:** `ConjectureCore` plus `ConjectureStrategies` only.
+**Uses:** `PremiseCore` plus `PremiseStrategies` only.
 **Avoids:** Ambient nondeterminism and value-level shrinking that cannot survive
 strategy evolution.
 
@@ -166,14 +166,14 @@ neutral before adapters get feature-rich.
 **Delivers:** Versioned failure envelope, replay handle contract,
 actor-owned Foundation file store, compatibility metadata, and forward/migration
 tests.
-**Implements:** `ConjectureDatabase` as a storage-neutral facade.
+**Implements:** `PremiseDatabase` as a storage-neutral facade.
 **Avoids:** Opaque blob persistence and a v2 SQLite migration that changes the
 public replay contract.
 
 ### Phase 4: Adapter Targets and Contract Tests
 **Rationale:** Runner integration should arrive after the core semantics and
 persistence model are already fixed.
-**Delivers:** Thin `ConjectureTesting` and `ConjectureXCTest` products,
+**Delivers:** Thin `PremiseTesting` and `PremiseXCTest` products,
 property-level configuration, diagnostics, attachments, discard accounting, and
 shared adapter contract tests.
 **Addresses:** Standard-runner adoption and actionable failure output.
@@ -183,17 +183,17 @@ divergence between adapters.
 ### Phase 5: SQLite WAL Persistence
 **Rationale:** SQLite is infrastructure, not core value, so it should be a
 storage leaf once the replay format is stable.
-**Delivers:** `ConjectureSQLite`, single-writer actor ownership, explicit WAL
+**Delivers:** `PremiseSQLite`, single-writer actor ownership, explicit WAL
 and checkpoint policy, migration from file records, and runtime version gating.
-**Uses:** Stable `ConjectureDatabase` contracts and a patched SQLite baseline.
+**Uses:** Stable `PremiseDatabase` contracts and a patched SQLite baseline.
 **Avoids:** `SQLITE_BUSY`, checkpoint starvation, WAL file growth, and the
 2026-03-13 WAL-reset bug exposure.
 
 ### Phase 6: Coverage-Guided Execution, Parallelism, and Optional Extensions
 **Rationale:** These are valuable differentiators, but only after single-run
 determinism, persistence, and adapter behavior are proven.
-**Delivers:** `ConjectureParallel`, `ConjectureCoverage`,
-`ConjectureTelemetry`, and optional `ConjectureSMT` leaves with opt-in traits.
+**Delivers:** `PremiseParallel`, `PremiseCoverage`,
+`PremiseTelemetry`, and optional `PremiseSMT` leaves with opt-in traits.
 **Implements:** Guidance as sidecar feedback, isolated workers, telemetry hooks,
 and solver-backed providers without changing v1 APIs.
 **Avoids:** Coverage artifacts leaking into replay semantics, unsafe flags
@@ -244,7 +244,7 @@ Phases with standard patterns (skip research-phase):
 
 ### Gaps to Address
 
-- **SQLite distribution strategy:** Decide whether Conjecture will require,
+- **SQLite distribution strategy:** Decide whether Premise will require,
   vendor, or runtime-gate a SQLite build that includes the WAL-reset fix before
   Phase 5 starts.
 - **SMT backend selection:** Run a focused comparison before planning the

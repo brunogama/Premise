@@ -1,0 +1,17 @@
+swift test
+✓ Test additionIsCommutative() passed    ← commutative even with overflow
+✓ Test zeroIsIdentityElement() passed    ← identity holds
+✗ Test additionIsAssociative() failed
+
+Premise found a counterexample after 12 runs and 18 shrink steps.
+
+  Strategy : integers in 0...(Int.max/2)
+  Values   : a = 2305843009213693952¢
+             b = 2305843009213693952¢
+             c = 2305843009213693952¢
+
+  Failure  : Expectation failed
+             (a+b)+c = (wrapping sum) ≠ a+(b+c) = (different wrapping sum)
+             Grouping order changes which overflow occurs first.
+
+  This is why testing associativity separately from commutativity matters.

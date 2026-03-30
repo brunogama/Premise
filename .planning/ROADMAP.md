@@ -1,13 +1,18 @@
-# Roadmap: Conjecture
+# Roadmap: Premise
 
 ## Overview
 
-Conjecture will be delivered as a SwiftPM-first, engine-driven property-testing
+Premise will be delivered as a SwiftPM-first, engine-driven property-testing
 framework. The roadmap intentionally front-loads package boundaries, strict
 concurrency, determinism, replay, and stable persistence before adapter polish
 or v2 differentiators. That sequencing keeps the v1 core credible while making
 SQLite, coverage guidance, parallel execution, telemetry, and SMT support truly
 additive.
+
+## Milestones
+
+- [x] **v1.0 MVP** - Phases 1-6 (shipped 2026-03-30)
+- [ ] **v1.1 ARD Conformance + Documentation** - Phases 7-10 (in progress)
 
 ## Phases
 
@@ -17,31 +22,51 @@ additive.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Foundations** - Freeze the package graph, strict-concurrency (completed 2026-03-30)
+<details>
+<summary>v1.0 MVP (Phases 1-6) - SHIPPED 2026-03-30</summary>
+
+- [x] **Phase 1: Foundations** - Freeze the package graph, strict-concurrency
       contract, and core architectural boundaries.
-- [x] **Phase 2: Deterministic Trace Engine** - Build the trace-first engine, (completed 2026-03-30)
+- [x] **Phase 2: Deterministic Trace Engine** - Build the trace-first engine,
       replay model, shrinker, and strategy catalog.
-- [ ] **Phase 3: File Persistence and Versioning** - Add the v1 failure store
+- [x] **Phase 3: File Persistence and Versioning** - Add the v1 failure store
       with stable trace and failure-record formats.
-- [ ] **Phase 4: Test Framework Adapters** - Ship thin `swift-testing` and
+- [x] **Phase 4: Test Framework Adapters** - Ship thin `swift-testing` and
       XCTest integrations with contract coverage and diagnostics.
-- [ ] **Phase 5: SQLite WAL Persistence** - Add the v2 SQLite backend behind
+- [x] **Phase 5: SQLite WAL Persistence** - Add the v2 SQLite backend behind
       the storage boundary with runtime gating and migration support.
-- [ ] **Phase 6: Guided Execution and Extensions** - Add coverage guidance,
+- [x] **Phase 6: Guided Execution and Extensions** - Add coverage guidance,
       parallel execution, telemetry, and optional SMT-backed providers.
 
+</details>
+
+### v1.1 ARD Conformance + Documentation
+
+- [ ] **Phase 7: ARD Trace Format and Engine Alignment** - Align the engine
+      with the ARD spec: binary CBOR traces, SplitMix64 PRNG, fixed-capacity
+      SpanStack, RunResult distinction, and debug assertions.
+- [ ] **Phase 8: Coverage Integration** - Wire LLVM SanitizerCoverage into the
+      coverage-guided provider with a graceful fallback path.
+- [ ] **Phase 9: Tooling and Telemetry** - Ship CLI replay plugin, JSON-Lines
+      output, import-restricting build plugin, and config-injected telemetry.
+- [ ] **Phase 10: Developer Documentation** - Complete Documentation.docc
+      catalog, tutorials, guides, and README rewrite.
+
 ## Phase Details
+
+<details>
+<summary>v1.0 Phase Details (Phases 1-6)</summary>
 
 ### Phase 1: Foundations
 **Goal**: Establish a SwiftPM-first package with the correct target graph,
 strict-concurrency rules, and non-negotiable architectural invariants before
 engine APIs become sticky.
 **Depends on**: Nothing (first phase)
-**Requirements**: [CORE-04, CORE-05, PACK-01, PACK-02, PACK-03]
+**Requirements**: CORE-04, CORE-05, PACK-01, PACK-02, PACK-03
 **Success Criteria** (what must be TRUE):
   1. The repository builds as a layered SwiftPM package with the expected v1
      products and explicit target dependencies.
-  2. `ConjectureCore` compiles under Swift 6 strict concurrency without
+  2. `PremiseCore` compiles under Swift 6 strict concurrency without
      importing `swift-testing` or XCTest.
   3. The default build excludes v2-only capabilities while preserving clean
      extension seams for later phases.
@@ -58,7 +83,7 @@ Plans:
 **Goal**: Deliver the engine-first choice-trace runtime, structural shrinking,
 deterministic replay, and the first complete strategy catalog.
 **Depends on**: Phase 1
-**Requirements**: [CORE-01, CORE-02, CORE-03, STRA-01, STRA-02, STRA-03, STRA-04]
+**Requirements**: CORE-01, CORE-02, CORE-03, STRA-01, STRA-02, STRA-03, STRA-04
 **Success Criteria** (what must be TRUE):
   1. Properties execute through a trace-first engine that records every
      generation decision required for replay.
@@ -79,7 +104,7 @@ Plans:
 **Goal**: Add the v1 local example database and stable replay artifact formats
 without coupling persistence to engine internals.
 **Depends on**: Phase 2
-**Requirements**: [PERS-01, PERS-02, PERS-03, PERS-04]
+**Requirements**: PERS-01, PERS-02, PERS-03, PERS-04
 **Success Criteria** (what must be TRUE):
   1. Failing examples persist locally in a file-backed database with a public,
      versioned record format.
@@ -91,18 +116,18 @@ without coupling persistence to engine internals.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Define versioned persistence artifact contracts and compatibility validation.
-- [ ] 03-02-PLAN.md — Implement the file-backed v1 database with atomic save/load/clear behavior.
-- [ ] 03-03-PLAN.md — Wire replay-first execution through persistence and verify replay ordering.
+- [x] 03-01: Define versioned persistence artifact contracts and compatibility validation.
+- [x] 03-02: Implement the file-backed v1 database with atomic save/load/clear behavior.
+- [x] 03-03: Wire replay-first execution through persistence and verify replay ordering.
 
 ### Phase 4: Test Framework Adapters
 **Goal**: Ship thin adapters for `swift-testing` and XCTest that expose
-Conjecture naturally inside standard Swift test runners.
+Premise naturally inside standard Swift test runners.
 **Depends on**: Phase 3
-**Requirements**: [ADPT-01, ADPT-02, ADPT-03, ADPT-04, ADPT-05]
+**Requirements**: ADPT-01, ADPT-02, ADPT-03, ADPT-04, ADPT-05
 **Success Criteria** (what must be TRUE):
   1. Swift developers can author properties through `forAll` in
-     `swift-testing` and `conjecture_forAll` in XCTest.
+     `swift-testing` and `premise_forAll` in XCTest.
   2. Property authoring supports async/throws and per-property execution
      configuration under Swift 6 strict concurrency.
   3. Failure output includes the minimized counterexample, run/shrink counts,
@@ -112,16 +137,16 @@ Conjecture naturally inside standard Swift test runners.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Define a shared async execution + diagnostics contract at the core-facing boundary.
-- [ ] 04-02-PLAN.md — Implement thin `forAll` integration for `swift-testing` on top of the shared driver.
-- [ ] 04-03-PLAN.md — Implement thin `conjecture_forAll` integration for XCTest on top of the shared driver.
-- [ ] 04-04-PLAN.md — Add dedicated adapter parity/diagnostics tests and run full Phase 4 verification.
+- [x] 04-01: Define a shared async execution + diagnostics contract at the core-facing boundary.
+- [x] 04-02: Implement thin `forAll` integration for `swift-testing` on top of the shared driver.
+- [x] 04-03: Implement thin `premise_forAll` integration for XCTest on top of the shared driver.
+- [x] 04-04: Add dedicated adapter parity/diagnostics tests and run full Phase 4 verification.
 
 ### Phase 5: SQLite WAL Persistence
 **Goal**: Add the v2 SQLite-backed storage engine behind the existing
-Conjecture database facade with explicit WAL policy and compatibility rules.
+Premise database facade with explicit WAL policy and compatibility rules.
 **Depends on**: Phase 4
-**Requirements**: [SQLI-01, COMP-01]
+**Requirements**: SQLI-01, COMP-01
 **Success Criteria** (what must be TRUE):
   1. Users can switch to a SQLite WAL-backed failure store without changing the
      v1 property authoring APIs.
@@ -132,14 +157,14 @@ Conjecture database facade with explicit WAL policy and compatibility rules.
 **Plans**: 2 plans
 
 Plans:
-- [x] 05-01-PLAN.md — Build SQLite foundation: runtime gate, connection lifecycle, WAL pragmas, and schema DDL.
-- [x] 05-02-PLAN.md — Implement SQLiteBackedDatabase actor with round-trip and v1 compatibility tests.
+- [x] 05-01: Build SQLite foundation: runtime gate, connection lifecycle, WAL pragmas, and schema DDL.
+- [x] 05-02: Implement SQLiteBackedDatabase actor with round-trip and v1 compatibility tests.
 
 ### Phase 6: Guided Execution and Extensions
 **Goal**: Add opt-in differentiators on top of the stable v1 core: guided
 exploration, parallel execution, telemetry, and solver-backed providers.
 **Depends on**: Phase 5
-**Requirements**: [COVR-01, PARA-01, TELE-01, SMT-01]
+**Requirements**: COVR-01, PARA-01, TELE-01, SMT-01
 **Success Criteria** (what must be TRUE):
   1. Users can opt into coverage-guided exploration, parallel execution,
      telemetry hooks, and SMT-backed providers without changing the default
@@ -153,21 +178,111 @@ exploration, parallel execution, telemetry, and solver-backed providers.
 **Plans**: 4 plans
 
 Plans:
-- [x] 06-01-PLAN.md -- Add trait-gated manifest and ConjectureTelemetry module with event protocol, sink, and relay.
-- [ ] 06-02-PLAN.md -- Implement ConjectureParallel deterministic parallel execution.
-- [ ] 06-03-PLAN.md -- Implement ConjectureCoverageGuided coverage signal ingestion.
-- [x] 06-04-PLAN.md -- Implement ConjectureSMT solver-backed provider.
+- [x] 06-01: Update Package.swift with trait-gated extension targets and implement telemetry hooks.
+- [x] 06-02: Implement deterministic parallel execution with logical-index seed mapping.
+- [x] 06-03: Implement coverage-guided exploration as trait-gated additive leaf.
+- [x] 06-04: Implement SMT-backed provider with Z3 lifetime management and version policy.
+
+</details>
+
+### Phase 7: ARD Trace Format and Engine Alignment
+**Goal**: The engine internals match the Architecture Reference Document
+specification for trace serialization, PRNG, span management, run-result
+classification, and debug-build safety checks.
+**Depends on**: Phase 6
+**Requirements**: TRAC-01, TRAC-02, TRAC-03, ENGI-01, ENGI-02, ENGI-03, ENGI-04
+**Success Criteria** (what must be TRUE):
+  1. Traces serialize and deserialize through a compact binary CBOR format with
+     the 4-byte magic header and 2-byte version field defined in the ARD.
+  2. The engine rejects traces carrying unsupported version bytes with a typed
+     `TraceError.unsupportedVersion` error.
+  3. Existing v1.0 JSON-encoded traces can be converted to the binary format
+     through an explicit migration API.
+  4. The PRNG produces the exact SplitMix64 sequence (multiply/XOR-shift) for
+     a given seed, matching the ARD reference vectors.
+  5. The span stack uses a fixed-capacity tuple with zero heap allocation, and
+     debug builds run SpanValidator assertions plus round-trip serialization
+     checks after every draw.
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: TBD
+- [ ] 07-02: TBD
+
+### Phase 8: Coverage Integration
+**Goal**: The coverage-guided provider reads real LLVM SanitizerCoverage edge
+data at runtime and degrades gracefully when instrumentation is absent.
+**Depends on**: Phase 7
+**Requirements**: COVR-02, COVR-03
+**Success Criteria** (what must be TRUE):
+  1. The coverage-guided provider integrates with LLVM SanitizerCoverage
+     through a C shim that reads `__sanitizer_cov_pcs_init` edge data and
+     feeds it into the coverage bitmap.
+  2. When SanitizerCoverage instrumentation is not available, the provider
+     falls back to standard PRNG-driven generation without crashing or
+     producing diagnostics that confuse the user.
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: TBD
+
+### Phase 9: Tooling and Telemetry
+**Goal**: Developers can replay traces from the CLI, consume structured output
+in CI, enforce module boundaries automatically, and inject telemetry without
+extra imports.
+**Depends on**: Phase 7
+**Requirements**: TOOL-01, TOOL-02, TOOL-03, TELM-02
+**Success Criteria** (what must be TRUE):
+  1. A developer can run `swift package conjreplay <trace-path>` to replay a
+     stored trace and see the reproduced failure without writing a test file.
+  2. The runner can emit structured JSON-Lines output that a CI pipeline parses
+     alongside the default human-readable format.
+  3. A build plugin fails the build when restricted imports (e.g.,
+     `swift-testing` inside `PremiseCore`) appear in the wrong target.
+  4. Telemetry events emit through `PropertyConfig.telemetry` without requiring
+     a separate module import in the property test.
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: TBD
+- [ ] 09-02: TBD
+
+### Phase 10: Developer Documentation
+**Goal**: A new user can go from zero to a passing property test with full API
+reference, authoring guides, and migration path documentation.
+**Depends on**: Phase 9
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05
+**Success Criteria** (what must be TRUE):
+  1. A Documentation.docc catalog builds and renders structured API reference
+     for all public types across all Premise modules.
+  2. A getting-started tutorial walks a new user from adding the package
+     dependency to a first passing property test.
+  3. A strategy authoring guide explains how to build custom `Strategy<A>`
+     witnesses with composition, shrinking, and spans.
+  4. A migration guide explains the v1 file-backed to v2 SQLite upgrade path
+     and the JSON-to-CBOR trace format evolution.
+  5. The README includes real examples, feature overview, installation
+     instructions, and links into the DocC articles.
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: TBD
+- [ ] 10-02: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundations | 3/3 | Complete   | 2026-03-30 |
-| 2. Deterministic Trace Engine | 4/4 | Complete | 2026-03-30 |
-| 3. File Persistence and Versioning | 0/TBD | Not started | - |
-| 4. Test Framework Adapters | 0/TBD | Not started | - |
-| 5. SQLite WAL Persistence | 1/2 | In Progress|  |
-| 6. Guided Execution and Extensions | 1/4 | In Progress | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundations | v1.0 | 3/3 | Complete | 2026-03-30 |
+| 2. Deterministic Trace Engine | v1.0 | 4/4 | Complete | 2026-03-30 |
+| 3. File Persistence and Versioning | v1.0 | 3/3 | Complete | 2026-03-30 |
+| 4. Test Framework Adapters | v1.0 | 4/4 | Complete | 2026-03-30 |
+| 5. SQLite WAL Persistence | v1.0 | 2/2 | Complete | 2026-03-30 |
+| 6. Guided Execution and Extensions | v1.0 | 4/4 | Complete | 2026-03-30 |
+| 7. ARD Trace Format and Engine Alignment | v1.1 | 0/TBD | Not started | - |
+| 8. Coverage Integration | v1.1 | 0/TBD | Not started | - |
+| 9. Tooling and Telemetry | v1.1 | 0/TBD | Not started | - |
+| 10. Developer Documentation | v1.1 | 0/TBD | Not started | - |

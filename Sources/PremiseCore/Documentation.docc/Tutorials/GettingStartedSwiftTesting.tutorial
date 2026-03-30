@@ -1,0 +1,97 @@
+@Tutorial(time: 15) {
+   @Intro(title: "Your First Property Test (swift-testing)") {
+      Add Premise to a Swift package and write a property test that automatically
+      generates hundreds of inputs, finds a failure, and shows you the simplest
+      case that reproduces it — all in under 15 minutes.
+   }
+
+   @Section(title: "Add the Dependency") {
+      @ContentAndMedia {
+         Add Premise to your package's dependencies and to the test target
+         that will use it.
+
+         You need two products: ``PremiseTesting`` for the `forAll` entry
+         point and ``PremiseStrategies`` for the built-in generators.
+      }
+      @Steps {
+         @Step {
+            Open your `Package.swift`. Add Premise to the `dependencies`
+            array. Replace `<version>` with the latest release tag.
+
+            @Code(name: "Package.swift", file: "t01-s01-package.swift")
+         }
+         @Step {
+            Add `PremiseTesting` and `PremiseStrategies` to your test
+            target's `dependencies` array.
+
+            @Code(name: "Package.swift", file: "t01-s02-package-target.swift")
+         }
+      }
+   }
+
+   @Section(title: "Write a Passing Property") {
+      @ContentAndMedia {
+         A property is a function that must return without throwing for every
+         generated input. Start with something obviously true: reversing an
+         array twice gives back the original.
+      }
+      @Steps {
+         @Step {
+            Create a new test file. Import `Testing`, `PremiseTesting`,
+            and `PremiseStrategies`.
+
+            @Code(name: "ReverseTests.swift", file: "t01-s03-imports.swift")
+         }
+         @Step {
+            Write your first property using `forAll`. The strategy
+            `.arrays(of: .integers(in: 0...100), length: 0...20)` generates
+            random integer arrays of varying lengths.
+
+            @Code(name: "ReverseTests.swift", file: "t01-s04-first-property.swift")
+         }
+         @Step {
+            Run `swift test`. The engine generates 100 random arrays and
+            verifies the property holds for each one. All pass.
+
+            @Code(name: "Terminal", file: "t01-s05-passing-output.txt")
+         }
+      }
+   }
+
+   @Section(title: "Introduce a Bug and Watch Premise Find It") {
+      @ContentAndMedia {
+         Now deliberately break the reverse function and see Premise catch
+         the failure — then automatically minimise it to the smallest possible
+         counterexample.
+      }
+      @Steps {
+         @Step {
+            Add a broken `myReverse` function that silently drops the last
+            element of even-length arrays.
+
+            @Code(name: "ReverseTests.swift", file: "t01-s06-broken-reverse.swift")
+         }
+         @Step {
+            Update the property to test `myReverse` instead of the standard
+            `reversed()`. The property is the same: reversing twice should
+            equal the original.
+
+            @Code(name: "ReverseTests.swift", file: "t01-s07-test-broken.swift")
+         }
+         @Step {
+            Run `swift test`. Premise finds a failure, shrinks it, and
+            reports the minimal counterexample — a two-element array.
+            Notice the replay instruction in the output.
+
+            @Code(name: "Terminal", file: "t01-s08-failing-output.txt")
+         }
+         @Step {
+            Fix `myReverse` by removing the bug. Run `swift test` again.
+            The stored trace is replayed first, passes, and fresh generation
+            confirms the fix across the full run count.
+
+            @Code(name: "ReverseTests.swift", file: "t01-s09-fixed.swift")
+         }
+      }
+   }
+}

@@ -9,9 +9,9 @@ requires:
     provides: stable v1 core with persistence boundary
 provides:
   - SwiftPM trait declarations for CoverageGuided, Telemetry, SMT
-  - Extension source targets ConjectureParallel, ConjectureTelemetry, ConjectureCoverageGuided, ConjectureSMT, CZ3
+  - Extension source targets PremiseParallel, PremiseTelemetry, PremiseCoverageGuided, PremiseSMT, CZ3
   - Extension test targets for all four modules
-  - ConjectureTelemetry module with EngineEvent, TelemetrySink, TelemetryRelay
+  - PremiseTelemetry module with EngineEvent, TelemetrySink, TelemetryRelay
 affects: [06-02, 06-03, 06-04]
 
 tech-stack:
@@ -21,12 +21,12 @@ tech-stack:
 key-files:
   created:
     - Package.swift (updated with traits and extension targets)
-    - Sources/ConjectureTelemetry/EngineEvent.swift
-    - Sources/ConjectureTelemetry/TelemetrySink.swift
-    - Sources/ConjectureTelemetry/TelemetryRelay.swift
+    - Sources/PremiseTelemetry/EngineEvent.swift
+    - Sources/PremiseTelemetry/TelemetrySink.swift
+    - Sources/PremiseTelemetry/TelemetryRelay.swift
     - Sources/CZ3/module.modulemap
     - Sources/CZ3/cz3.h
-    - Tests/ConjectureTelemetryTests/TelemetryHookSemanticsTests.swift
+    - Tests/PremiseTelemetryTests/TelemetryHookSemanticsTests.swift
   modified:
     - Package.swift
 
@@ -48,7 +48,7 @@ completed: 2026-03-30
 
 # Phase 6 Plan 1: Manifest Traits and Telemetry Hooks Summary
 
-**SwiftPM trait-gated extension manifest with ConjectureTelemetry actor relay for sidecar engine event observation**
+**SwiftPM trait-gated extension manifest with PremiseTelemetry actor relay for sidecar engine event observation**
 
 ## Performance
 
@@ -60,7 +60,7 @@ completed: 2026-03-30
 
 ## Accomplishments
 - Package.swift updated with 3 SwiftPM traits (CoverageGuided, Telemetry, SMT) and 5 extension source targets + 4 test targets
-- ConjectureTelemetry module delivers EngineEvent enum, TelemetrySink protocol, and TelemetryRelay actor under Swift 6 strict concurrency
+- PremiseTelemetry module delivers EngineEvent enum, TelemetrySink protocol, and TelemetryRelay actor under Swift 6 strict concurrency
 - All 6 telemetry tests pass with sidecar semantics verified (events do not affect RunResult)
 - Default build (no traits) succeeds with zero warnings
 
@@ -70,22 +70,22 @@ Each task was committed atomically:
 
 1. **Task 1: Update Package.swift with trait-gated extension targets** - `7982389` (feat)
 2. **Task 2 RED: Failing telemetry tests** - `5089e02` (test)
-3. **Task 2 GREEN: Implement ConjectureTelemetry module** - `6712cfe` (feat)
+3. **Task 2 GREEN: Implement PremiseTelemetry module** - `6712cfe` (feat)
 
 ## Files Created/Modified
 - `Package.swift` - Added traits block, 5 extension source targets, CZ3 system library, 4 extension test targets
-- `Sources/ConjectureTelemetry/EngineEvent.swift` - Observable engine event enum with 4 cases
-- `Sources/ConjectureTelemetry/TelemetrySink.swift` - Sendable protocol for event observation
-- `Sources/ConjectureTelemetry/TelemetryRelay.swift` - Actor-based fan-out relay for registered sinks
-- `Sources/ConjectureParallel/ConjectureParallel.swift` - Namespace stub for parallel module
-- `Sources/ConjectureCoverageGuided/ConjectureCoverageGuided.swift` - Namespace stub for coverage module
-- `Sources/ConjectureSMT/ConjectureSMT.swift` - Namespace stub for SMT module
+- `Sources/PremiseTelemetry/EngineEvent.swift` - Observable engine event enum with 4 cases
+- `Sources/PremiseTelemetry/TelemetrySink.swift` - Sendable protocol for event observation
+- `Sources/PremiseTelemetry/TelemetryRelay.swift` - Actor-based fan-out relay for registered sinks
+- `Sources/PremiseParallel/PremiseParallel.swift` - Namespace stub for parallel module
+- `Sources/PremiseCoverageGuided/PremiseCoverageGuided.swift` - Namespace stub for coverage module
+- `Sources/PremiseSMT/PremiseSMT.swift` - Namespace stub for SMT module
 - `Sources/CZ3/module.modulemap` - System library module map for Z3
 - `Sources/CZ3/cz3.h` - C header shim for Z3
-- `Tests/ConjectureTelemetryTests/TelemetryHookSemanticsTests.swift` - 6 tests for event relay semantics
-- `Tests/ConjectureParallelTests/ParallelDeterminismTests.swift` - Empty test suite placeholder
-- `Tests/ConjectureCoverageGuidedTests/CoverageGuidanceIsolationTests.swift` - Empty test suite placeholder
-- `Tests/ConjectureSMTTests/SMTProviderOptInTests.swift` - Empty test suite placeholder
+- `Tests/PremiseTelemetryTests/TelemetryHookSemanticsTests.swift` - 6 tests for event relay semantics
+- `Tests/PremiseParallelTests/ParallelDeterminismTests.swift` - Empty test suite placeholder
+- `Tests/PremiseCoverageGuidedTests/CoverageGuidanceIsolationTests.swift` - Empty test suite placeholder
+- `Tests/PremiseSMTTests/SMTProviderOptInTests.swift` - Empty test suite placeholder
 
 ## Decisions Made
 - Used SwiftPM traits with empty default set so extension modules are strictly opt-in
@@ -101,7 +101,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (TDD GREEN phase)
 - **Issue:** Test used `Strategy<Int> { ... }` without required `label` parameter and `drawInteger(from:)` instead of `drawInteger(in:)`
 - **Fix:** Updated to `Strategy<Int>(label: "testInt") { data in data.drawInteger(in: 0...100) }`
-- **Files modified:** Tests/ConjectureTelemetryTests/TelemetryHookSemanticsTests.swift
+- **Files modified:** Tests/PremiseTelemetryTests/TelemetryHookSemanticsTests.swift
 - **Verification:** All 6 tests pass
 - **Committed in:** 6712cfe (Task 2 GREEN commit)
 
@@ -114,9 +114,9 @@ Each task was committed atomically:
 
 | File | Line | Reason |
 |------|------|--------|
-| Sources/ConjectureParallel/ConjectureParallel.swift | 2 | Placeholder for Wave 2 plan 06-02 |
-| Sources/ConjectureCoverageGuided/ConjectureCoverageGuided.swift | 2 | Placeholder for Wave 2 plan 06-03 |
-| Sources/ConjectureSMT/ConjectureSMT.swift | 2 | Placeholder for Wave 2 plan 06-04 |
+| Sources/PremiseParallel/PremiseParallel.swift | 2 | Placeholder for Wave 2 plan 06-02 |
+| Sources/PremiseCoverageGuided/PremiseCoverageGuided.swift | 2 | Placeholder for Wave 2 plan 06-03 |
+| Sources/PremiseSMT/PremiseSMT.swift | 2 | Placeholder for Wave 2 plan 06-04 |
 
 All stubs are intentional namespace markers for modules that will be implemented by later plans in this phase.
 
@@ -128,7 +128,7 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 - Package manifest is ready for all Phase 06 Wave 2 plans to implement their respective modules
-- ConjectureTelemetry is complete and can be consumed by parallel/coverage modules for event emission
+- PremiseTelemetry is complete and can be consumed by parallel/coverage modules for event emission
 - SMT trait requires Z3 to be installed via Homebrew (`brew install z3`) when enabled
 
 ---

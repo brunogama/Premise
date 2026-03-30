@@ -1,0 +1,7 @@
+swift test
+Build complete! (3.2s)
+Test Suite 'All tests' started at 2026-03-30 12:00:00.000
+Test Suite 'MyAppTests.xctest' started
+Test Case 'reversingTwiceIsIdentity' passed (0.042 seconds)
+Test Suite 'MyAppTests.xctest' passed at 12:00:00.043.
+     Executed 1 test, with 0 failures (0 unexpected) in 0.042 (0.043) seconds

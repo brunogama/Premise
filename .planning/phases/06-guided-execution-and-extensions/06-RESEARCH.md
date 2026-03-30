@@ -23,7 +23,7 @@ No `06-CONTEXT.md` exists in `.planning/phases/06-guided-execution-and-extension
 
 - `CLAUDE.md` requires following `AGENTS.md`.
 - `RULES.md` quality gates are mandatory: formatter/lint/build/tests (warnings-as-errors), no bypasses.
-- Keep `ConjectureCore` and `ConjectureStrategies` free of `Testing`/`XCTest` imports (enforced by `scripts/validate-boundaries.sh`).
+- Keep `PremiseCore` and `PremiseStrategies` free of `Testing`/`XCTest` imports (enforced by `scripts/validate-boundaries.sh`).
 - Preserve clean layering and additive v2 modules; do not back-edge v2 concerns into v1 core.
 - Use `rg` for repository searches; prefer project wrapper tooling for web/doc research when available.
 - Release/tag workflow is out of scope unless explicitly requested by the user.
@@ -34,14 +34,14 @@ No `06-CONTEXT.md` exists in `.planning/phases/06-guided-execution-and-extension
 | ID | Description | Research Support |
 |----|-------------|------------------|
 | PARA-01 | Users can run properties in parallel with deterministic seed distribution and a single shared persistence contract. | Use `withThrowingTaskGroup`, but map each logical run index to a deterministic seed independent of completion order; keep persistence fan-in through the existing `ExampleDatabase` actor. |
-| COVR-01 | Users can opt into coverage-guided exploration through an additive extension target that does not affect the default build. | Use SwiftPM traits (`@available(_PackageDescription, introduced: 6.1)`) and conditional target/build settings; keep coverage instrumentation and scoring in a leaf target (`ConjectureCoverageGuided`). |
+| COVR-01 | Users can opt into coverage-guided exploration through an additive extension target that does not affect the default build. | Use SwiftPM traits (`@available(_PackageDescription, introduced: 6.1)`) and conditional target/build settings; keep coverage instrumentation and scoring in a leaf target (`PremiseCoverageGuided`). |
 | TELE-01 | Users can attach telemetry hooks to observe run, replay, and shrink events without changing core engine semantics. | Implement sidecar telemetry sinks/adapters in extension targets; avoid global logging initialization; emit observational events only (no replay-affecting state). |
 | SMT-01 | Users can opt into an SMT-backed provider as an extension target rather than a mandatory dependency. | Add trait-gated SMT leaf target + `systemLibrary` target (`pkgConfig: "z3"`), isolate solver contexts, and enforce Z3 ref-count/threading rules. |
 </phase_requirements>
 
 ## Summary
 
-Phase 06 should be implemented as **leaf extension modules + SwiftPM traits**, not by widening the v1 core API. The core already has stable deterministic seams (`Runner`, `PropertyConfig.seed`, `ExampleDatabase` actor). Build on those seams with additive targets: `ConjectureParallel`, `ConjectureCoverageGuided`, `ConjectureTelemetry`, and `ConjectureSMT`.
+Phase 06 should be implemented as **leaf extension modules + SwiftPM traits**, not by widening the v1 core API. The core already has stable deterministic seams (`Runner`, `PropertyConfig.seed`, `ExampleDatabase` actor). Build on those seams with additive targets: `PremiseParallel`, `PremiseCoverageGuided`, `PremiseTelemetry`, and `PremiseSMT`.
 
 The critical technical risk is nondeterminism leakage. Swift task groups return results in completion order, not submission order, so parallel execution must normalize results back to logical run index order before any persistence/replay decisions. Coverage and telemetry must stay sidecars: they can observe and rank, but must not mutate trace semantics or failure-record contracts.
 
@@ -57,18 +57,18 @@ SMT integration is feasible as an optional target, but only if treated as infras
 |---------|---------|---------|--------------|
 | SwiftPM Traits + Conditions (`Trait`, `TargetDependencyCondition.when(traits:)`, `BuildSettingCondition.when(..., traits:)`) | PackageDescription 6.1 APIs | Additive opt-in feature gates for coverage/telemetry/SMT | Officially supports additive feature modeling and trait-conditional dependencies/settings. |
 | Swift Structured Concurrency (`withThrowingTaskGroup`) | Swift 6.x | Parallel run scheduling | Official structured concurrency model with clear completion/cancellation guarantees. |
-| `ConjectureCore` (`Runner`, `PseudoRandomProvider`, `ChoiceTrace`) | in-repo | Deterministic run/replay semantics | Existing seed and trace model is the invariant base for parallel/guided extensions. |
-| `ConjectureDatabase` (`ExampleDatabase` actor) | in-repo | Shared persistence contract | Actor boundary already exists for safe shared state across concurrent workers. |
+| `PremiseCore` (`Runner`, `PseudoRandomProvider`, `ChoiceTrace`) | in-repo | Deterministic run/replay semantics | Existing seed and trace model is the invariant base for parallel/guided extensions. |
+| `PremiseDatabase` (`ExampleDatabase` actor) | in-repo | Shared persistence contract | Actor boundary already exists for safe shared state across concurrent workers. |
 
 ### Supporting
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `apple/swift-log` (`Logging`) | `1.10.0` (2026-02-16) | Structured telemetry backend adapter | Telemetry extension target (`ConjectureTelemetryLogging`) only; keep core independent. |
-| `apple/swift-distributed-tracing` (`Tracing`, `Instrumentation`) | `1.4.1` (2026-03-10) | Trace/span correlation for telemetry hooks | When exporting Conjecture events into tracing systems. |
+| `apple/swift-log` (`Logging`) | `1.10.0` (2026-02-16) | Structured telemetry backend adapter | Telemetry extension target (`PremiseTelemetryLogging`) only; keep core independent. |
+| `apple/swift-distributed-tracing` (`Tracing`, `Instrumentation`) | `1.4.1` (2026-03-10) | Trace/span correlation for telemetry hooks | When exporting Premise events into tracing systems. |
 | `apple/swift-atomics` (`Atomics`) | `1.3.0` (2025-06-04) | Low-overhead counters/flags | High-throughput telemetry/counter aggregation when actor-only is too hot. |
 | LLVM SanitizerCoverage (`-sanitize-coverage=...`) | Toolchain feature (`swiftc`/`clang`) | Coverage signal extraction for guidance | Coverage-guided extension only; not in default build path. |
-| Z3 C API + system package (`z3`) | Latest upstream `z3-4.16.0` (2026-02-19); local `4.15.4` | SMT-backed provider | `ConjectureSMT` trait only; gate by availability/version policy. |
+| Z3 C API + system package (`z3`) | Latest upstream `z3-4.16.0` (2026-02-19); local `4.15.4` | SMT-backed provider | `PremiseSMT` trait only; gate by availability/version policy. |
 
 ### Alternatives Considered
 
@@ -106,22 +106,22 @@ swift build --traits CoverageGuided,Telemetry,SMT
 
 ```text
 Sources/
-├── ConjectureCore/                    # unchanged v1 deterministic engine
-├── ConjectureDatabase/                # shared persistence actor contract
-├── ConjectureParallel/                # opt-in scheduler and deterministic shard mapping
-├── ConjectureCoverageGuided/          # opt-in coverage signal ingestion + scoring
-├── ConjectureTelemetry/               # opt-in event protocol + sinks
-├── ConjectureTelemetryLogging/        # swift-log/tracing adapter target
-├── ConjectureSMT/                     # opt-in solver-backed provider
+├── PremiseCore/                    # unchanged v1 deterministic engine
+├── PremiseDatabase/                # shared persistence actor contract
+├── PremiseParallel/                # opt-in scheduler and deterministic shard mapping
+├── PremiseCoverageGuided/          # opt-in coverage signal ingestion + scoring
+├── PremiseTelemetry/               # opt-in event protocol + sinks
+├── PremiseTelemetryLogging/        # swift-log/tracing adapter target
+├── PremiseSMT/                     # opt-in solver-backed provider
 └── CZ3/                               # systemLibrary target for z3 C API
 
 Tests/
-├── ConjectureCoreTests/
-├── ConjectureDatabaseTests/
-├── ConjectureParallelTests/
-├── ConjectureCoverageGuidedTests/
-├── ConjectureTelemetryTests/
-└── ConjectureSMTTests/
+├── PremiseCoreTests/
+├── PremiseDatabaseTests/
+├── PremiseParallelTests/
+├── PremiseCoverageGuidedTests/
+├── PremiseTelemetryTests/
+└── PremiseSMTTests/
 ```
 
 ### Pattern 1: Trait-Gated Additive Leaves
@@ -142,9 +142,9 @@ let package = Package(
   ],
   targets: [
     .target(
-      name: "ConjectureSMT",
+      name: "PremiseSMT",
       dependencies: [
-        "ConjectureCore",
+        "PremiseCore",
         .target(name: "CZ3", condition: .when(traits: ["SMT"]))
       ]
     ),
@@ -205,7 +205,7 @@ public protocol TelemetrySink: Sendable {
 ### Pattern 4: Solver Context Isolation + Ref Management
 
 **What:** Wrap Z3 context/solver lifetimes explicitly; keep solver objects per worker/task and manage refs deterministically.  
-**When to use:** `ConjectureSMT` provider implementation.  
+**When to use:** `PremiseSMT` provider implementation.  
 **Example:**
 
 ```c
@@ -258,7 +258,7 @@ Z3_del_context(ctx);
 **What goes wrong:** Package consumers fail dependency resolution/build policy checks.  
 **Why it happens:** SwiftPM marks products containing `unsafeFlags` targets as ineligible for use by other packages.  
 **How to avoid:** Isolate instrumentation-only flags to opt-in leaf targets and keep default/public v1 products clean.  
-**Warning signs:** Consumer package cannot depend on Conjecture products after adding coverage instrumentation flags.
+**Warning signs:** Consumer package cannot depend on Premise products after adding coverage instrumentation flags.
 
 ### Pitfall 4: Logging Bootstrap Collisions
 **What goes wrong:** Runtime crashes or undefined behavior when telemetry module initializes logging.  
@@ -293,13 +293,13 @@ Verified patterns from official sources and current codebase:
 ```swift
 // Source: swift-package-manager BuildSettings.swift + Target.swift (6.1 APIs)
 .target(
-  name: "ConjectureCoverageGuided",
+  name: "PremiseCoverageGuided",
   dependencies: [
-    "ConjectureCore",
+    "PremiseCore",
     .product(name: "Logging", package: "swift-log", condition: .when(traits: ["Telemetry"]))
   ],
   swiftSettings: [
-    .define("CONJECTURE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
+    .define("PREMISE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
   ]
 )
 ```
@@ -330,7 +330,7 @@ var rng = SplitMix64(seed: stableSeed)
 ```swift
 // Source: swift-log Logging.swift
 // Do NOT call LoggingSystem.bootstrap in library init paths.
-let logger = Logger(label: "conjecture.telemetry")
+let logger = Logger(label: "premise.telemetry")
 logger.info("run finished", metadata: ["property": "\(propertyID)"])
 ```
 
@@ -364,7 +364,7 @@ logger.info("run finished", metadata: ["property": "\(propertyID)"])
 1. **Seed mixing contract for parallel logical runs**
    - What we know: deterministic per-run seed mapping is required; current core already uses seed+run index.
    - What's unclear: whether to standardize on SplitMix64-derived mapping as a documented compatibility contract.
-   - Recommendation: freeze a named mapping function in `ConjectureParallel` and regression-test it as a compatibility surface.
+   - Recommendation: freeze a named mapping function in `PremiseParallel` and regression-test it as a compatibility surface.
 
 2. **Coverage signal ingestion strategy**
    - What we know: `swiftc`/`clang` support sanitizer coverage instrumentation; unsafe flags can impact package-consumer eligibility.
@@ -373,7 +373,7 @@ logger.info("run finished", metadata: ["property": "\(propertyID)"])
 
 3. **SMT runtime/version policy**
    - What we know: upstream Z3 latest is `4.16.0`, local environment has `4.15.4`.
-   - What's unclear: minimum supported Z3 version for ConjectureSMT CI matrix and user docs.
+   - What's unclear: minimum supported Z3 version for PremiseSMT CI matrix and user docs.
    - Recommendation: declare minimum tested version explicitly and fail-fast when unavailable/out-of-policy.
 
 ## Environment Availability
@@ -382,8 +382,8 @@ logger.info("run finished", metadata: ["property": "\(propertyID)"])
 |------------|------------|-----------|---------|----------|
 | Swift toolchain (`swift`) | All Phase 06 implementation/tests | ✓ | 6.2.4 | — |
 | SwiftLint (`swiftlint`) | RULES.md quality gates | ✓ | 0.63.2 | `/opt/homebrew/bin/swiftlint` |
-| Clang/Swift sanitizer coverage flags | `ConjectureCoverageGuided` | ✓ | Apple clang 17.0.0 / `swiftc` supports `-sanitize-coverage` | Skip coverage trait if unavailable |
-| Z3 CLI/library + pkg-config | `ConjectureSMT` | ✓ | Z3 4.15.4 (`pkg-config z3`) | Disable `SMT` trait |
+| Clang/Swift sanitizer coverage flags | `PremiseCoverageGuided` | ✓ | Apple clang 17.0.0 / `swiftc` supports `-sanitize-coverage` | Skip coverage trait if unavailable |
+| Z3 CLI/library + pkg-config | `PremiseSMT` | ✓ | Z3 4.15.4 (`pkg-config z3`) | Disable `SMT` trait |
 | SQLite runtime | Shared persistence assumptions (Phase 5 dependency) | ✓ | 3.51.0 | Keep WAL runtime gating from Phase 5 |
 
 **Missing dependencies with no fallback:**
@@ -421,10 +421,10 @@ logger.info("run finished", metadata: ["property": "\(propertyID)"])
 
 ### Wave 0 Gaps
 
-- [ ] `Tests/ConjectureParallelTests/ParallelDeterminismTests.swift` — deterministic seed-to-run-index mapping and completion-order normalization for `PARA-01`.
-- [ ] `Tests/ConjectureCoverageGuidedTests/CoverageGuidanceIsolationTests.swift` — trait-off default behavior and trait-on guidance behavior for `COVR-01`.
-- [ ] `Tests/ConjectureTelemetryTests/TelemetryHookSemanticsTests.swift` — event emission without replay semantic drift for `TELE-01`.
-- [ ] `Tests/ConjectureSMTTests/SMTProviderOptInTests.swift` — optional target wiring and runtime availability gating for `SMT-01`.
+- [ ] `Tests/PremiseParallelTests/ParallelDeterminismTests.swift` — deterministic seed-to-run-index mapping and completion-order normalization for `PARA-01`.
+- [ ] `Tests/PremiseCoverageGuidedTests/CoverageGuidanceIsolationTests.swift` — trait-off default behavior and trait-on guidance behavior for `COVR-01`.
+- [ ] `Tests/PremiseTelemetryTests/TelemetryHookSemanticsTests.swift` — event emission without replay semantic drift for `TELE-01`.
+- [ ] `Tests/PremiseSMTTests/SMTProviderOptInTests.swift` — optional target wiring and runtime availability gating for `SMT-01`.
 - [ ] `Package.swift` updates for new extension test targets and trait wiring.
 
 ## Sources
@@ -434,9 +434,9 @@ logger.info("run finished", metadata: ["property": "\(propertyID)"])
 - Local project artifacts:
   - `.planning/ROADMAP.md` (Phase 06 goal/requirements)
   - `.planning/REQUIREMENTS.md` (`PARA-01`, `COVR-01`, `TELE-01`, `SMT-01`)
-  - `Sources/ConjectureCore/Runner.swift` (current seed + run model)
-  - `Sources/ConjectureCore/PseudoRandomProvider.swift` (current deterministic PRNG)
-  - `Sources/ConjectureDatabase/ExampleDatabase.swift` (shared actor persistence seam)
+  - `Sources/PremiseCore/Runner.swift` (current seed + run model)
+  - `Sources/PremiseCore/PseudoRandomProvider.swift` (current deterministic PRNG)
+  - `Sources/PremiseDatabase/ExampleDatabase.swift` (shared actor persistence seam)
 - Swift structured concurrency proposal (SE-0304):  
   https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
 - Swift stdlib RNG docs/comments (`Random.swift`):  

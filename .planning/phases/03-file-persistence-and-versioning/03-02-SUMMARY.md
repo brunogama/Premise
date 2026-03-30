@@ -18,9 +18,9 @@ tech-stack:
 
 key-files:
   created:
-    - Tests/ConjectureDatabaseTests/FileBackedDatabasePersistenceTests.swift
+    - Tests/PremiseDatabaseTests/FileBackedDatabasePersistenceTests.swift
   modified:
-    - Sources/ConjectureDatabase/FileBackedDatabase.swift
+    - Sources/PremiseDatabase/FileBackedDatabase.swift
 
 key-decisions:
   - "File names use hex-encoded UTF-8 bytes of property key to avoid filesystem-unsafe characters"
@@ -61,8 +61,8 @@ Each task was committed atomically:
 2. **Task 2: Add persistence lifecycle tests for save/load/clear behavior** - `96bef2d` (test)
 
 ## Files Created/Modified
-- `Sources/ConjectureDatabase/FileBackedDatabase.swift` - Real file-backed actor with save/load/clear using PersistenceCodec
-- `Tests/ConjectureDatabaseTests/FileBackedDatabasePersistenceTests.swift` - 3 tests covering persistence lifecycle
+- `Sources/PremiseDatabase/FileBackedDatabase.swift` - Real file-backed actor with save/load/clear using PersistenceCodec
+- `Tests/PremiseDatabaseTests/FileBackedDatabasePersistenceTests.swift` - 3 tests covering persistence lifecycle
 
 ## Decisions Made
 - File names use hex-encoded UTF-8 bytes of the property key string to avoid filesystem-unsafe characters

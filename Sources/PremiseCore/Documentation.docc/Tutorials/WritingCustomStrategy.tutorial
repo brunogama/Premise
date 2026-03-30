@@ -1,0 +1,115 @@
+@Tutorial(time: 25) {
+   @Intro(title: "Writing a Custom Strategy") {
+      Most real-world properties need values that the built-in strategies can't
+      produce directly. This tutorial walks through building a complete
+      `Strategy<Product>` from scratch, with a draw closure, a shrink closure,
+      and a clean extension-based API.
+   }
+
+   @Section(title: "The Domain Model") {
+      @ContentAndMedia {
+         You have a `Product` type used in an e-commerce system. You want to
+         write properties that verify pricing, discount, and inventory logic.
+         To do that you need a strategy that generates realistic `Product` values.
+      }
+      @Steps {
+         @Step {
+            Define the `Product` struct. It has a name, a price in cents,
+            a category, and a stock count.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s01-model.swift")
+         }
+      }
+   }
+
+   @Section(title: "The Draw Closure") {
+      @ContentAndMedia {
+         The draw closure uses ``PremiseData``'s primitive draw methods to
+         produce each field. Draw fields in a stable order — the order is part
+         of the trace, and changing it will make stored traces incompatible.
+      }
+      @Steps {
+         @Step {
+            Write the initial `Strategy<Product>` with a draw closure that
+            produces all four fields using primitive draws.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s02-draw.swift")
+         }
+         @Step {
+            Wrap the whole draw in a `withSpan` call. This gives the
+            ``ShrinkMachine`` a group boundary to delete during shrinking —
+            when multiple products are generated in an array, it can drop
+            entire products at once.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s03-with-span.swift")
+         }
+      }
+   }
+
+   @Section(title: "The Shrink Closure") {
+      @ContentAndMedia {
+         The shrink closure returns simpler `Product` candidates. Think about
+         what "simpler" means for each field: lower prices, shorter names,
+         the first category, fewer units in stock.
+      }
+      @Steps {
+         @Step {
+            Add a shrink closure that produces a minimal product as a
+            candidate. The machine tries these candidates during failure
+            minimisation.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s04-shrink.swift")
+         }
+         @Step {
+            Improve the shrink closure to produce multiple candidates in
+            order of increasing simplicity. The machine tries them all and
+            keeps any that still fail the property.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s05-better-shrink.swift")
+         }
+      }
+   }
+
+   @Section(title: "The Extension API") {
+      @ContentAndMedia {
+         Package the strategy as a `static` property on `Strategy` conditioned
+         on `Value == Product`. This gives callers the clean `forAll(.products)`
+         syntax that matches the built-in strategies.
+      }
+      @Steps {
+         @Step {
+            Move the strategy into an extension.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s06-extension.swift")
+         }
+         @Step {
+            Add variant strategies for specific cases: free products, expensive
+            products, out-of-stock products.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s07-variants.swift")
+         }
+      }
+   }
+
+   @Section(title: "Using the Strategy in Properties") {
+      @ContentAndMedia {
+         Write properties that verify the pricing and discount logic using the
+         new strategy.
+      }
+      @Steps {
+         @Step {
+            Write a property that verifies the discount calculation never
+            returns a negative price.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s08-property.swift")
+         }
+         @Step {
+            Write a property over arrays of products: the total cart value
+            after applying a bulk discount must never exceed the pre-discount
+            total.
+
+            @Code(name: "ProductStrategyTests.swift", file: "t07-s09-cart-property.swift")
+         }
+      }
+   }
+}

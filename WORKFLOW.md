@@ -14,7 +14,7 @@ For repository operating behavior during implementation, follow `AGENTS.md`.
 - Keep work scoped to the requested task.
 - Do not mix implementation, cleanup, and unrelated refactors in the same change unless explicitly requested.
 - Prefer the smallest releasable slice.
-- Preserve the Phase 1 package contract: `ConjectureCore` and `ConjectureStrategies`
+- Preserve the Phase 1 package contract: `PremiseCore` and `PremiseStrategies`
   stay free of `Testing` and XCTest imports.
 
 ## Issues

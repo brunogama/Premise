@@ -1,0 +1,37 @@
+@Tutorials(name: "Premise") {
+   @Intro(title: "Property-Based Testing with Premise") {
+      Learn to write property tests that find bugs automatically, reproduce failures
+      deterministically, and shrink them to the simplest possible counterexample.
+   }
+
+   @Chapter(name: "Getting Started") {
+      Get Premise running in your project and write your first property test.
+
+      @TutorialReference(tutorial: "doc:GettingStartedSwiftTesting")
+      @TutorialReference(tutorial: "doc:GettingStartedXCTest")
+   }
+
+   @Chapter(name: "Real-World Properties") {
+      Apply property testing to the kinds of code you write every day.
+
+      @TutorialReference(tutorial: "doc:TestingASortingAlgorithm")
+      @TutorialReference(tutorial: "doc:TestingCodecRoundtrip")
+      @TutorialReference(tutorial: "doc:TestingNumericInvariants")
+      @TutorialReference(tutorial: "doc:TestingValidationLogic")
+   }
+
+   @Chapter(name: "Building Strategies") {
+      Create generators for your own domain types.
+
+      @TutorialReference(tutorial: "doc:WritingCustomStrategy")
+      @TutorialReference(tutorial: "doc:UsingCombinators")
+      @TutorialReference(tutorial: "doc:RecursiveDataStructures")
+   }
+
+   @Chapter(name: "Advanced Techniques") {
+      Debug failures, run tests in parallel, and instrument the engine.
+
+      @TutorialReference(tutorial: "doc:DebuggingWithReplay")
+      @TutorialReference(tutorial: "doc:ParallelTesting")
+   }
+}

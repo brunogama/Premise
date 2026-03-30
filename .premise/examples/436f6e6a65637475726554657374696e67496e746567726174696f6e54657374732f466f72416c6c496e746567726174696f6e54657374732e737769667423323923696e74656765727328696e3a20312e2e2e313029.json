@@ -1,0 +1,343 @@
+[
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  },
+  {
+    "engineVersion" : "0.2.0",
+    "errorMessage" : "value 1 is not > 5",
+    "propertyID" : {
+      "fileID" : "PremiseTestingIntegrationTests\/ForAllIntegrationTests.swift",
+      "line" : 29,
+      "strategyLabel" : "integers(in: 1...10)"
+    },
+    "recordFormatVersion" : 1,
+    "runCount" : 1,
+    "shrinkCount" : 0,
+    "timestamp" : -978307200,
+    "trace" : {
+      "entries" : [
+        {
+          "integer" : {
+            "_0" : 7
+          }
+        },
+        {
+          "integer" : {
+            "_0" : 7960286522194355700
+          }
+        }
+      ],
+      "spans" : [
+
+      ]
+    },
+    "traceFormatVersion" : 1
+  }
+]

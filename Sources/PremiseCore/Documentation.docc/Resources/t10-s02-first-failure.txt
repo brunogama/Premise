@@ -1,0 +1,19 @@
+swift test
+Build complete!
+◇ Test cacheInsertionIsIdempotent() started
+✗ Test cacheInsertionIsIdempotent() failed after 0.008 seconds
+
+Premise found a counterexample after 1 run and 3 shrink steps.
+
+  Strategy : strings(from:length: 1...3)
+  Value    : key = "a", value = 0
+
+  Failure  : Expectation failed: (cache.totalInsertions() == 1)
+             totalInsertions() → 2
+
+  Stored trace at:
+    .premise/examples/43616368652e73776966742334322...json
+
+  Replay instruction:
+    Set PropertyConfig(replayEnabled: true) — the stored trace will be
+    replayed automatically on the next run.

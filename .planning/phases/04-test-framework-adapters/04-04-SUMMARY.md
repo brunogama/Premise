@@ -6,10 +6,10 @@ tags: [swift-testing, xctest, contract-tests, parity, diagnostics]
 
 requires:
   - phase: 04-test-framework-adapters
-    provides: ForAll.swift, ConjectureForAll.swift, FailureFormatter, XCTestFailureFormatter
+    provides: ForAll.swift, PremiseForAll.swift, FailureFormatter, XCTestFailureFormatter
 
 provides:
-  - ConjectureAdapterContractTests target with 21 parity and diagnostics tests
+  - PremiseAdapterContractTests target with 21 parity and diagnostics tests
   - Formatter parity contract proving both adapters produce identical output
   - Diagnostics format contract protecting five-line failure message structure
 
@@ -21,9 +21,9 @@ tech-stack:
 
 key-files:
   created:
-    - Tests/ConjectureAdapterContractTests/FormatterParityTests.swift
-    - Tests/ConjectureAdapterContractTests/AdapterExecutionParityTests.swift
-    - Tests/ConjectureAdapterContractTests/DiagnosticsFormatTests.swift
+    - Tests/PremiseAdapterContractTests/FormatterParityTests.swift
+    - Tests/PremiseAdapterContractTests/AdapterExecutionParityTests.swift
+    - Tests/PremiseAdapterContractTests/DiagnosticsFormatTests.swift
   modified:
     - Package.swift
 
@@ -54,7 +54,7 @@ completed: 2026-03-30
 - **Files modified:** 4
 
 ## Accomplishments
-- Added ConjectureAdapterContractTests target to Package.swift with dependencies on both adapter modules
+- Added PremiseAdapterContractTests target to Package.swift with dependencies on both adapter modules
 - Created FormatterParityTests (4 tests) proving FailureFormatter and XCTestFailureFormatter produce identical output for all input combinations
 - Created AdapterExecutionParityTests (6 tests) verifying Runner and ReplayFirstExecutor behavioral equivalence
 - Created DiagnosticsFormatTests (11 tests) validating exact five-line failure message structure, value rendering, and edge cases
@@ -68,10 +68,10 @@ Each task was committed atomically:
 3. **Task 3: Diagnostics format contract tests** - `812fbc7` (test)
 
 ## Files Created/Modified
-- `Package.swift` - Added ConjectureAdapterContractTests test target
-- `Tests/ConjectureAdapterContractTests/FormatterParityTests.swift` - 4 tests proving formatter output identity
-- `Tests/ConjectureAdapterContractTests/AdapterExecutionParityTests.swift` - 6 tests verifying Runner/executor behavioral equivalence
-- `Tests/ConjectureAdapterContractTests/DiagnosticsFormatTests.swift` - 11 tests validating diagnostic message structure
+- `Package.swift` - Added PremiseAdapterContractTests test target
+- `Tests/PremiseAdapterContractTests/FormatterParityTests.swift` - 4 tests proving formatter output identity
+- `Tests/PremiseAdapterContractTests/AdapterExecutionParityTests.swift` - 6 tests verifying Runner/executor behavioral equivalence
+- `Tests/PremiseAdapterContractTests/DiagnosticsFormatTests.swift` - 11 tests validating diagnostic message structure
 
 ## Decisions Made
 - Used swift-testing `@Test` for all contract tests rather than mixing XCTest and swift-testing in one target; parity is verified through the shared Runner and formatter components that both adapters delegate to

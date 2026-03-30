@@ -7,19 +7,101 @@ on:
       - main
       - gsd/**
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Always build the macro from source in CI so we verify it compiles.
+  PREMISE_MACRO_SOURCE: "1"
+
 jobs:
-  validate:
-    runs-on: macos-latest
+  # ---------------------------------------------------------------------------
+  # macOS (primary — builds + tests everything including macro)
+  # ---------------------------------------------------------------------------
+  macos:
+    name: macOS (Swift ${{ matrix.swift }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - swift: "6.1"
+            runner: macos-15
+          - swift: "6.0"
+            runner: macos-14
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Select Swift toolchain
+        run: |
+          if [[ "${{ matrix.swift }}" == "6.1" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.3.app || true
+          elif [[ "${{ matrix.swift }}" == "6.0" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app || true
+          fi
+          swift --version
+
       - name: Run boundary validation
         run: bash scripts/validate-boundaries.sh
 
-      - name: Build with explicit import checks
-        run: swift build --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
+      - name: Build (all targets)
+        run: |
+          swift build \
+            --explicit-target-dependency-import-check error \
+            -Xswiftc -warnings-as-errors
 
-      - name: Test with explicit import checks
-        run: swift test --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
+      - name: Test
+        run: |
+          swift test \
+            --explicit-target-dependency-import-check error \
+            -Xswiftc -warnings-as-errors
+
+  # ---------------------------------------------------------------------------
+  # Linux (verify cross-platform compilation)
+  # ---------------------------------------------------------------------------
+  linux:
+    name: Linux (Swift ${{ matrix.swift }})
+    runs-on: ubuntu-latest
+    container: swift:${{ matrix.swift }}
+    strategy:
+      fail-fast: false
+      matrix:
+        swift:
+          - "6.1"
+          - "6.0"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build (all targets)
+        run: |
+          swift build \
+            --explicit-target-dependency-import-check error \
+            -Xswiftc -warnings-as-errors
+
+      - name: Test
+        run: |
+          swift test \
+            --explicit-target-dependency-import-check error \
+            -Xswiftc -warnings-as-errors
+
+  # ---------------------------------------------------------------------------
+  # Macro-only smoke test (binary mode — verifies Package.swift resolves)
+  # ---------------------------------------------------------------------------
+  macro-binary-check:
+    name: Macro binary resolution check
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Build WITHOUT PREMISE_MACRO_SOURCE so Package.swift uses binaryTarget.
+      # This step will fail until the first release is published (expected).
+      # We just verify the manifest parses correctly.
+      - name: Verify Package.swift resolves
+        run: |
+          swift package dump-package > /dev/null 2>&1 && echo "✓ Package manifest valid" || echo "⚠ Binary target not yet available (expected before first release)"

@@ -1,0 +1,18 @@
+swift test
+Build complete! (2.8s)
+◇ Test reversingTwiceIsIdentity() started
+✗ Test reversingTwiceIsIdentity() failed after 0.031 seconds
+
+Premise found a counterexample after 4 runs and 12 shrink steps.
+
+  Strategy : arrays(of: integers(in: 0...100), length: 0...20)
+  Value    : [0, 0]
+
+  To replay this failure, run with:
+    PropertyConfig(seed: 0, replayEnabled: true)
+  Or keep the stored trace at:
+    .premise/examples/4d7941...json
+
+  Failure  : Expectation failed: (myReverse(myReverse(array)) == array)
+             myReverse(myReverse([0, 0])) → [0]
+             expected [0, 0]

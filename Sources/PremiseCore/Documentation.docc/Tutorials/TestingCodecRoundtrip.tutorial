@@ -1,0 +1,94 @@
+@Tutorial(time: 20) {
+   @Intro(title: "Testing Encoder/Decoder Round-Trips") {
+      Encode-decode round-trips are among the most powerful properties you can
+      write. If `decode(encode(x)) == x` for all `x`, your codec is correct by
+      definition — no hand-crafted example set can match that coverage.
+   }
+
+   @Section(title: "The Round-Trip Property") {
+      @ContentAndMedia {
+         A codec is correct when encoding and decoding are inverse operations.
+         Instead of testing specific payloads, express this as a universal
+         property and let the engine explore the space of all possible values.
+      }
+      @Steps {
+         @Step {
+            Define a `Codable` model. Keep it simple for this tutorial — a
+            `Contact` with a name, email, and age.
+
+            @Code(name: "CodecTests.swift", file: "t04-s01-model.swift")
+         }
+         @Step {
+            Write a strategy that generates `Contact` values. Use `flatMap`
+            to compose the three fields.
+
+            @Code(name: "CodecTests.swift", file: "t04-s02-strategy.swift")
+         }
+      }
+   }
+
+   @Section(title: "The JSON Round-Trip Property") {
+      @ContentAndMedia {
+         Use `JSONEncoder` and `JSONDecoder` for the codec under test.
+         The round-trip property must hold for *all* generated contacts.
+      }
+      @Steps {
+         @Step {
+            Write the round-trip property. Encode to JSON, decode back,
+            and assert equality.
+
+            @Code(name: "CodecTests.swift", file: "t04-s03-roundtrip.swift")
+         }
+         @Step {
+            Run the tests. All 100 generated contacts round-trip successfully.
+
+            @Code(name: "Terminal", file: "t04-s04-output.txt")
+         }
+      }
+   }
+
+   @Section(title: "Introducing a Codec Bug") {
+      @ContentAndMedia {
+         Break the codec by introducing a custom encoder that drops the `age`
+         field when it is 0. The round-trip property will find this immediately
+         and shrink the counterexample to a contact with `age: 0`.
+      }
+      @Steps {
+         @Step {
+            Add a broken custom `encode(to:)` that omits `age` when it is 0.
+
+            @Code(name: "CodecTests.swift", file: "t04-s05-broken-codec.swift")
+         }
+         @Step {
+            Run the tests. Premise finds a counterexample with `age: 0`,
+            shrinks it to the smallest failing contact, and reports the
+            difference between the original and decoded values.
+
+            @Code(name: "Terminal", file: "t04-s06-failure-output.txt")
+         }
+         @Step {
+            Fix the bug by removing the conditional. The round-trip property
+            passes again.
+
+            @Code(name: "CodecTests.swift", file: "t04-s07-fixed.swift")
+         }
+      }
+   }
+
+   @Section(title: "Testing Other Codecs") {
+      @ContentAndMedia {
+         The round-trip pattern applies to any codec: Plist, MessagePack,
+         CBOR, your custom binary format, URL encoding, Base64, and more.
+         The strategy stays the same; only the encode/decode functions change.
+      }
+      @Steps {
+         @Step {
+            Write a Plist round-trip property alongside the JSON one.
+            The same `contactStrategy` works for both — you don't need to
+            create a new strategy per codec.
+
+            @Code(name: "CodecTests.swift", file: "t04-s08-plist-roundtrip.swift")
+         }
+      }
+   }
+}

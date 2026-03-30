@@ -1,7 +1,7 @@
 # Domain Pitfalls
 
 **Domain:** Swift-native property-based testing engine
-**Project:** Conjecture
+**Project:** Premise
 **Researched:** 2026-03-30
 **Overall confidence:** HIGH for concurrency, packaging, SQLite WAL, and
 coverage-guided execution; MEDIUM for shrinker architecture guidance where the
@@ -32,7 +32,7 @@ they turn into rewrite work:
 ### Pitfall 1: Ambient Nondeterminism Leaks Into Generation Or Replay
 **Confidence:** HIGH
 
-**What goes wrong:** Conjecture records a failure, but replay is flaky because
+**What goes wrong:** Premise records a failure, but replay is flaky because
 some generation or execution decision came from wall clock time, shared mutable
 state, filesystem state, task scheduling, or adapter-controlled hooks instead of
 the recorded trace.
@@ -62,7 +62,7 @@ gets noisy, and failures found under CI stop reproducing locally.
 - Make serial replay pass before any parallel execution work starts.
 - Add replay-invariance tests: same trace, same property, same failure, same
   shrink frontier.
-- Ban mutable global engine state in `ConjectureCore`.
+- Ban mutable global engine state in `PremiseCore`.
 
 **Phase to address it:** Phase 1 and Phase 2.
 
@@ -139,7 +139,7 @@ V2 migration becomes a data-migration problem instead of an additive feature.
 ### Pitfall 4: Core And Adapter Boundaries Collapse
 **Confidence:** HIGH
 
-**What goes wrong:** `ConjectureCore` starts importing `Testing`, XCTest, or
+**What goes wrong:** `PremiseCore` starts importing `Testing`, XCTest, or
 adapter-specific lifecycle concepts. The core then inherits framework-specific
 execution rules, and adapters stop being thin.
 
@@ -159,7 +159,7 @@ and strict-concurrency work gets tangled with test-framework behavior.
 - Package targets require back-edges from core into adapters.
 
 **Prevention strategy:**
-- Keep `ConjectureCore` runner and trace logic framework-agnostic.
+- Keep `PremiseCore` runner and trace logic framework-agnostic.
 - Restrict adapters to translation concerns: naming, failure surfacing, runner
   lifecycle, and optional framework metadata.
 - Enforce a one-way package graph in `Package.swift`.
@@ -279,7 +279,7 @@ into.
 
 **What goes wrong:** Property runs leak tasks, temp files, database handles, or
 shared caches across iterations. This may look harmless in serial mode and then
-collapse under `swift-testing`'s default parallel execution or Conjecture's own
+collapse under `swift-testing`'s default parallel execution or Premise's own
 future parallel runner.
 
 **Warning signs:**
@@ -304,7 +304,7 @@ coverage, snapshot-only compiler features, or adapter-only dependencies. That
 raises the support floor for every consumer.
 
 **Warning signs:**
-- Consumers need a development snapshot just to use `ConjectureCore`.
+- Consumers need a development snapshot just to use `PremiseCore`.
 - Public library targets require instrumentation or adapter dependencies.
 - The manifest uses `unsafeFlags` in targets that are part of library products.
 
@@ -364,7 +364,7 @@ raises the support floor for every consumer.
 
 ## Most Important Roadmap Implication
 
-Do not let Conjecture's roadmap treat persistence, adapters, coverage guidance,
+Do not let Premise's roadmap treat persistence, adapters, coverage guidance,
 or parallelism as "later integrations" on top of a generic property runner.
 The early phases must first lock down:
 
@@ -374,5 +374,5 @@ The early phases must first lock down:
 4. a stable persisted failure format.
 
 If those four are not complete before SQLite WAL, coverage guidance, or parallel
-execution begin, Conjecture is likely to rewrite its core abstractions instead
+execution begin, Premise is likely to rewrite its core abstractions instead
 of adding v2 features cleanly.

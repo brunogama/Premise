@@ -1,0 +1,6 @@
+swift test
+Build complete! (3.1s)
+Test Suite 'SortTests' started
+Test Case 'testSortedOutputIsOrdered' passed (0.055 seconds)
+Test Case 'testSortedOutputContainsSameElements' passed (0.051 seconds)
+Test Suite 'SortTests' passed. Executed 2 tests, with 0 failures.

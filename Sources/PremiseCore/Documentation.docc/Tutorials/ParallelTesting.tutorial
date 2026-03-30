@@ -1,0 +1,105 @@
+@Tutorial(time: 20) {
+   @Intro(title: "Running Properties in Parallel") {
+      `PremiseParallel` distributes property runs across Swift structured
+      concurrency tasks. When individual runs are expensive — parsing a complex
+      format, running a simulation, calling into a heavy algorithm — parallel
+      execution can cut wall-clock time significantly.
+   }
+
+   @Section(title: "When Parallel Execution Helps") {
+      @ContentAndMedia {
+         Parallel execution helps when each run takes a meaningful amount of
+         CPU time. For properties where each run completes in microseconds,
+         the task-creation overhead may outweigh the gains.
+
+         As a rule of thumb: if a sequential run of 100 cases takes more than
+         a second, parallel execution is worth trying.
+      }
+      @Steps {
+         @Step {
+            Start with a sequential property that exercises a slow parsing
+            function. It takes about 5 seconds for 100 runs.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s01-sequential.swift")
+         }
+      }
+   }
+
+   @Section(title: "Switching to ParallelRunner") {
+      @ContentAndMedia {
+         `PremiseParallel` provides ``ParallelRunner``. Its API mirrors
+         ``Runner`` with an extra `parallelConfig` parameter. Seeds are
+         assigned per-run index using the same formula as the sequential runner,
+         so the same failure is always reproducible.
+      }
+      @Steps {
+         @Step {
+            Replace the sequential `forAll` call with a `ParallelRunner`.
+            The property logic is identical; only the runner changes.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s02-parallel-runner.swift")
+         }
+         @Step {
+            Add a `ParallelConfig` to cap concurrency at 4. This is useful
+            if each run opens file handles or allocates large buffers.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s03-config.swift")
+         }
+         @Step {
+            Run the tests. The 100 runs complete in roughly 1.5 seconds instead
+            of 5. The failure reporting is deterministic: you always see the
+            lowest-index failure first.
+
+            @Code(name: "Terminal", file: "t11-s04-output.txt")
+         }
+      }
+   }
+
+   @Section(title: "Persistence with ParallelRunner") {
+      @ContentAndMedia {
+         Pass a ``FileBackedDatabase`` to `ParallelRunner` to get the same
+         replay-first semantics as the sequential adapter. Stored traces are
+         replayed sequentially before parallel generation begins.
+      }
+      @Steps {
+         @Step {
+            Add a `FileBackedDatabase` to the runner. Failures are now saved
+            to `.premise/examples/` and replayed on subsequent runs.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s05-with-database.swift")
+         }
+      }
+   }
+
+   @Section(title: "Thread Safety Requirements") {
+      @ContentAndMedia {
+         Because runs execute concurrently, your property closure must not use
+         shared mutable state. The closure is `@Sendable`, so the compiler
+         catches obvious violations under Swift 6. Watch out for:
+
+         - Global mutable variables
+         - Non-actor class instances captured by reference
+         - Non-thread-safe caches, pools, or registries
+      }
+      @Steps {
+         @Step {
+            This closure is safe: it performs pure computation with no
+            shared mutable state.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s06-safe-closure.swift")
+         }
+         @Step {
+            This closure is also safe: it accesses an actor, which serialises
+            access automatically.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s07-actor-access.swift")
+         }
+         @Step {
+            This closure is unsafe: it mutates a captured variable without
+            synchronisation. The Swift 6 compiler will reject it.
+
+            @Code(name: "ParallelTests.swift", file: "t11-s08-unsafe-closure.swift")
+         }
+      }
+   }
+}

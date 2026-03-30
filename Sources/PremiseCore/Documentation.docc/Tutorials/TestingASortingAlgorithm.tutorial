@@ -1,0 +1,106 @@
+@Tutorial(time: 20) {
+   @Intro(title: "Testing a Sorting Algorithm") {
+      Sorting is a classic property-testing target. A correct sorting function
+      satisfies three independent properties that you can verify separately —
+      and any one of them would catch most bugs.
+   }
+
+   @Section(title: "The Three Laws of Sorting") {
+      @ContentAndMedia {
+         A correct sorting function must satisfy:
+
+         1. **Order** — the output is in non-decreasing order
+         2. **Permutation** — the output contains exactly the same elements as the input
+         3. **Idempotence** — sorting the output again produces the same output
+
+         These properties are independent. A buggy sort might satisfy two of them
+         while violating the third, so testing all three gives much stronger coverage.
+      }
+      @Steps {
+         @Step {
+            Start with the function under test. In a real project this would be
+            your custom sort implementation; here we use a placeholder that we'll
+            break later.
+
+            @Code(name: "SortTests.swift", file: "t03-s01-setup.swift")
+         }
+      }
+   }
+
+   @Section(title: "Property 1: Order") {
+      @ContentAndMedia {
+         The simplest invariant: every adjacent pair in the sorted output must
+         be in non-decreasing order. This catches the most common sort bugs.
+      }
+      @Steps {
+         @Step {
+            Write a helper that checks whether an array is sorted, then write
+            the order property.
+
+            @Code(name: "SortTests.swift", file: "t03-s02-order-property.swift")
+         }
+         @Step {
+            The strategy generates integer arrays of length 0 to 30.
+            Edge-biased length generation means the engine tries empty and
+            single-element arrays frequently.
+
+            @Code(name: "SortTests.swift", file: "t03-s03-order-with-strategy.swift")
+         }
+      }
+   }
+
+   @Section(title: "Property 2: Permutation") {
+      @ContentAndMedia {
+         Sorting must not add, remove, or duplicate elements. Compare the sorted
+         multisets, not the arrays, because order differs by definition.
+      }
+      @Steps {
+         @Step {
+            Write the permutation property. Sorting the elements of both the
+            input and output and comparing the frequency counts confirms that
+            the same elements appear the same number of times.
+
+            @Code(name: "SortTests.swift", file: "t03-s04-permutation-property.swift")
+         }
+      }
+   }
+
+   @Section(title: "Property 3: Idempotence") {
+      @ContentAndMedia {
+         Sorting an already-sorted array must produce the same array. This is
+         trivially true for correct sorts but catches implementations that
+         mutate their input or have unstable behaviour.
+      }
+      @Steps {
+         @Step {
+            Write the idempotence property.
+
+            @Code(name: "SortTests.swift", file: "t03-s05-idempotence-property.swift")
+         }
+      }
+   }
+
+   @Section(title: "Introducing a Bug") {
+      @ContentAndMedia {
+         Replace the correct sort with a broken version that drops the largest
+         element from arrays longer than 3. All three properties will catch it,
+         but the counterexamples they produce are different — and each one
+         explains the bug from a different angle.
+      }
+      @Steps {
+         @Step {
+            Introduce a broken sort implementation.
+
+            @Code(name: "SortTests.swift", file: "t03-s06-broken-sort.swift")
+         }
+         @Step {
+            Run the tests. The permutation property fails first with a 4-element
+            counterexample. The order property passes (the output is still in
+            order — it just has a missing element). This shows why testing
+            multiple independent properties matters.
+
+            @Code(name: "Terminal", file: "t03-s07-output.txt")
+         }
+      }
+   }
+}
