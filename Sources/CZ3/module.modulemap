@@ -1,0 +1,5 @@
+module CZ3 [system] {
+  header "cz3.h"
+  link "z3"
+  export *
+}

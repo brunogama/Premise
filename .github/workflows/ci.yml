@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - gsd/**
+
+jobs:
+  validate:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run boundary validation
+        run: bash scripts/validate-boundaries.sh
+
+      - name: Build with explicit import checks
+        run: swift build --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
+
+      - name: Test with explicit import checks
+        run: swift test --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
