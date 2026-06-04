@@ -38,7 +38,7 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     runCount: Int = 0,
     shrinkCount: Int = 0,
     timestamp: Date = Date(),
-    engineVersion: String = "0.2.0",
+    engineVersion: String = "1.0.0",
     seed: UInt64? = nil,
     discovery: FailureDiscovery = .newFailure
   ) {
