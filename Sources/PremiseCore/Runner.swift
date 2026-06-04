@@ -1,10 +1,17 @@
 import Foundation
 
+/// Executes Premise strategies against property closures.
 public struct Runner<Value: Sendable>: Sendable {
+  /// Strategy used to generate and shrink values.
   public let strategy: Strategy<Value>
+
+  /// Execution configuration for this runner.
   public let config: PropertyConfig
+
+  /// Stable identity used for persistence and diagnostics.
   public let propertyID: PropertyIdentity
 
+  /// Creates a property runner.
   public init(
     strategy: Strategy<Value>,
     config: PropertyConfig = .default,
@@ -21,6 +28,7 @@ public struct Runner<Value: Sendable>: Sendable {
 
   // MARK: - Public run
 
+  /// Executes a data-aware property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
     _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void,
@@ -126,19 +134,132 @@ public struct Runner<Value: Sendable>: Sendable {
     return .passed(report)
   }
 
+  /// Executes a property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
     _ property: @escaping @Sendable (Value) throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
-    await runDetailed(explicitExamples: explicitExamples, { value, _ in
-      try property(value)
-    }, replayTraces: replayTraces)
+    await runDetailed(
+      explicitExamples: explicitExamples,
+      { value, _ in
+        try property(value)
+      },
+      replayTraces: replayTraces
+    )
+  }
+
+  /// Executes an async property and returns diagnostics-rich results.
+  public func runDetailed(
+    explicitExamples: [Value] = [],
+    _ property: @escaping @Sendable (Value) async throws -> Void,
+    replayTraces: [ChoiceTrace] = []
+  ) async -> DetailedRunResult<Value> {
+    var report = RunReport()
+
+    for phase in config.phases {
+      switch phase {
+      case .explicit:
+        for example in explicitExamples {
+          if let failure = await executeExplicitAsync(
+            example,
+            property: property,
+            report: &report
+          ) {
+            report.applyHealthChecks(
+              enabledChecks: config.healthChecks,
+              maxRuns: config.maxRuns
+            )
+            return .failure(failure.record, value: failure.value, report: report)
+          }
+        }
+
+      case .replay:
+        guard config.replayEnabled else { continue }
+        for trace in replayTraces {
+          switch await executeAttemptAsync(trace: trace, property: property) {
+          case .passed(let statistics):
+            report.recordPhase(.replay)
+            report.merge(statistics)
+
+          case .rejected:
+            report.recordRejected()
+
+          case .failure(let failure):
+            let minimized = await minimizeIfNeeded(
+              failure: failure,
+              runCount: 1,
+              property: property,
+              seed: failure.record.seed,
+              discovery: .knownFailure
+            )
+            report.recordPhase(.replay)
+            report.merge(minimized.record.statistics)
+            report.applyHealthChecks(
+              enabledChecks: config.healthChecks,
+              maxRuns: config.maxRuns
+            )
+            return .failure(minimized.record, value: minimized.value, report: report)
+          }
+        }
+
+      case .generate:
+        let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
+        let deadline = config.timeoutSeconds.map { Date(timeIntervalSinceNow: $0) }
+
+        for index in 0..<config.maxRuns {
+          if let deadline, Date() > deadline {
+            break
+          }
+
+          let provider = PseudoRandomProvider(
+            seed: baseSeed &+ UInt64(index),
+            maxDraws: config.maxDrawsPerRun
+          )
+
+          switch await executeAttemptAsync(provider: provider, property: property) {
+          case .passed(let statistics):
+            report.recordPhase(.generate)
+            report.merge(statistics)
+
+          case .rejected:
+            report.recordRejected()
+
+          case .failure(let failure):
+            let minimized = await minimizeIfNeeded(
+              failure: failure,
+              runCount: index + 1,
+              property: property,
+              seed: baseSeed,
+              discovery: .newFailure
+            )
+            report.recordPhase(.generate)
+            report.merge(minimized.record.statistics)
+            report.applyHealthChecks(
+              enabledChecks: config.healthChecks,
+              maxRuns: config.maxRuns
+            )
+            return .failure(minimized.record, value: minimized.value, report: report)
+          }
+        }
+
+      case .shrink:
+        continue
+      }
+    }
+
+    report.applyHealthChecks(
+      enabledChecks: config.healthChecks,
+      maxRuns: config.maxRuns
+    )
+    return .passed(report)
   }
 
   /// Executes the property, replaying any stored traces first, then running
-  /// fresh generations.  The first failure found is minimised via
-  /// ``ShrinkMachine`` before being returned.
+  /// fresh generations.
+  ///
+  /// The first failure found is minimised via ``ShrinkMachine`` before being
+  /// returned.
   ///
   /// When `config.seed` is `nil` a cryptographically-random base seed is
   /// chosen for this invocation and embedded in the returned ``FailureRecord``
@@ -204,8 +325,10 @@ public struct Runner<Value: Sendable>: Sendable {
   }
 
   /// Executes an async property, replaying stored traces first, then running
-  /// fresh generations. This overload mirrors the synchronous runner while
-  /// allowing property bodies to await application code directly.
+  /// fresh generations.
+  ///
+  /// This overload mirrors the synchronous runner while allowing property
+  /// bodies to await application code directly.
   public func run(
     _ property: @escaping @Sendable (Value) async throws -> Void,
     replayTraces: [ChoiceTrace] = []
@@ -657,6 +780,33 @@ public struct Runner<Value: Sendable>: Sendable {
     )
   }
 
+  private func minimizeIfNeeded(
+    failure: ExecutionFailure<Value>,
+    runCount: Int,
+    property: @escaping @Sendable (Value) async throws -> Void,
+    seed: UInt64?,
+    discovery: FailureDiscovery
+  ) async -> (record: FailureRecord, value: Value) {
+    guard config.phases.includes(.shrink) else {
+      var record = failure.record
+      record.runCount = runCount
+      record.seed = seed
+      record.discovery = discovery
+      return (record, failure.value)
+    }
+
+    return await minimizeTrace(
+      initialTrace: failure.record.trace,
+      errorMessage: failure.record.errorMessage,
+      initialValue: failure.value,
+      runCount: runCount,
+      property: property,
+      seed: seed,
+      statistics: failure.record.statistics,
+      discovery: discovery
+    )
+  }
+
   private func executeAttempt(
     trace: ChoiceTrace,
     property: @Sendable (Value, inout PremiseData) throws -> Void
@@ -680,6 +830,71 @@ public struct Runner<Value: Sendable>: Sendable {
 
     do {
       try property(drawnValue, &data)
+      return .passed(data.statistics)
+    } catch {
+      let record = FailureRecord(
+        propertyID: propertyID,
+        trace: data.snapshot(),
+        errorMessage: String(describing: error),
+        runCount: 1,
+        shrinkCount: 0,
+        statistics: data.statistics
+      )
+      return .failure(ExecutionFailure(record: record, value: drawnValue))
+    }
+  }
+
+  private func executeExplicitAsync(
+    _ value: Value,
+    property: @escaping @Sendable (Value) async throws -> Void,
+    report: inout RunReport
+  ) async -> ExecutionFailure<Value>? {
+    var data = PremiseData(
+      provider: PseudoRandomProvider(seed: 0, maxDraws: config.maxDrawsPerRun)
+    )
+    report.recordPhase(.explicit)
+
+    do {
+      try await property(value)
+      report.merge(data.statistics)
+      return nil
+    } catch {
+      let record = FailureRecord(
+        propertyID: propertyID,
+        trace: data.snapshot(),
+        errorMessage: String(describing: error),
+        runCount: 0,
+        shrinkCount: 0,
+        statistics: data.statistics
+      )
+      report.merge(data.statistics)
+      return ExecutionFailure(record: record, value: value)
+    }
+  }
+
+  private func executeAttemptAsync(
+    trace: ChoiceTrace,
+    property: @escaping @Sendable (Value) async throws -> Void
+  ) async -> ExecutionAttempt<Value> {
+    let provider = ReplayProvider(trace: trace)
+    return await executeAttemptAsync(provider: provider, property: property)
+  }
+
+  private func executeAttemptAsync(
+    provider: some PrimitiveProvider,
+    property: @escaping @Sendable (Value) async throws -> Void
+  ) async -> ExecutionAttempt<Value> {
+    var data = PremiseData(provider: provider)
+
+    let drawnValue: Value
+    do {
+      drawnValue = try strategy.draw(&data)
+    } catch {
+      return .rejected
+    }
+
+    do {
+      try await property(drawnValue)
       return .passed(data.statistics)
     } catch {
       let record = FailureRecord(

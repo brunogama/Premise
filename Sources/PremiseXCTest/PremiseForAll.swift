@@ -7,6 +7,7 @@ import PremiseStrategies
 
 // MARK: - Single-strategy premise_forAll
 
+// swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs a property test through the Premise engine inside an XCTest
 /// context.
 ///
@@ -24,7 +25,7 @@ public func premise_forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value) throws -> Void
 ) async throws {
-  try await _xcRunForAll(
+  try await runXCTestForAll(
     strategy: strategy,
     config: config,
     fileID: fileID,
@@ -35,6 +36,7 @@ public func premise_forAll<Value: Sendable>(
   )
 }
 
+// swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs an async property test through the Premise engine inside XCTest.
 public func premise_forAll<Value: Sendable>(
   _ strategy: Strategy<Value>,
@@ -45,7 +47,7 @@ public func premise_forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value) async throws -> Void
 ) async throws {
-  try await _xcRunForAllAsync(
+  try await runXCTestForAllAsync(
     strategy: strategy,
     config: config,
     fileID: fileID,
@@ -58,6 +60,7 @@ public func premise_forAll<Value: Sendable>(
 
 // MARK: - Two-strategy premise_forAll
 
+// swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs a property test over two independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable>(
   _ strategyA: Strategy<A>,
@@ -82,7 +85,7 @@ public func premise_forAll<A: Sendable, B: Sendable>(
       return shrunkA + shrunkB
     }
   )
-  try await _xcRunForAll(
+  try await runXCTestForAll(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -94,6 +97,7 @@ public func premise_forAll<A: Sendable, B: Sendable>(
   }
 }
 
+// swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs an async property test over two independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable>(
   _ strategyA: Strategy<A>,
@@ -106,7 +110,7 @@ public func premise_forAll<A: Sendable, B: Sendable>(
   _ property: @escaping @Sendable (A, B) async throws -> Void
 ) async throws {
   let combined = zip(strategyA, strategyB)
-  try await _xcRunForAllAsync(
+  try await runXCTestForAllAsync(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -120,6 +124,7 @@ public func premise_forAll<A: Sendable, B: Sendable>(
 
 // MARK: - Three-strategy premise_forAll
 
+// swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs a property test over three independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ strategyA: Strategy<A>,
@@ -147,7 +152,7 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
       return sA + sB + sC
     }
   )
-  try await _xcRunForAll(
+  try await runXCTestForAll(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -159,6 +164,7 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   }
 }
 
+// swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs an async property test over three independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ strategyA: Strategy<A>,
@@ -172,7 +178,7 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ property: @escaping @Sendable (A, B, C) async throws -> Void
 ) async throws {
   let combined = zip(strategyA, strategyB, strategyC)
-  try await _xcRunForAllAsync(
+  try await runXCTestForAllAsync(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -187,7 +193,7 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
 // MARK: - Internal
 
 // swiftlint:disable:next function_parameter_count
-private func _xcRunForAll<Value: Sendable>(
+private func runXCTestForAll<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
   fileID: String,
@@ -225,7 +231,7 @@ private func _xcRunForAll<Value: Sendable>(
 }
 
 // swiftlint:disable:next function_parameter_count
-private func _xcRunForAllAsync<Value: Sendable>(
+private func runXCTestForAllAsync<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
   fileID: String,
@@ -249,13 +255,14 @@ private func _xcRunForAllAsync<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.execute(property)
+  let result = try await executor.executeDetailed(property)
 
-  if case .failure(let record, value: let value) = result {
+  if case .failure(let record, value: let value, report: let report) = result {
     let message = XCTestFailureFormatter.format(
       value: value,
       record: record,
-      propertyID: propertyID
+      propertyID: propertyID,
+      report: report
     )
     XCTFail(message, file: file, line: line)
   }

@@ -8,8 +8,10 @@ import Testing
 
 /// Verifies that both adapters (swift-testing and XCTest) share identical
 /// execution behavior by testing the underlying `Runner` and
-/// `ReplayFirstExecutor` directly. Both adapters delegate to the same
-/// pipeline, so exercising the shared path proves behavioral equivalence.
+/// `ReplayFirstExecutor` directly.
+///
+/// Both adapters delegate to the same pipeline, so exercising the shared path
+/// proves behavioral equivalence.
 @Suite("Adapter Execution Parity")
 struct AdapterExecutionParityTests {
 
@@ -114,6 +116,26 @@ struct AdapterExecutionParityTests {
       return
     }
     #expect(record.errorMessage == "executor fail")
+  }
+
+  @Test("ReplayFirstExecutor returns detailed reports for async properties")
+  func executorAsyncDetailedProperty() async throws {
+    let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10, seed: 3))
+    let database = FileBackedDatabase()
+    let executor = ReplayFirstExecutor(runner: runner, database: database)
+    let property: @Sendable (Int) async throws -> Void = { _ in
+      throw ContractTestError(message: "async detailed fail")
+    }
+
+    let result = try await executor.executeDetailed(property)
+
+    guard case .failure(let record, value: _, report: let report) = result else {
+      Issue.record("Expected detailed async failure from executor")
+      return
+    }
+    #expect(record.errorMessage == "async detailed fail")
+    #expect(report.runCount == 1)
+    #expect(report.phaseCounts[.generate] == 1)
   }
 
   @Test("FailureRecord captures property identity correctly")

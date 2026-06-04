@@ -32,7 +32,7 @@ public func forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value) throws -> Void
 ) async throws {
-  try await _runForAll(
+  try await runForAll(
     strategy: strategy,
     config: config,
     fileID: fileID,
@@ -56,7 +56,7 @@ public func forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value) async throws -> Void
 ) async throws {
-  try await _runForAllAsync(
+  try await runForAllAsync(
     strategy: strategy,
     config: config,
     fileID: fileID,
@@ -103,7 +103,7 @@ public func forAll<A: Sendable, B: Sendable>(
       return shrunkA + shrunkB
     }
   )
-  try await _runForAll(
+  try await runForAll(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -129,7 +129,7 @@ public func forAll<A: Sendable, B: Sendable>(
   _ property: @escaping @Sendable (A, B) async throws -> Void
 ) async throws {
   let combined = zip(strategyA, strategyB)
-  try await _runForAllAsync(
+  try await runForAllAsync(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -184,7 +184,7 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
       return sA + sB + sC
     }
   )
-  try await _runForAll(
+  try await runForAll(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -211,7 +211,7 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ property: @escaping @Sendable (A, B, C) async throws -> Void
 ) async throws {
   let combined = zip(strategyA, strategyB, strategyC)
-  try await _runForAllAsync(
+  try await runForAllAsync(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -289,7 +289,7 @@ public func forAll<Value: Sendable>(
 
 /// Shared implementation for all forAll variants.
 // swiftlint:disable:next function_parameter_count
-private func _runForAll<Value: Sendable>(
+private func runForAll<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
   fileID: String,
@@ -337,7 +337,7 @@ private func _runForAll<Value: Sendable>(
 }
 
 // swiftlint:disable:next function_parameter_count
-private func _runForAllAsync<Value: Sendable>(
+private func runForAllAsync<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
   fileID: String,
@@ -362,13 +362,14 @@ private func _runForAllAsync<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.execute(property)
+  let result = try await executor.executeDetailed(property)
 
-  if case .failure(let record, value: let value) = result {
+  if case .failure(let record, value: let value, report: let report) = result {
     let message = FailureFormatter.format(
       value: value,
       record: record,
-      propertyID: propertyID
+      propertyID: propertyID,
+      report: report
     )
     let sourceLocation = SourceLocation(
       fileID: fileID,
