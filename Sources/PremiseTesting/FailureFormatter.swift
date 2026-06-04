@@ -25,16 +25,18 @@ enum FailureFormatter {
       location = "\(propertyID.fileID)#\(propertyID.line)"
     }
     lines.append("Property failed: \(location)")
+    lines.append("Failure kind: \(record.discovery.rawValue)")
 
     // Pretty-printed counterexample (use dump for complex types).
     let valueDescription = prettyPrint(value)
-    lines.append("Counterexample: \(valueDescription)")
+    lines.append("Minimal counterexample: \(valueDescription)")
 
     // Error detail.
     lines.append("Error: \(record.errorMessage)")
 
     // Run/shrink summary.
     lines.append("Runs: \(record.runCount), Shrinks: \(record.shrinkCount)")
+    lines.append("Trace entries: \(record.trace.entries.count)")
 
     // Seed-based replay instruction.
     if let seed = record.seed {
@@ -42,8 +44,8 @@ enum FailureFormatter {
       lines.append("Replay: config: PropertyConfig(seed: \(seed))")
     } else {
       lines.append(
-        "Replay: use trace from "
-          + ".premise/examples to reproduce this failure."
+        "Replay: use the persisted trace from .premise/examples "
+          + "or an exported JSON trace artifact."
       )
     }
 

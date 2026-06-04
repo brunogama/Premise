@@ -44,6 +44,30 @@ public func forAll<Value: Sendable>(
   )
 }
 
+/// Runs an async property test through the Premise engine inside a
+/// swift-testing context.
+public func forAll<Value: Sendable>(
+  _ strategy: Strategy<Value>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  filePath: String = #filePath,
+  line: Int = #line,
+  column: Int = #column,
+  function: String = #function,
+  _ property: @escaping @Sendable (Value) async throws -> Void
+) async throws {
+  try await _runForAllAsync(
+    strategy: strategy,
+    config: config,
+    fileID: fileID,
+    filePath: filePath,
+    line: line,
+    column: column,
+    function: function,
+    property: property
+  )
+}
+
 // MARK: - Two-strategy forAll
 
 /// Runs a property test over two independently generated values.
@@ -89,6 +113,32 @@ public func forAll<A: Sendable, B: Sendable>(
     function: function
   ) { pair in
     try property(pair.0, pair.1)
+  }
+}
+
+/// Runs an async property test over two independently generated values.
+public func forAll<A: Sendable, B: Sendable>(
+  _ strategyA: Strategy<A>,
+  _ strategyB: Strategy<B>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  filePath: String = #filePath,
+  line: Int = #line,
+  column: Int = #column,
+  function: String = #function,
+  _ property: @escaping @Sendable (A, B) async throws -> Void
+) async throws {
+  let combined = zip(strategyA, strategyB)
+  try await _runForAllAsync(
+    strategy: combined,
+    config: config,
+    fileID: fileID,
+    filePath: filePath,
+    line: line,
+    column: column,
+    function: function
+  ) { pair in
+    try await property(pair.0, pair.1)
   }
 }
 
@@ -144,6 +194,33 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
     function: function
   ) { triple in
     try property(triple.0, triple.1, triple.2)
+  }
+}
+
+/// Runs an async property test over three independently generated values.
+public func forAll<A: Sendable, B: Sendable, C: Sendable>(
+  _ strategyA: Strategy<A>,
+  _ strategyB: Strategy<B>,
+  _ strategyC: Strategy<C>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  filePath: String = #filePath,
+  line: Int = #line,
+  column: Int = #column,
+  function: String = #function,
+  _ property: @escaping @Sendable (A, B, C) async throws -> Void
+) async throws {
+  let combined = zip(strategyA, strategyB, strategyC)
+  try await _runForAllAsync(
+    strategy: combined,
+    config: config,
+    fileID: fileID,
+    filePath: filePath,
+    line: line,
+    column: column,
+    function: function
+  ) { triple in
+    try await property(triple.0, triple.1, triple.2)
   }
 }
 
@@ -265,7 +342,7 @@ private func _runForAll<Value: Sendable>(
     propertyID: propertyID
   )
 
-  let database = FileBackedDatabase()
+  let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
   let result = try await executor.execute(property)
 
@@ -286,5 +363,64 @@ private func _runForAll<Value: Sendable>(
       sourceLocation: sourceLocation
     )
   }
+}
+
+// swiftlint:disable:next function_parameter_count
+private func _runForAllAsync<Value: Sendable>(
+  strategy: Strategy<Value>,
+  config: PropertyConfig,
+  fileID: String,
+  filePath: String,
+  line: Int,
+  column: Int,
+  function: String,
+  property: @escaping @Sendable (Value) async throws -> Void
+) async throws {
+  let propertyID = PropertyIdentity(
+    fileID: fileID,
+    line: UInt(line),
+    strategyLabel: strategy.label,
+    functionName: function
+  )
+
+  let runner = Runner(
+    strategy: strategy,
+    config: config,
+    propertyID: propertyID
+  )
+
+  let database = makeDatabase(config: config)
+  let executor = ReplayFirstExecutor(runner: runner, database: database)
+  let result = try await executor.execute(property)
+
+  if case .failure(let record, value: let value) = result {
+    let message = FailureFormatter.format(
+      value: value,
+      record: record,
+      propertyID: propertyID
+    )
+    let sourceLocation = SourceLocation(
+      fileID: fileID,
+      filePath: filePath,
+      line: line,
+      column: column
+    )
+    Issue.record(
+      Comment(rawValue: message),
+      sourceLocation: sourceLocation
+    )
+  }
+}
+
+private func makeDatabase(config: PropertyConfig) -> any ExampleDatabase {
+  let local = FileBackedDatabase(rootDirectory: config.localDatabaseDirectory)
+  guard let corpusDirectory = config.committedCorpusDirectory else {
+    return local
+  }
+  let corpus = FileBackedDatabase(rootDirectory: corpusDirectory)
+  return CompositeExampleDatabase(
+    replaySources: [corpus, local],
+    writableDatabase: local
+  )
 }
 #endif

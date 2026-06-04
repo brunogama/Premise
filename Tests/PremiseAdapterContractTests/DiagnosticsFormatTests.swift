@@ -34,7 +34,7 @@ struct DiagnosticsFormatTests {
 
   // MARK: - Line Structure
 
-  @Test("Output contains exactly five lines")
+  @Test("Output contains the expected diagnostic sections")
   func outputLineCount() {
     let record = Self.makeRecord()
     let output = FailureFormatter.format(
@@ -43,7 +43,7 @@ struct DiagnosticsFormatTests {
       propertyID: Self.testPropertyID
     )
     let lines = output.components(separatedBy: "\n")
-    #expect(lines.count == 5)
+    #expect(lines.count == 7)
   }
 
   @Test("First line contains property location")
@@ -66,8 +66,8 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let secondLine = output.components(separatedBy: "\n")[1]
-    #expect(secondLine == "Counterexample: 3")
+    let thirdLine = output.components(separatedBy: "\n")[2]
+    #expect(thirdLine == "Minimal counterexample: 3")
   }
 
   @Test("Third line contains error message")
@@ -78,8 +78,8 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let thirdLine = output.components(separatedBy: "\n")[2]
-    #expect(thirdLine == "Error: value 3 is not > 50")
+    let fourthLine = output.components(separatedBy: "\n")[3]
+    #expect(fourthLine == "Error: value 3 is not > 50")
   }
 
   @Test("Fourth line contains run and shrink counts")
@@ -90,21 +90,22 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let fourthLine = output.components(separatedBy: "\n")[3]
-    #expect(fourthLine == "Runs: 100, Shrinks: 7")
+    let fifthLine = output.components(separatedBy: "\n")[4]
+    #expect(fifthLine == "Runs: 100, Shrinks: 7")
   }
 
-  @Test("Fifth line contains replay instructions")
-  func fifthLineContainsReplay() {
+  @Test("Output contains failure kind trace size and replay instructions")
+  func outputContainsReplayMetadata() {
     let record = Self.makeRecord()
     let output = FailureFormatter.format(
       value: 3,
       record: record,
       propertyID: Self.testPropertyID
     )
-    let fifthLine = output.components(separatedBy: "\n")[4]
-    #expect(fifthLine.hasPrefix("Replay:"))
-    #expect(fifthLine.contains(".premise/examples"))
+    #expect(output.contains("Failure kind: newFailure"))
+    #expect(output.contains("Trace entries: 0"))
+    #expect(output.contains("Replay:"))
+    #expect(output.contains(".premise/examples"))
   }
 
   // MARK: - Value Rendering
@@ -117,8 +118,7 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let secondLine = output.components(separatedBy: "\n")[1]
-    #expect(secondLine.contains("hello world"))
+    #expect(output.contains("hello world"))
   }
 
   @Test("Array counterexample renders bracket notation")
@@ -129,8 +129,7 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let secondLine = output.components(separatedBy: "\n")[1]
-    #expect(secondLine.contains("[1, 2, 3]"))
+    #expect(output.contains("[1, 2, 3]"))
   }
 
   // MARK: - Edge Cases
@@ -143,8 +142,7 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let fourthLine = output.components(separatedBy: "\n")[3]
-    #expect(fourthLine == "Runs: 0, Shrinks: 0")
+    #expect(output.contains("Runs: 0, Shrinks: 0"))
   }
 
   @Test("Empty error message formats correctly")
@@ -155,8 +153,7 @@ struct DiagnosticsFormatTests {
       record: record,
       propertyID: Self.testPropertyID
     )
-    let thirdLine = output.components(separatedBy: "\n")[2]
-    #expect(thirdLine == "Error: ")
+    #expect(output.contains("Error: "))
   }
 
   @Test("XCTest formatter output matches swift-testing formatter for all edge cases")

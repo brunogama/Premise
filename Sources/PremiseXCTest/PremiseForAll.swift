@@ -35,6 +35,27 @@ public func premise_forAll<Value: Sendable>(
   )
 }
 
+/// Runs an async property test through the Premise engine inside XCTest.
+public func premise_forAll<Value: Sendable>(
+  _ strategy: Strategy<Value>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  file: StaticString = #filePath,
+  line: UInt = #line,
+  function: String = #function,
+  _ property: @escaping @Sendable (Value) async throws -> Void
+) async throws {
+  try await _xcRunForAllAsync(
+    strategy: strategy,
+    config: config,
+    fileID: fileID,
+    file: file,
+    line: line,
+    function: function,
+    property: property
+  )
+}
+
 // MARK: - Two-strategy premise_forAll
 
 /// Runs a property test over two independently generated values in XCTest.
@@ -70,6 +91,30 @@ public func premise_forAll<A: Sendable, B: Sendable>(
     function: function
   ) { pair in
     try property(pair.0, pair.1)
+  }
+}
+
+/// Runs an async property test over two independently generated values in XCTest.
+public func premise_forAll<A: Sendable, B: Sendable>(
+  _ strategyA: Strategy<A>,
+  _ strategyB: Strategy<B>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  file: StaticString = #filePath,
+  line: UInt = #line,
+  function: String = #function,
+  _ property: @escaping @Sendable (A, B) async throws -> Void
+) async throws {
+  let combined = zip(strategyA, strategyB)
+  try await _xcRunForAllAsync(
+    strategy: combined,
+    config: config,
+    fileID: fileID,
+    file: file,
+    line: line,
+    function: function
+  ) { pair in
+    try await property(pair.0, pair.1)
   }
 }
 
@@ -114,6 +159,31 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   }
 }
 
+/// Runs an async property test over three independently generated values in XCTest.
+public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
+  _ strategyA: Strategy<A>,
+  _ strategyB: Strategy<B>,
+  _ strategyC: Strategy<C>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  file: StaticString = #filePath,
+  line: UInt = #line,
+  function: String = #function,
+  _ property: @escaping @Sendable (A, B, C) async throws -> Void
+) async throws {
+  let combined = zip(strategyA, strategyB, strategyC)
+  try await _xcRunForAllAsync(
+    strategy: combined,
+    config: config,
+    fileID: fileID,
+    file: file,
+    line: line,
+    function: function
+  ) { triple in
+    try await property(triple.0, triple.1, triple.2)
+  }
+}
+
 // MARK: - Internal
 
 // swiftlint:disable:next function_parameter_count
@@ -139,7 +209,7 @@ private func _xcRunForAll<Value: Sendable>(
     propertyID: propertyID
   )
 
-  let database = FileBackedDatabase()
+  let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
   let result = try await executor.execute(property)
 
@@ -151,5 +221,54 @@ private func _xcRunForAll<Value: Sendable>(
     )
     XCTFail(message, file: file, line: line)
   }
+}
+
+// swiftlint:disable:next function_parameter_count
+private func _xcRunForAllAsync<Value: Sendable>(
+  strategy: Strategy<Value>,
+  config: PropertyConfig,
+  fileID: String,
+  file: StaticString,
+  line: UInt,
+  function: String,
+  property: @escaping @Sendable (Value) async throws -> Void
+) async throws {
+  let propertyID = PropertyIdentity(
+    fileID: fileID,
+    line: line,
+    strategyLabel: strategy.label,
+    functionName: function
+  )
+
+  let runner = Runner(
+    strategy: strategy,
+    config: config,
+    propertyID: propertyID
+  )
+
+  let database = makeDatabase(config: config)
+  let executor = ReplayFirstExecutor(runner: runner, database: database)
+  let result = try await executor.execute(property)
+
+  if case .failure(let record, value: let value) = result {
+    let message = XCTestFailureFormatter.format(
+      value: value,
+      record: record,
+      propertyID: propertyID
+    )
+    XCTFail(message, file: file, line: line)
+  }
+}
+
+private func makeDatabase(config: PropertyConfig) -> any ExampleDatabase {
+  let local = FileBackedDatabase(rootDirectory: config.localDatabaseDirectory)
+  guard let corpusDirectory = config.committedCorpusDirectory else {
+    return local
+  }
+  let corpus = FileBackedDatabase(rootDirectory: corpusDirectory)
+  return CompositeExampleDatabase(
+    replaySources: [corpus, local],
+    writableDatabase: local
+  )
 }
 #endif
