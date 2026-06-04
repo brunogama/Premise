@@ -105,10 +105,13 @@ build_plugin() {
   local candidates=(
     # macOS --arch builds
     ".build/apple/Products/Release/${ARTIFACT_NAME}"
+    ".build/apple/Products/Release/${ARTIFACT_NAME}-tool"
     # Standard release build
     "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}"
+    "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}-tool"
     # Linux cross-compile paths
     ".build/release/${ARTIFACT_NAME}"
+    ".build/release/${ARTIFACT_NAME}-tool"
   )
 
   for candidate in "${candidates[@]}"; do

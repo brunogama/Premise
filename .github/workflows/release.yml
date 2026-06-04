@@ -65,8 +65,11 @@ jobs:
           BIN_PATH=""
           for candidate in \
             ".build/apple/Products/Release/${ARTIFACT_NAME}" \
+            ".build/apple/Products/Release/${ARTIFACT_NAME}-tool" \
             "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}" \
-            ".build/release/${ARTIFACT_NAME}"; do
+            "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}-tool" \
+            ".build/release/${ARTIFACT_NAME}" \
+            ".build/release/${ARTIFACT_NAME}-tool"; do
             if [[ -f "$candidate" ]]; then
               BIN_PATH="$candidate"
               break
@@ -75,7 +78,7 @@ jobs:
 
           if [[ -z "$BIN_PATH" ]]; then
             echo "::error::Could not locate built binary for ${{ matrix.platform }}"
-            find .build -name "${ARTIFACT_NAME}" -type f 2>/dev/null || true
+            find .build -name "${ARTIFACT_NAME}*" -type f 2>/dev/null || true
             exit 1
           fi
 
