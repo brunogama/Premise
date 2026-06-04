@@ -1,11 +1,11 @@
-// swift-tools-version: 6.1
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
   name: "MyApp",
   dependencies: [
     .package(
-      url: "https://github.com/<owner>/SwiftPremiseEngine.git",
+      url: "https://github.com/brunogama/Premise.git",
       from: "1.0.0"
     )
   ],

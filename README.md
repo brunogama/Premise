@@ -30,6 +30,9 @@ dependencies: [
 ]
 ```
 
+The first stable release is tagged `v1.0.0`; SwiftPM version requirements omit
+the `v` prefix and use `from: "1.0.0"`.
+
 Then add the targets you need:
 
 ```swift

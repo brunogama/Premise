@@ -28,14 +28,14 @@ Examples:
 - `1.1.1` — bug fix only
 - `2.0.0` — breaking API or behavior change
 
-## Pre-1.0 Policy
-This repository is currently in the `0.y.z` phase.
+## Stable Release Policy
+The `v1.0.0` tag is the first stable public API release.
 
 - `PATCH`: backward-compatible bug fixes and small internal corrections
-- `MINOR`: new backward-compatible features and any breaking change introduced before `1.0.0`
-- `1.0.0`: reserved for the first release with a stable public API
+- `MINOR`: new backward-compatible features
+- `MAJOR`: breaking API or behavior changes after `v1.0.0`
 
-Until `1.0.0`, the public API is not considered stable.
+SwiftPM version requirements use `1.0.0` while the Git tag uses `v1.0.0`.
 
 ## When to Bump
 ### Patch
@@ -50,7 +50,6 @@ Use for:
 - new backward-compatible features
 - new modules, commands, options, or extension points
 - meaningful DX improvements that do not break callers
-- breaking changes while the repository remains in `0.y.z`
 
 ### Major
 Use for:
