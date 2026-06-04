@@ -10,7 +10,12 @@ fail() {
   exit 1
 }
 
-if rg -n '^import (Testing|XCTest)$' Sources/PremiseCore Sources/PremiseStrategies >/dev/null; then
+core_strategy_sources=(
+  Sources/PremiseCore/*.swift
+  Sources/PremiseStrategies/*.swift
+)
+
+if rg -n '^import (Testing|XCTest)$' "${core_strategy_sources[@]}" >/dev/null; then
   fail "test framework imports are not allowed in Sources/PremiseCore or Sources/PremiseStrategies"
 fi
 
