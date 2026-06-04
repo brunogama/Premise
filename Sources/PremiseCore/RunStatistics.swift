@@ -8,6 +8,7 @@ public struct RunNote: Sendable, Equatable, Codable {
   /// The observed value rendered as a string.
   public let value: String
 
+  /// Creates a named run observation.
   public init(label: String, value: String) {
     self.label = label
     self.value = value
@@ -38,19 +39,20 @@ public struct RunStatistics: Sendable, Equatable, Codable {
   /// Events collected via ``PremiseData/event(_:)`` calls.
   public var events: [String]
 
-  /// Highest score hint from ``PremiseData/target(_:label:)`` calls.
+  /// Highest score recorded by ``PremiseData/target(_:label:)`` calls.
   ///
   /// When multiple `target` calls are made in a single run, the maximum
-  /// score is retained.  The engine uses this hint to guide corpus
-  /// selection toward inputs that maximize coverage.
+  /// score is retained for reports, persistence, and exported traces.
   public var targetScore: Double?
 
+  /// Creates empty run statistics.
   public init() {
     notes = []
     events = []
     targetScore = nil
   }
 
+  /// Creates run statistics from previously accumulated values.
   public init(notes: [RunNote], events: [String], targetScore: Double?) {
     self.notes = notes
     self.events = events
