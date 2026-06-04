@@ -26,7 +26,8 @@ public enum PersistenceCodec {
       timestamp: record.timestamp,
       engineVersion: record.engineVersion,
       seed: record.seed,
-      discovery: record.discovery
+      discovery: record.discovery,
+      statistics: record.statistics
     )
   }
 
@@ -52,7 +53,8 @@ public enum PersistenceCodec {
       timestamp: envelope.timestamp,
       engineVersion: envelope.engineVersion,
       seed: envelope.seed,
-      discovery: envelope.discovery ?? .newFailure
+      discovery: envelope.discovery ?? .newFailure,
+      statistics: envelope.statistics ?? RunStatistics()
     )
   }
 

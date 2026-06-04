@@ -33,6 +33,8 @@ public struct PropertyConfig: Sendable {
   /// will stop after the deadline is exceeded and report the best failure
   /// found so far (or pass if none).
   public var timeoutSeconds: Double?
+  public var phases: [PropertyPhase]
+  public var healthChecks: [HealthCheck]
 
   public init(
     maxRuns: Int = 100,
@@ -43,7 +45,9 @@ public struct PropertyConfig: Sendable {
     localDatabaseDirectory: URL? = nil,
     committedCorpusDirectory: URL? = nil,
     traceExportDirectory: URL? = nil,
-    timeoutSeconds: Double? = nil
+    timeoutSeconds: Double? = nil,
+    phases: [PropertyPhase] = .premiseDefault,
+    healthChecks: [HealthCheck] = HealthCheck.allCases
   ) {
     self.maxRuns = maxRuns
     self.maxShrinkIterations = maxShrinkIterations
@@ -54,6 +58,8 @@ public struct PropertyConfig: Sendable {
     self.committedCorpusDirectory = committedCorpusDirectory
     self.traceExportDirectory = traceExportDirectory
     self.timeoutSeconds = timeoutSeconds
+    self.phases = phases
+    self.healthChecks = healthChecks
   }
 
   public static let `default` = Self()
@@ -151,6 +157,20 @@ public struct PropertyConfig: Sendable {
   public func timeout(seconds: Double) -> Self {
     var copy = self
     copy.timeoutSeconds = seconds
+    return copy
+  }
+
+  /// Selects the execution phases and their order.
+  public func phases(_ phases: [PropertyPhase]) -> Self {
+    var copy = self
+    copy.phases = phases
+    return copy
+  }
+
+  /// Selects non-fatal health checks.
+  public func healthChecks(_ checks: [HealthCheck]) -> Self {
+    var copy = self
+    copy.healthChecks = checks
     return copy
   }
 }

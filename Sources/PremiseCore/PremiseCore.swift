@@ -31,6 +31,9 @@ public struct FailureRecord: Sendable, Codable, Equatable {
   /// discovered failures from replayed corpus failures.
   public var discovery: FailureDiscovery
 
+  /// Observations from the run that produced the minimized failure.
+  public var statistics: RunStatistics
+
   public init(
     propertyID: PropertyIdentity,
     trace: ChoiceTrace,
@@ -40,7 +43,8 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     timestamp: Date = Date(),
     engineVersion: String = "1.0.0",
     seed: UInt64? = nil,
-    discovery: FailureDiscovery = .newFailure
+    discovery: FailureDiscovery = .newFailure,
+    statistics: RunStatistics = RunStatistics()
   ) {
     self.propertyID = propertyID
     self.trace = trace
@@ -51,6 +55,50 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     self.engineVersion = engineVersion
     self.seed = seed
     self.discovery = discovery
+    self.statistics = statistics
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case propertyID
+    case trace
+    case errorMessage
+    case runCount
+    case shrinkCount
+    case timestamp
+    case engineVersion
+    case seed
+    case discovery
+    case statistics
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    propertyID = try container.decode(PropertyIdentity.self, forKey: .propertyID)
+    trace = try container.decode(ChoiceTrace.self, forKey: .trace)
+    errorMessage = try container.decode(String.self, forKey: .errorMessage)
+    runCount = try container.decode(Int.self, forKey: .runCount)
+    shrinkCount = try container.decode(Int.self, forKey: .shrinkCount)
+    timestamp = try container.decode(Date.self, forKey: .timestamp)
+    engineVersion = try container.decode(String.self, forKey: .engineVersion)
+    seed = try container.decodeIfPresent(UInt64.self, forKey: .seed)
+    discovery = try container.decodeIfPresent(FailureDiscovery.self, forKey: .discovery)
+      ?? .newFailure
+    statistics = try container.decodeIfPresent(RunStatistics.self, forKey: .statistics)
+      ?? RunStatistics()
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(propertyID, forKey: .propertyID)
+    try container.encode(trace, forKey: .trace)
+    try container.encode(errorMessage, forKey: .errorMessage)
+    try container.encode(runCount, forKey: .runCount)
+    try container.encode(shrinkCount, forKey: .shrinkCount)
+    try container.encode(timestamp, forKey: .timestamp)
+    try container.encode(engineVersion, forKey: .engineVersion)
+    try container.encodeIfPresent(seed, forKey: .seed)
+    try container.encode(discovery, forKey: .discovery)
+    try container.encode(statistics, forKey: .statistics)
   }
 }
 

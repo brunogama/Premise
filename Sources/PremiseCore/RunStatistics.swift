@@ -31,7 +31,7 @@ public struct RunNote: Sendable, Equatable, Codable {
 ///     #expect(n >= 0)
 /// }
 /// ```
-public struct RunStatistics: Sendable, Equatable {
+public struct RunStatistics: Sendable, Equatable, Codable {
   /// Named observations from ``PremiseData/note(_:value:)`` calls.
   public var notes: [RunNote]
 
@@ -49,5 +49,11 @@ public struct RunStatistics: Sendable, Equatable {
     notes = []
     events = []
     targetScore = nil
+  }
+
+  public init(notes: [RunNote], events: [String], targetScore: Double?) {
+    self.notes = notes
+    self.events = events
+    self.targetScore = targetScore
   }
 }

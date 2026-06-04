@@ -9,7 +9,17 @@ struct PersistenceFormatCompatibilityTests {
 
   // MARK: - Helpers
 
-  private func sampleRecord() -> FailureRecord {
+  private func sampleStatistics() -> RunStatistics {
+    RunStatistics(
+      notes: [RunNote(label: "value", value: "42")],
+      events: ["edge", "even"],
+      targetScore: 42
+    )
+  }
+
+  private func sampleRecord(
+    statistics: RunStatistics = RunStatistics()
+  ) -> FailureRecord {
     let trace = ChoiceTrace(
       entries: [.integer(42), .boolean(true)],
       spans: [ChoiceTrace.Span(label: "root", start: 0, end: 2)]
@@ -25,7 +35,8 @@ struct PersistenceFormatCompatibilityTests {
       runCount: 5,
       shrinkCount: 3,
       timestamp: Date(timeIntervalSince1970: 1_000_000),
-      engineVersion: "0.2.0"
+      engineVersion: "0.2.0",
+      statistics: statistics
     )
   }
 
@@ -49,6 +60,48 @@ struct PersistenceFormatCompatibilityTests {
     #expect(decoded.shrinkCount == original.shrinkCount)
     #expect(decoded.timestamp == original.timestamp)
     #expect(decoded.engineVersion == original.engineVersion)
+  }
+
+  @Test("Envelope round-trip preserves non-empty run statistics")
+  func roundTripPreservesNonEmptyStatistics() throws {
+    let original = sampleRecord(statistics: sampleStatistics())
+    let envelope = PersistenceCodec.encode(original)
+
+    #expect(envelope.statistics == original.statistics)
+
+    let decoded = try PersistenceCodec.decode(envelope)
+
+    #expect(decoded == original)
+    #expect(decoded.statistics == original.statistics)
+  }
+
+  @Test("Decode old envelope without statistics defaults to empty statistics")
+  func oldEnvelopeWithoutStatisticsDefaultsToEmptyStatistics() throws {
+    let original = sampleRecord(statistics: sampleStatistics())
+    let envelope = PersistedFailureRecordV1(
+      recordFormatVersion: 1,
+      traceFormatVersion: 1,
+      propertyID: original.propertyID,
+      trace: original.trace,
+      errorMessage: original.errorMessage,
+      runCount: original.runCount,
+      shrinkCount: original.shrinkCount,
+      timestamp: original.timestamp,
+      engineVersion: original.engineVersion
+    )
+    let data = try JSONEncoder().encode(envelope)
+    let json = String(decoding: data, as: UTF8.self)
+
+    #expect(!json.contains("statistics"))
+
+    let decodedEnvelope = try JSONDecoder().decode(
+      PersistedFailureRecordV1.self,
+      from: data
+    )
+    let decoded = try PersistenceCodec.decode(decodedEnvelope)
+
+    #expect(decodedEnvelope.statistics == nil)
+    #expect(decoded.statistics == RunStatistics())
   }
 
   @Test("Decode rejects unsupported trace format version")
