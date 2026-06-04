@@ -1,3 +1,5 @@
+import Foundation
+
 /// Per-property execution configuration.
 ///
 /// Use the memberwise initialiser for full control, or the chainable
@@ -24,6 +26,9 @@ public struct PropertyConfig: Sendable {
   public var maxDrawsPerRun: Int
   public var seed: UInt64?
   public var replayEnabled: Bool
+  public var localDatabaseDirectory: URL?
+  public var committedCorpusDirectory: URL?
+  public var traceExportDirectory: URL?
   /// Per-property wall-clock timeout in seconds.  When non-nil, the runner
   /// will stop after the deadline is exceeded and report the best failure
   /// found so far (or pass if none).
@@ -35,6 +40,9 @@ public struct PropertyConfig: Sendable {
     maxDrawsPerRun: Int = 10_000,
     seed: UInt64? = nil,
     replayEnabled: Bool = true,
+    localDatabaseDirectory: URL? = nil,
+    committedCorpusDirectory: URL? = nil,
+    traceExportDirectory: URL? = nil,
     timeoutSeconds: Double? = nil
   ) {
     self.maxRuns = maxRuns
@@ -42,6 +50,9 @@ public struct PropertyConfig: Sendable {
     self.maxDrawsPerRun = maxDrawsPerRun
     self.seed = seed
     self.replayEnabled = replayEnabled
+    self.localDatabaseDirectory = localDatabaseDirectory
+    self.committedCorpusDirectory = committedCorpusDirectory
+    self.traceExportDirectory = traceExportDirectory
     self.timeoutSeconds = timeoutSeconds
   }
 
@@ -112,6 +123,27 @@ public struct PropertyConfig: Sendable {
   public func noReplay() -> Self {
     var copy = self
     copy.replayEnabled = false
+    return copy
+  }
+
+  /// Sets the writable local failure database directory.
+  public func storingFailures(in directory: URL) -> Self {
+    var copy = self
+    copy.localDatabaseDirectory = directory
+    return copy
+  }
+
+  /// Sets a source-controlled replay corpus directory.
+  public func replayingCorpus(from directory: URL) -> Self {
+    var copy = self
+    copy.committedCorpusDirectory = directory
+    return copy
+  }
+
+  /// Sets the directory where JSON failure trace artifacts are written.
+  public func exportingFailureTraces(to directory: URL) -> Self {
+    var copy = self
+    copy.traceExportDirectory = directory
     return copy
   }
 

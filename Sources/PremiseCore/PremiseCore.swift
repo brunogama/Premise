@@ -4,6 +4,13 @@ public enum PremiseCoreModule {
   public static let name = "PremiseCore"
 }
 
+/// Indicates whether a failure was discovered during fresh generation or
+/// reproduced from a persisted replay trace.
+public enum FailureDiscovery: String, Sendable, Codable, Equatable {
+  case newFailure
+  case knownFailure
+}
+
 /// Minimal persisted failure envelope shared between the core and storage.
 public struct FailureRecord: Sendable, Codable, Equatable {
   public var propertyID: PropertyIdentity
@@ -20,6 +27,10 @@ public struct FailureRecord: Sendable, Codable, Equatable {
   /// `PropertyConfig(seed: record.seed)` to the runner.
   public var seed: UInt64?
 
+  /// Classification used by adapters and CI output to distinguish newly
+  /// discovered failures from replayed corpus failures.
+  public var discovery: FailureDiscovery
+
   public init(
     propertyID: PropertyIdentity,
     trace: ChoiceTrace,
@@ -28,7 +39,8 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     shrinkCount: Int = 0,
     timestamp: Date = Date(),
     engineVersion: String = "0.2.0",
-    seed: UInt64? = nil
+    seed: UInt64? = nil,
+    discovery: FailureDiscovery = .newFailure
   ) {
     self.propertyID = propertyID
     self.trace = trace
@@ -38,5 +50,24 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     self.timestamp = timestamp
     self.engineVersion = engineVersion
     self.seed = seed
+    self.discovery = discovery
+  }
+}
+
+/// JSON-exportable replay artifact for CI and local debugging.
+public struct FailureTraceArtifact: Sendable, Codable, Equatable {
+  public var record: FailureRecord
+  public var valueDescription: String?
+
+  public init(
+    record: FailureRecord,
+    valueDescription: String? = nil
+  ) {
+    self.record = record
+    self.valueDescription = valueDescription
+  }
+
+  public var trace: ChoiceTrace {
+    record.trace
   }
 }
