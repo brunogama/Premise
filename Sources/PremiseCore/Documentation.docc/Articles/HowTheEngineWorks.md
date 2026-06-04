@@ -103,14 +103,93 @@ public struct Runner<Value: Sendable>: Sendable {
     public let config: PropertyConfig
     public let propertyID: PropertyIdentity
 
+    public func runDetailed(
+        explicitExamples: [Value] = [],
+        _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void,
+        replayTraces: [ChoiceTrace] = []
+    ) async -> DetailedRunResult<Value>
+
+    public func runDetailed(
+        explicitExamples: [Value] = [],
+        _ property: @escaping @Sendable (Value) throws -> Void,
+        replayTraces: [ChoiceTrace] = []
+    ) async -> DetailedRunResult<Value>
+
     public func run(
-        _ property: @Sendable (Value) throws -> Void,
+        _ property: @escaping @Sendable (Value) throws -> Void,
         replayTraces: [ChoiceTrace] = []
     ) async -> RunResult<Value>
 }
 ```
 
-The run loop:
+`run` returns the compact ``RunResult`` used by low-level callers. Use
+`runDetailed` when an adapter or custom harness needs execution diagnostics;
+it returns a ``DetailedRunResult``:
+
+```swift
+public enum DetailedRunResult<Value: Sendable>: Sendable {
+    case passed(RunReport)
+    case failure(FailureRecord, value: Value, report: RunReport)
+}
+```
+
+### Phases and explicit examples
+
+Detailed runs execute the phases listed in `PropertyConfig.phases`. The default
+order is `.explicit`, `.replay`, `.generate`, `.shrink`:
+
+```swift
+let config = PropertyConfig.default
+    .phases([.explicit, .generate, .shrink])
+
+let runner = Runner(
+    strategy: Strategy<Int>.integers(in: 0...100),
+    config: config
+)
+
+let result = await runner.runDetailed(
+    explicitExamples: [0, 1, 2]
+) { value, data in
+    data.event(value.isMultiple(of: 2) ? "even" : "odd")
+    data.note("value", value: value)
+    data.target(Double(value), label: "magnitude")
+}
+```
+
+Explicit examples are caller-provided values. They run before replay and fresh
+generation in the default phase order, and failures from them are reported with
+`runCount == 0`. The `.replay` phase consumes persisted ``ChoiceTrace`` values
+when replay is enabled. The `.generate` phase draws fresh examples from the
+strategy. The `.shrink` phase controls whether a discovered failure is minimized
+before being returned; if omitted, the first failing value is reported without
+trace minimization.
+
+### Run reports
+
+``RunReport`` aggregates observations across all attempted examples in a
+detailed run:
+
+```swift
+public struct RunReport: Sendable, Codable, Equatable {
+    public var runCount: Int
+    public var rejectedCount: Int
+    public var phaseCounts: [PropertyPhase: Int]
+    public var events: [String: Int]
+    public var notes: [RunNote]
+    public var maxTargetScore: Double?
+    public var healthWarnings: [HealthWarning]
+}
+```
+
+`phaseCounts` records how many successful or failing attempts ran in each
+phase. `events` counts labels recorded with ``PremiseData/event(_:)``. `notes`
+contains observations recorded with ``PremiseData/note(_:value:)`` after
+aggregation. ``PremiseData/target(_:label:)`` updates `maxTargetScore`; labeled
+target observations are folded into that maximum rather than retained as report
+notes. `healthWarnings` contains non-fatal execution quality warnings from
+enabled checks, such as empty search spaces or excessive filtering.
+
+The compact run loop:
 
 1. **Replay phase** — if `config.replayEnabled` is true, each stored trace is fed to a ``ReplayProvider`` and replayed against the property. If any replayed trace still fails, that failure is returned immediately (no fresh generation needed).
 
@@ -162,10 +241,13 @@ forAll(strategy, config)
   ▼
 ReplayFirstExecutor
   │  1. Load stored traces from FileBackedDatabase
-  │  2. runner.run(property, replayTraces: storedTraces)
+  │  2. runner.runDetailed(property, replayTraces: storedTraces)
   │
   ▼
-Runner.run
+Runner.runDetailed
+  │  Explicit phase:
+  │    run caller-provided examples first, if any
+  │
   │  Replay phase:
   │    for each stored trace:
   │      ReplayProvider(trace) → PremiseData → strategy.draw → value → property(value)
@@ -178,9 +260,9 @@ Runner.run
   │      if throws:
   │        ShrinkMachine(failingTrace).run() → minimalTrace
   │        ReplayProvider(minimalTrace) → minimalValue
-  │        return .failure(FailureRecord, minimalValue)
+  │        return .failure(FailureRecord, minimalValue, RunReport)
   │
-  │  return .passed(runs: maxRuns)
+  │  return .passed(RunReport)
   │
   ▼
 ReplayFirstExecutor

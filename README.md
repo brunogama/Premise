@@ -232,13 +232,18 @@ var machine = RuleBasedStateMachine(makeInitialState: {
     ModelAndDatabase()
 })
 
+struct ModelMismatch: Error {}
+
 machine.rule("insert", argument: Strategy<Int>.integers(in: 0...100)) { state, value in
     try await state.database.insert(value)
     state.model.insert(value)
 }
 
 machine.invariant("model matches database") { state in
-    #expect(try await state.database.values() == state.model.values)
+    let databaseValues = try await state.database.values()
+    guard databaseValues == state.model.values else {
+        throw ModelMismatch()
+    }
 }
 
 try await checkRuleBasedStateMachine(machine)
@@ -297,6 +302,12 @@ swift package dump-package
 | `PremiseParallel` | Parallel property execution (v2) |
 | `PremiseTelemetry` | Engine event hooks and telemetry sinks (v2) |
 | `PremiseMacros` | Optional `@given` macro (source or release-binary opt-in) |
+
+## Still Separate From The Core
+
+The Hypothesis-inspired ghostwriter CLI, external fuzzer bridge, and expanded
+network/regex/timezone strategy catalog are intentionally separate extension
+areas. They do not need to affect the macro-free `PremiseCore` path.
 
 The default build ships the five v1 products. V2 extension modules are additive
 and don't change the v1 API surface. Optional trait-gated targets exist for

@@ -458,8 +458,30 @@ let biasedCoin: Strategy<Bool> = buildWeightedStrategy {
 }
 ```
 
+## Type-Driven Derivation
+
+Use `StrategyRegistry` when generic helpers need a strategy by type instead of
+receiving a strategy value directly. Registries are immutable, so each
+registration returns a scoped copy that is safe to pass into one property or
+fixture without mutating global state.
+
+```swift
+let registry = StrategyRegistry.standard
+  .register(UserID.self) { registry in
+    registry.strategy(for: Int.self)
+      .map { UserID(rawValue: $0) }
+  }
+let userIDs = registry.strategy(for: UserID.self)
+```
+
+The closure form keeps strict-concurrency checking explicit and lets derived
+strategies depend on other registered strategies. Domain types can also conform
+to `StrategyProviding` when they should derive themselves from whichever
+registry a test supplies.
+
 ## Next Steps
 
 - See <doc:AdvancedCombinators> for detailed examples of `flatMap`, `frequency`, and `recursive`.
 - See <doc:CustomStrategies> to build a `Strategy<Value>` for your own domain types.
+- See <doc:StatefulRuleMachines> for rule-based stateful testing examples.
 - See <doc:GivenMacroAndConfiguration> for the `@given` macro and `PropertyConfig` presets.

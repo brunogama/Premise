@@ -20,13 +20,23 @@ public protocol ExampleDatabase: Actor {
 }
 ```
 
-`PropertyIdentity` uniquely identifies a property by its source file, line number, and strategy label. This means two `forAll` calls at different lines in the same file each have their own failure store, even if they use the same strategy.
+`PropertyIdentity` records a property's source file, line, strategy label, and
+optional `functionName`. The logical value uses `fileID + functionName +
+strategyLabel` for equality and hashing when `functionName` is available, and
+falls back to `fileID + line + strategyLabel` otherwise. The adapters pass
+`#function`, so failure metadata and in-memory identity comparisons can survive
+line movement.
 
 ## FileBackedDatabase
 
 The default implementation is ``FileBackedDatabase``. It stores one JSON file per property identity under `.premise/examples/` relative to the current working directory.
 
-File names are derived by hex-encoding the UTF-8 bytes of the identity key `"\(fileID)#\(line)#\(strategyLabel)"`, so they're safe on all file systems.
+The current file-backed physical file name is derived by hex-encoding the
+UTF-8 bytes of `"\(fileID)#\(line)#\(strategyLabel)"`, so it is safe on all
+file systems. ``SQLiteBackedDatabase`` uses the same three fields in its lookup
+index. These storage keys are distinct from logical `PropertyIdentity`
+equality/hash behavior, so moving the `forAll` call to another line still
+changes replay lookup in the current storage implementations.
 
 ```
 .premise/
@@ -47,7 +57,13 @@ All writes use `Data.write(to:options:[.atomic])`, which writes to a temporary f
 ```swift
 public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
     public init(runner: Runner<Value>, database: any ExampleDatabase)
-    public func execute(_ property: @Sendable (Value) throws -> Void) async throws -> RunResult<Value>
+    public func execute(
+        _ property: @escaping @Sendable (Value) throws -> Void
+    ) async throws -> RunResult<Value>
+
+    public func executeDetailed(
+        _ property: @escaping @Sendable (Value) throws -> Void
+    ) async throws -> DetailedRunResult<Value>
 }
 ```
 
@@ -68,15 +84,52 @@ When the engine finds and shrinks a failure, it saves a ``FailureRecord``:
 
 ```swift
 public struct FailureRecord: Sendable, Codable, Equatable {
-    public let propertyID: PropertyIdentity
-    public let trace: ChoiceTrace        // the minimised failing trace
-    public let errorMessage: String       // the thrown error's description
-    public let runCount: Int              // how many runs before this failure
-    public let shrinkCount: Int           // how many shrink iterations ran
+    public var propertyID: PropertyIdentity
+    public var trace: ChoiceTrace        // the minimized failing trace
+    public var errorMessage: String      // the thrown error's description
+    public var runCount: Int             // how many runs before this failure
+    public var shrinkCount: Int          // how many shrink iterations ran
+    public var timestamp: Date           // when the record was created
+    public var engineVersion: String     // persistence/engine version
+    public var seed: UInt64?             // base seed for reproduction
+    public var discovery: FailureDiscovery
+    public var statistics: RunStatistics
 }
 ```
 
 The most important field is `trace`. It is the minimal ``ChoiceTrace`` after shrinking. When the executor replays it using ``ReplayProvider``, it deterministically reproduces the exact minimised counterexample.
+
+`discovery` distinguishes newly generated failures from known failures
+reproduced from a replay corpus. `statistics` stores notes, events, and target
+score observations collected during the failing run.
+
+## JSON Failure Trace Artifacts
+
+In addition to saving replay records in the example database, Premise can export
+CI-friendly JSON artifacts. Configure the property with
+`exportingFailureTraces(to:)`:
+
+```swift
+let config = PropertyConfig.default
+    .exportingFailureTraces(to: URL(fileURLWithPath: ".premise/artifacts"))
+```
+
+When ``ReplayFirstExecutor`` saves a failure and `traceExportDirectory` is set,
+it writes a ``FailureTraceArtifact``:
+
+```swift
+public struct FailureTraceArtifact: Sendable, Codable, Equatable {
+    public var record: FailureRecord
+    public var valueDescription: String?
+
+    public var trace: ChoiceTrace { record.trace }
+}
+```
+
+The JSON file contains the full ``FailureRecord`` and an optional string
+description of the minimized value. Upload these files from CI when you want to
+inspect or archive the exact trace that produced a failure without committing
+it to the replay corpus yet.
 
 ## Failure Lifecycle
 
@@ -124,16 +177,18 @@ You can provide a custom ``ExampleDatabase`` implementation — for example, one
 
 ```swift
 // Use an in-memory store for isolated unit tests
-final class InMemoryDatabase: ExampleDatabase {
+actor InMemoryDatabase: ExampleDatabase {
     private var storage: [PropertyIdentity: [ChoiceTrace]] = [:]
-    
-    func loadTraces(for id: PropertyIdentity) async -> [ChoiceTrace] {
+
+    func loadTraces(for id: PropertyIdentity) async throws -> [ChoiceTrace] {
         storage[id] ?? []
     }
-    func save(_ record: FailureRecord) async {
+
+    func save(_ record: FailureRecord) async throws {
         storage[record.propertyID, default: []].append(record.trace)
     }
-    func clear(for id: PropertyIdentity) async {
+
+    func clear(for id: PropertyIdentity) async throws {
         storage.removeValue(forKey: id)
     }
 }
