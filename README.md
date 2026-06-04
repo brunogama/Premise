@@ -149,6 +149,25 @@ let smallFirst = positiveEven.shrinking { value in
 }
 ```
 
+### Type-Driven Derivation
+
+Use `StrategyRegistry` when a test helper needs a strategy by type rather than
+by explicit parameter. The registry is immutable, so overrides are scoped to the
+test that creates them:
+
+```swift
+let registry = StrategyRegistry.standard
+    .register(UserID.self) { registry in
+        registry.strategy(for: Int.self)
+            .map { UserID(rawValue: $0) }
+    }
+
+let ids = registry.strategy(for: UserID.self)
+```
+
+Custom domain types can conform to `StrategyProviding` to derive themselves
+from the registry without global mutable state.
+
 ## Configuration
 
 Use built-in presets or chainable builders:
