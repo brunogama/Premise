@@ -224,6 +224,29 @@ let operations = Strategy<[IndexOperation]>.indexOperationSequences(
 )
 ```
 
+For workflows where the engine should choose which operation comes next,
+use the rule-based DSL:
+
+```swift
+var machine = RuleBasedStateMachine(makeInitialState: {
+    ModelAndDatabase()
+})
+
+machine.rule("insert", argument: Strategy<Int>.integers(in: 0...100)) { state, value in
+    try await state.database.insert(value)
+    state.model.insert(value)
+}
+
+machine.invariant("model matches database") { state in
+    #expect(try await state.database.values() == state.model.values)
+}
+
+try await checkRuleBasedStateMachine(machine)
+```
+
+Use `makeInitialState` for reference-backed state such as databases so each
+generated example starts with fresh storage.
+
 ## Optional @given Macro
 
 For zero-boilerplate property tests, use the `@given` macro (inspired by Hypothesis's `@given` decorator):
