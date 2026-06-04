@@ -24,7 +24,9 @@ public enum PersistenceCodec {
       runCount: record.runCount,
       shrinkCount: record.shrinkCount,
       timestamp: record.timestamp,
-      engineVersion: record.engineVersion
+      engineVersion: record.engineVersion,
+      seed: record.seed,
+      discovery: record.discovery
     )
   }
 
@@ -48,7 +50,9 @@ public enum PersistenceCodec {
       runCount: envelope.runCount,
       shrinkCount: envelope.shrinkCount,
       timestamp: envelope.timestamp,
-      engineVersion: envelope.engineVersion
+      engineVersion: envelope.engineVersion,
+      seed: envelope.seed,
+      discovery: envelope.discovery ?? .newFailure
     )
   }
 

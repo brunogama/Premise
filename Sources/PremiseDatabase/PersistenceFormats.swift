@@ -33,6 +33,12 @@ public struct PersistedFailureRecordV1: Sendable, Codable, Equatable {
   /// Engine version that produced the failure.
   public let engineVersion: String
 
+  /// Base seed used for the discovery run, when available.
+  public let seed: UInt64?
+
+  /// Whether the failure was newly discovered or replayed from corpus.
+  public let discovery: FailureDiscovery?
+
   /// Creates a versioned persistence envelope.
   ///
   /// - Parameters:
@@ -54,7 +60,9 @@ public struct PersistedFailureRecordV1: Sendable, Codable, Equatable {
     runCount: Int,
     shrinkCount: Int,
     timestamp: Date,
-    engineVersion: String
+    engineVersion: String,
+    seed: UInt64? = nil,
+    discovery: FailureDiscovery? = nil
   ) {
     self.recordFormatVersion = recordFormatVersion
     self.traceFormatVersion = traceFormatVersion
@@ -65,5 +73,7 @@ public struct PersistedFailureRecordV1: Sendable, Codable, Equatable {
     self.shrinkCount = shrinkCount
     self.timestamp = timestamp
     self.engineVersion = engineVersion
+    self.seed = seed
+    self.discovery = discovery
   }
 }

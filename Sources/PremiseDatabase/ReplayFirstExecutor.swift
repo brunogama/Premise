@@ -46,8 +46,38 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
 
     if case .failure(let record, value: _) = result {
       try await database.save(record)
+      try exportTraceIfNeeded(record: record, value: result.failureValue)
     }
 
     return result
+  }
+
+  /// Executes an async property through the replay-first flow.
+  public func execute(
+    _ property: @escaping @Sendable (Value) async throws -> Void
+  ) async throws -> RunResult<Value> {
+    let traces = try await database.loadTraces(for: runner.propertyID)
+    let result = await runner.run(property, replayTraces: traces)
+
+    if case .failure(let record, value: _) = result {
+      try await database.save(record)
+      try exportTraceIfNeeded(record: record, value: result.failureValue)
+    }
+
+    return result
+  }
+
+  private func exportTraceIfNeeded(
+    record: FailureRecord,
+    value: Value?
+  ) throws {
+    guard let directory = runner.config.traceExportDirectory else {
+      return
+    }
+    let artifact = FailureTraceArtifact(
+      record: record,
+      valueDescription: value.map { String(describing: $0) }
+    )
+    _ = try FailureTraceExporter.export(artifact, to: directory)
   }
 }
