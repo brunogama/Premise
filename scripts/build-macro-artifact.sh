@@ -11,7 +11,7 @@
 #   ./scripts/build-macro-artifact.sh --all     # cross-compile all targets (CI)
 #
 # Requirements:
-#   - Swift 6.0+ toolchain
+#   - Swift 6.2+ toolchain
 #   - PREMISE_MACRO_SOURCE=1 must be set (this script sets it)
 #
 # The script outputs:
