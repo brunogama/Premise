@@ -1,3 +1,4 @@
+#if canImport(Testing)
 import Testing
 
 import PremiseCore
@@ -286,3 +287,4 @@ private func _runForAll<Value: Sendable>(
     )
   }
 }
+#endif

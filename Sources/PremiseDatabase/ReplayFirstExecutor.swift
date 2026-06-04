@@ -39,7 +39,7 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   /// - Parameter property: The property closure to test.
   /// - Returns: The result of executing the property.
   public func execute(
-    _ property: @Sendable (Value) throws -> Void
+    _ property: @escaping @Sendable (Value) throws -> Void
   ) async throws -> RunResult<Value> {
     let traces = try await database.loadTraces(for: runner.propertyID)
     let result = await runner.run(property, replayTraces: traces)

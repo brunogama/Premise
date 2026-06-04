@@ -1,3 +1,4 @@
+#if canImport(XCTest)
 import XCTest
 
 import PremiseCore
@@ -151,3 +152,4 @@ private func _xcRunForAll<Value: Sendable>(
     XCTFail(message, file: file, line: line)
   }
 }
+#endif

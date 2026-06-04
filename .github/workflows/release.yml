@@ -55,6 +55,7 @@ jobs:
             --product "$ARTIFACT_NAME" \
             --configuration release \
             -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete \
             ${{ matrix.arch_flag }}
 
       - name: Locate and prepare binary

@@ -1,4 +1,4 @@
-// swift-tools-version: 6.1
+// swift-tools-version: 6.2
 
 import PackageDescription
 import Foundation
@@ -9,40 +9,76 @@ import CompilerPluginSupport
 
 // MARK: - Macro Build Mode
 //
-// By default, PremiseMacros uses a pre-built binary plugin so users
-// don't need to compile swift-syntax (~5 min). Set the environment variable
-// PREMISE_MACRO_SOURCE=1 to build the macro plugin from source instead.
+// Macro sugar is optional. The default manifest keeps the core package path
+// free of both swift-syntax and prebuilt binary downloads:
 //
-//   PREMISE_MACRO_SOURCE=1 swift build
+//   swift build --product PremiseTesting
 //
-let buildMacroFromSource =
-  ProcessInfo.processInfo
-  .environment["PREMISE_MACRO_SOURCE"] != nil
+// To work on @given locally, build the macro from source:
+//
+//   PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
+//
+// Release automation can validate the binary-backed macro target by supplying
+// both PREMISE_MACRO_BINARY=1 and PREMISE_MACRO_BINARY_CHECKSUM=<checksum>.
+let environment = ProcessInfo.processInfo.environment
+let buildMacroFromSource = environment["PREMISE_MACRO_SOURCE"] != nil
+let buildBinaryMacro = environment["PREMISE_MACRO_BINARY"] != nil
 
 // MARK: - Macro Targets
 
-let macroPluginTarget: Target
+let macroProducts: [Product]
+let macroTargets: [Target]
 let macroDependencies: [Package.Dependency]
 
 if buildMacroFromSource {
-  macroPluginTarget = .macro(
-    name: "PremiseMacrosPlugin",
-    dependencies: [
-      .product(name: "SwiftSyntax", package: "swift-syntax"),
-      .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-      .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-    ]
-  )
-  macroDependencies = [
-    .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1")
+  macroProducts = [
+    .library(name: "PremiseMacros", targets: ["PremiseMacros"])
   ]
+  macroTargets = [
+    .macro(
+      name: "PremiseMacrosPlugin",
+      dependencies: [
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+      ]
+    ),
+    .target(
+      name: "PremiseMacros",
+      dependencies: ["PremiseMacrosPlugin"]
+    ),
+  ]
+  macroDependencies = [
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0")
+  ]
+} else if buildBinaryMacro {
+  guard let checksum = environment["PREMISE_MACRO_BINARY_CHECKSUM"],
+    !checksum.isEmpty
+  else {
+    fatalError(
+      "PREMISE_MACRO_BINARY requires PREMISE_MACRO_BINARY_CHECKSUM"
+    )
+  }
+
+  macroProducts = [
+    .library(name: "PremiseMacros", targets: ["PremiseMacros"])
+  ]
+  macroTargets = [
+    .binaryTarget(
+      name: "PremiseMacrosPlugin",
+      url:
+        "https://github.com/brunogama/Premise/releases/download/v1.0.0/PremiseMacrosPlugin.artifactbundle.zip",
+      checksum: checksum
+    ),
+    .target(
+      name: "PremiseMacros",
+      dependencies: ["PremiseMacrosPlugin"]
+    ),
+  ]
+  macroDependencies = []
 } else {
-  macroPluginTarget = .binaryTarget(
-    name: "PremiseMacrosPlugin",
-    url:
-      "https://github.com/brunogama/Premise/releases/latest/download/PremiseMacrosPlugin.artifactbundle.zip",
-    checksum: "0000000000000000000000000000000000000000000000000000000000000000"
-  )
+  macroProducts = []
+  macroTargets = []
   macroDependencies = []
 }
 
@@ -65,15 +101,14 @@ let package = Package(
     .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
     .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
-    .library(name: "PremiseMacros", targets: ["PremiseMacros"]),
-  ],
-  dependencies: macroDependencies,
+  ] + macroProducts,
   traits: [
     .trait(name: "CoverageGuided"),
     .trait(name: "Telemetry"),
     .trait(name: "SMT"),
     .default(enabledTraits: []),
   ],
+  dependencies: macroDependencies,
   targets: [
     .target(name: "PremiseCore"),
     .target(
@@ -108,14 +143,6 @@ let package = Package(
     .target(
       name: "PremiseTelemetry",
       dependencies: ["PremiseCore"]
-    ),
-
-    // Macro plugin target — binary or source depending on env var.
-    macroPluginTarget,
-
-    .target(
-      name: "PremiseMacros",
-      dependencies: ["PremiseMacrosPlugin"]
     ),
 
     .target(
@@ -212,6 +239,6 @@ let package = Package(
         "PremiseCore",
       ]
     ),
-  ],
+  ] + macroTargets,
   swiftLanguageModes: [.v6]
 )

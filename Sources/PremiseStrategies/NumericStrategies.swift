@@ -8,7 +8,7 @@ public extension Strategy where Value == Int8 {
     Strategy<Int8>(
       label: "int8(in: \(range))",
       draw: { data in
-        T(
+        Int8(
           truncatingIfNeeded: drawEdgeBiasedInteger(
             in: Int(range.lowerBound)...Int(range.upperBound),
             using: &data

@@ -182,7 +182,7 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
   private func runSequential(
     baseSeed: UInt64,
     totalRuns: Int,
-    property: @Sendable (Value) throws -> Void
+    property: @escaping @Sendable (Value) throws -> Void
   ) -> RunResult<Value> {
     for runIndex in 0..<totalRuns {
       let seedForIndex = baseSeed &+ UInt64(runIndex)
