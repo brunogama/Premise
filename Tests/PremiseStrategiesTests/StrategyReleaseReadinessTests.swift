@@ -47,6 +47,24 @@ func collectionGeneratorsSupportExactAndMinMaxSizes() throws {
   #expect((1...3).contains(set.count))
 }
 
+@Test("set and dictionary generators reject impossible unique counts")
+func setAndDictionaryGeneratorsRejectImpossibleUniqueCounts() {
+  var setData = PremiseData(provider: PseudoRandomProvider(seed: 30, maxDraws: 128))
+  #expect(throws: StrategyError.self) {
+    try Strategy.sets(of: Strategy<Int>.just(1), count: 2).draw(&setData)
+  }
+
+  var dictionaryData = PremiseData(provider: PseudoRandomProvider(seed: 31, maxDraws: 128))
+  #expect(throws: StrategyError.self) {
+    try Strategy.dictionaries(
+      keys: Strategy<String>.just("duplicate"),
+      values: Strategy<Int>.integers(in: 0...10),
+      count: 2
+    )
+    .draw(&dictionaryData)
+  }
+}
+
 @Test("floating edge strategy can include NaN infinity denormals and epsilon values")
 func floatingEdgeStrategyIncludesRequestedCases() {
   let strategy = Strategy<Double>.edgeCaseFloats(

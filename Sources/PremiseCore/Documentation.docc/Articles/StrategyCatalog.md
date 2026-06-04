@@ -119,7 +119,7 @@ static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
 ) -> Strategy<[Key: Element]>
 ```
 
-Generates a `[Key: Element]` dictionary. Duplicate keys are resolved by taking the later value. Pairs are drawn in a stable sort order to make shrinking deterministic.
+Generates a `[Key: Element]` dictionary with the requested number of unique keys. Duplicate keys are retried; if the key strategy cannot produce enough unique keys within the attempt budget, the generation is rejected instead of returning a smaller dictionary. Pairs are emitted in a stable sort order to make shrinking deterministic.
 
 ```swift
 .dictionaries(
@@ -140,7 +140,7 @@ static func sets<Element: Hashable & Sendable>(
 ) -> Strategy<Set<Element>>
 ```
 
-Generates a `Set<Element>`. Elements are drawn in stable sort order.
+Generates a `Set<Element>` with the requested number of unique elements. Duplicate elements are retried; if the element strategy cannot produce enough unique values within the attempt budget, the generation is rejected instead of returning a smaller set. Elements are emitted in stable sort order.
 
 ```swift
 .sets(of: .integers(in: 0...50), count: 0...10)

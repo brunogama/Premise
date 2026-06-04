@@ -1,6 +1,7 @@
 import PremiseCore
 
 public extension Strategy {
+  /// Generates arrays with exactly `count` elements.
   static func arrays(
     of element: Strategy<Value>,
     count: Int
@@ -8,6 +9,7 @@ public extension Strategy {
     arrays(of: element, length: count...count)
   }
 
+  /// Generates arrays whose size is in `minCount...maxCount`.
   static func arrays(
     of element: Strategy<Value>,
     minCount: Int,
@@ -16,11 +18,13 @@ public extension Strategy {
     arrays(of: element, length: minCount...maxCount)
   }
 
+  /// Generates arrays whose size is selected from `length`.
   static func arrays(
     of element: Strategy<Value>,
     length: ClosedRange<Int>
   ) -> Strategy<[Value]> {
-    Strategy<[Value]>(
+    precondition(length.lowerBound >= 0, "array length must be non-negative")
+    return Strategy<[Value]>(
       label: "arrays(of: \(element.label), length: \(length))",
       draw: { data in
         let count = drawEdgeBiasedCount(in: length, using: &data)
@@ -40,6 +44,7 @@ public extension Strategy {
     )
   }
 
+  /// Generates dictionaries with exactly `count` unique keys.
   static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
     keys: Strategy<Key>,
     values: Strategy<Element>,
@@ -48,6 +53,7 @@ public extension Strategy {
     dictionaries(keys: keys, values: values, count: count...count)
   }
 
+  /// Generates dictionaries whose number of unique keys is in `minCount...maxCount`.
   static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
     keys: Strategy<Key>,
     values: Strategy<Element>,
@@ -57,25 +63,23 @@ public extension Strategy {
     dictionaries(keys: keys, values: values, count: minCount...maxCount)
   }
 
+  /// Generates dictionaries whose number of unique keys is selected from `count`.
   static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
     keys: Strategy<Key>,
     values: Strategy<Element>,
     count: ClosedRange<Int>
   ) -> Strategy<[Key: Element]> {
-    Strategy<[Key: Element]>(
+    precondition(count.lowerBound >= 0, "dictionary count must be non-negative")
+    return Strategy<[Key: Element]>(
       label: "dictionaries(keys: \(keys.label), values: \(values.label), count: \(count))",
       draw: { data in
         let pairCount = drawEdgeBiasedCount(in: count, using: &data)
-        var pairs: [(Key, Element)] = []
-        pairs.reserveCapacity(pairCount)
-        for _ in 0..<pairCount {
-          let pair = try data.withSpan { spanData -> (Key, Element) in
-            let key = try keys.draw(&spanData)
-            let value = try values.draw(&spanData)
-            return (key, value)
-          }
-          pairs.append(pair)
-        }
+        let pairs = try drawUniqueDictionaryPairs(
+          count: pairCount,
+          keys: keys,
+          values: values,
+          data: &data
+        )
         let sorted = pairs.enumerated().sorted { lhs, rhs in
           let left = String(describing: lhs.element.0)
           let right = String(describing: rhs.element.0)
@@ -89,6 +93,7 @@ public extension Strategy {
     )
   }
 
+  /// Generates sets with exactly `count` unique elements.
   static func sets<Element: Hashable & Sendable>(
     of element: Strategy<Element>,
     count: Int
@@ -96,6 +101,7 @@ public extension Strategy {
     sets(of: element, count: count...count)
   }
 
+  /// Generates sets whose size is in `minCount...maxCount`.
   static func sets<Element: Hashable & Sendable>(
     of element: Strategy<Element>,
     minCount: Int,
@@ -104,22 +110,21 @@ public extension Strategy {
     sets(of: element, count: minCount...maxCount)
   }
 
+  /// Generates sets whose size is selected from `count`.
   static func sets<Element: Hashable & Sendable>(
     of element: Strategy<Element>,
     count: ClosedRange<Int>
   ) -> Strategy<Set<Element>> {
-    Strategy<Set<Element>>(
+    precondition(count.lowerBound >= 0, "set count must be non-negative")
+    return Strategy<Set<Element>>(
       label: "sets(of: \(element.label), count: \(count))",
       draw: { data in
         let itemCount = drawEdgeBiasedCount(in: count, using: &data)
-        var values: [Element] = []
-        values.reserveCapacity(itemCount)
-        for _ in 0..<itemCount {
-          let value = try data.withSpan { spanData in
-            try element.draw(&spanData)
-          }
-          values.append(value)
-        }
+        let values = try drawUniqueSetValues(
+          count: itemCount,
+          element: element,
+          data: &data
+        )
         let ordered = values.sorted { String(describing: $0) < String(describing: $1) }
         return Set(ordered)
       },
@@ -148,6 +153,74 @@ private func drawEdgeBiasedCount(
   }
 
   return data.drawInteger(in: range)
+}
+
+private func drawUniqueDictionaryPairs<Key: Hashable & Sendable, Value: Sendable>(
+  count: Int,
+  keys: Strategy<Key>,
+  values: Strategy<Value>,
+  data: inout PremiseData
+) throws -> [(Key, Value)] {
+  guard count > 0 else { return [] }
+
+  var pairs: [(Key, Value)] = []
+  var seenKeys: Set<Key> = []
+  let maxAttempts = uniqueAttemptLimit(for: count)
+
+  for _ in 0..<maxAttempts where pairs.count < count {
+    let pair = try data.withSpan { spanData -> (Key, Value)? in
+      let key = try keys.draw(&spanData)
+      guard seenKeys.insert(key).inserted else {
+        return nil
+      }
+      let value = try values.draw(&spanData)
+      return (key, value)
+    }
+    if let pair {
+      pairs.append(pair)
+    }
+  }
+
+  guard pairs.count == count else {
+    throw StrategyError.filterExhausted(
+      label: "unique dictionary keys for \(keys.label)",
+      maxAttempts: maxAttempts
+    )
+  }
+  return pairs
+}
+
+private func drawUniqueSetValues<Element: Hashable & Sendable>(
+  count: Int,
+  element: Strategy<Element>,
+  data: inout PremiseData
+) throws -> [Element] {
+  guard count > 0 else { return [] }
+
+  var values: [Element] = []
+  var seenValues: Set<Element> = []
+  let maxAttempts = uniqueAttemptLimit(for: count)
+
+  for _ in 0..<maxAttempts where values.count < count {
+    let value = try data.withSpan { spanData in
+      try element.draw(&spanData)
+    }
+    if seenValues.insert(value).inserted {
+      values.append(value)
+    }
+  }
+
+  guard values.count == count else {
+    throw StrategyError.filterExhausted(
+      label: "unique set elements for \(element.label)",
+      maxAttempts: maxAttempts
+    )
+  }
+  return values
+}
+
+private func uniqueAttemptLimit(for count: Int) -> Int {
+  max(32, count * 16)
 }
 
 private func shrinkArray<Value: Sendable>(
