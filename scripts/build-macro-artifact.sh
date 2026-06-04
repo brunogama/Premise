@@ -28,7 +28,7 @@ export PREMISE_MACRO_SOURCE=1
 ARTIFACT_NAME="PremiseMacrosPlugin"
 BUILD_DIR=".build/artifacts"
 BUNDLE_DIR="${BUILD_DIR}/${ARTIFACT_NAME}.artifactbundle"
-SWIFT_VERSION="6.1"
+ARTIFACT_VERSION="${PREMISE_MACRO_VERSION:-1.0.0}"
 
 rm -rf "$BUNDLE_DIR" "${BUILD_DIR}/${ARTIFACT_NAME}.artifactbundle.zip"
 mkdir -p "$BUILD_DIR"
@@ -192,7 +192,7 @@ cat > "${BUNDLE_DIR}/info.json" <<INFOJSON
   "schemaVersion": "1.0",
   "artifacts": {
     "${ARTIFACT_NAME}": {
-      "version": "1.0.0",
+      "version": "${ARTIFACT_VERSION}",
       "type": "executable",
       "variants": [${variants_json}
       ]

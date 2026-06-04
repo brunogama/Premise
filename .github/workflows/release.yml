@@ -203,6 +203,13 @@ jobs:
             checksum.txt \
             --clobber
 
+      - name: Verify binary macro manifest
+        env:
+          PREMISE_MACRO_BINARY: "1"
+          PREMISE_MACRO_BINARY_CHECKSUM: ${{ steps.bundle.outputs.checksum }}
+        run: |
+          swift package dump-package > /dev/null
+
       - name: Comment checksum on release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
