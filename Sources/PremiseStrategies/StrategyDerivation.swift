@@ -10,6 +10,7 @@ public protocol StrategyProviding: Sendable {
 public struct StrategyRegistry: Sendable {
   private let entries: [ObjectIdentifier: AnyStrategyFactory]
 
+  /// Creates an empty strategy registry.
   public init() {
     entries = [:]
   }

@@ -76,6 +76,7 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
   /// - Parameters:
   ///   - property: The property closure to test.
   ///   - replayTraces: Previously recorded traces to replay first.
+  /// - Throws: Any error while loading persisted replay traces.
   /// - Returns: The result of running the property.
   public func run(
     _ property: @escaping @Sendable (Value) throws -> Void,

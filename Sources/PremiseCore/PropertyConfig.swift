@@ -21,21 +21,43 @@ import Foundation
 /// let config: PropertyConfig = .ci          // 500 runs, balanced for CI
 /// ```
 public struct PropertyConfig: Sendable {
+  /// Maximum number of fresh examples to generate.
   public var maxRuns: Int
+
+  /// Maximum number of shrink attempts after a failure.
   public var maxShrinkIterations: Int
+
+  /// Maximum number of data draws allowed per generated example.
   public var maxDrawsPerRun: Int
+
+  /// Optional base seed for deterministic replay.
   public var seed: UInt64?
+
+  /// Whether persisted traces should be replayed before generation.
   public var replayEnabled: Bool
+
+  /// Directory used for local failure persistence.
   public var localDatabaseDirectory: URL?
+
+  /// Directory containing source-controlled replay corpus entries.
   public var committedCorpusDirectory: URL?
+
+  /// Directory where JSON trace artifacts should be exported.
   public var traceExportDirectory: URL?
+
   /// Per-property wall-clock timeout in seconds.  When non-nil, the runner
+  ///
   /// will stop after the deadline is exceeded and report the best failure
   /// found so far (or pass if none).
   public var timeoutSeconds: Double?
+
+  /// Ordered execution phases used by detailed runners.
   public var phases: [PropertyPhase]
+
+  /// Runtime health checks enabled for this property.
   public var healthChecks: [HealthCheck]
 
+  /// Creates per-property execution configuration.
   public init(
     maxRuns: Int = 100,
     maxShrinkIterations: Int = 500,
@@ -62,6 +84,7 @@ public struct PropertyConfig: Sendable {
     self.healthChecks = healthChecks
   }
 
+  /// Default Premise execution configuration.
   public static let `default` = Self()
 
   // MARK: - Presets

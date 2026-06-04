@@ -10,6 +10,7 @@ enum XCTestFailureFormatter {
   ///   - value: The minimized counterexample that triggered the failure.
   ///   - record: The failure record containing trace, counts, and metadata.
   ///   - propertyID: The property identity for replay instructions.
+  ///   - report: Optional detailed run report for aggregated diagnostics.
   /// - Returns: A multi-line diagnostic string.
   static func format<Value>(
     value: Value,

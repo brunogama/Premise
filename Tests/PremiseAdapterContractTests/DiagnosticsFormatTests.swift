@@ -7,7 +7,9 @@ import Testing
 // MARK: - Diagnostics Format Contract Tests
 
 /// Verifies the exact structure of failure diagnostic output produced by
-/// both formatters. These tests act as a contract that protects downstream
+/// both formatters.
+///
+/// These tests act as a contract that protects downstream
 /// tooling (CI parsers, IDE integrations) from unintentional format changes.
 @Suite("Diagnostics Format")
 struct DiagnosticsFormatTests {

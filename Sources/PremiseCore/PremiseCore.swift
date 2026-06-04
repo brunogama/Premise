@@ -1,6 +1,8 @@
 import Foundation
 
+/// Namespace marker for the PremiseCore product.
 public enum PremiseCoreModule {
+  /// The package product name.
   public static let name = "PremiseCore"
 }
 
@@ -13,12 +15,25 @@ public enum FailureDiscovery: String, Sendable, Codable, Equatable {
 
 /// Minimal persisted failure envelope shared between the core and storage.
 public struct FailureRecord: Sendable, Codable, Equatable {
+  /// Stable identity for the property that produced the failure.
   public var propertyID: PropertyIdentity
+
+  /// Canonical choice trace that replays the minimized failure.
   public var trace: ChoiceTrace
+
+  /// Human-readable failure reason captured from the thrown error.
   public var errorMessage: String
+
+  /// Number of generated examples attempted before the failure.
   public var runCount: Int
+
+  /// Number of successful shrink steps applied to the failure.
   public var shrinkCount: Int
+
+  /// Time at which the failure record was created.
   public var timestamp: Date
+
+  /// Premise engine version that wrote the record.
   public var engineVersion: String
 
   /// The base seed used during the run that discovered this failure.
@@ -34,6 +49,7 @@ public struct FailureRecord: Sendable, Codable, Equatable {
   /// Observations from the run that produced the minimized failure.
   public var statistics: RunStatistics
 
+  /// Creates a persisted failure record.
   public init(
     propertyID: PropertyIdentity,
     trace: ChoiceTrace,
@@ -71,6 +87,8 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     case statistics
   }
 
+  /// Decodes a failure record, applying defaults for fields added after
+  /// the initial persistence format.
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     propertyID = try container.decode(PropertyIdentity.self, forKey: .propertyID)
@@ -81,12 +99,15 @@ public struct FailureRecord: Sendable, Codable, Equatable {
     timestamp = try container.decode(Date.self, forKey: .timestamp)
     engineVersion = try container.decode(String.self, forKey: .engineVersion)
     seed = try container.decodeIfPresent(UInt64.self, forKey: .seed)
-    discovery = try container.decodeIfPresent(FailureDiscovery.self, forKey: .discovery)
+    discovery =
+      try container.decodeIfPresent(FailureDiscovery.self, forKey: .discovery)
       ?? .newFailure
-    statistics = try container.decodeIfPresent(RunStatistics.self, forKey: .statistics)
+    statistics =
+      try container.decodeIfPresent(RunStatistics.self, forKey: .statistics)
       ?? RunStatistics()
   }
 
+  /// Encodes the failure record in the current persistence format.
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(propertyID, forKey: .propertyID)
@@ -104,9 +125,13 @@ public struct FailureRecord: Sendable, Codable, Equatable {
 
 /// JSON-exportable replay artifact for CI and local debugging.
 public struct FailureTraceArtifact: Sendable, Codable, Equatable {
+  /// Failure metadata and canonical replay trace.
   public var record: FailureRecord
+
+  /// Optional pretty-printed minimized value for diagnostics.
   public var valueDescription: String?
 
+  /// Creates an exportable failure trace artifact.
   public init(
     record: FailureRecord,
     valueDescription: String? = nil
@@ -115,6 +140,7 @@ public struct FailureTraceArtifact: Sendable, Codable, Equatable {
     self.valueDescription = valueDescription
   }
 
+  /// Canonical replay trace for the exported failure.
   public var trace: ChoiceTrace {
     record.trace
   }
