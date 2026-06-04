@@ -11,10 +11,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Always build the macro from source in CI so we verify it compiles.
-  PREMISE_MACRO_SOURCE: "1"
-
 jobs:
   # ---------------------------------------------------------------------------
   # macOS (primary — builds + tests everything including macro)
@@ -101,7 +97,7 @@ jobs:
   # Macro smoke tests (default macro-free mode plus source macro opt-in)
   # ---------------------------------------------------------------------------
   macro-binary-check:
-    name: Macro manifest checks
+    name: Macro manifest and source checks
     runs-on: macos-15
     steps:
       - name: Check out repository
@@ -114,3 +110,9 @@ jobs:
       - name: Verify source macro opt-in manifest
         run: |
           PREMISE_MACRO_SOURCE=1 swift package dump-package > /dev/null
+
+      - name: Build source macro opt-in
+        run: |
+          PREMISE_MACRO_SOURCE=1 swift build \
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
