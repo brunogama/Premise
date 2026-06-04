@@ -25,14 +25,39 @@ struct FormatterParityTests {
     propertyID: PropertyIdentity,
     errorMessage: String = "value 1 is not > 5",
     runCount: Int = 100,
-    shrinkCount: Int = 3
+    shrinkCount: Int = 3,
+    statistics: RunStatistics = RunStatistics()
   ) -> FailureRecord {
     FailureRecord(
       propertyID: propertyID,
       trace: ChoiceTrace(entries: []),
       errorMessage: errorMessage,
       runCount: runCount,
-      shrinkCount: shrinkCount
+      shrinkCount: shrinkCount,
+      statistics: statistics
+    )
+  }
+
+  private static func makeStatistics() -> RunStatistics {
+    RunStatistics(
+      notes: [RunNote(label: "bucket", value: "small")],
+      events: ["small", "small", "large"],
+      targetScore: 2
+    )
+  }
+
+  private static func makeReport(statistics: RunStatistics) -> RunReport {
+    RunReport(
+      runCount: 3,
+      events: ["small": 2, "large": 1],
+      notes: statistics.notes,
+      maxTargetScore: statistics.targetScore,
+      healthWarnings: [
+        HealthWarning(
+          check: .excessiveFiltering,
+          message: "More than half of generated examples were rejected."
+        )
+      ]
     )
   }
 
@@ -124,5 +149,55 @@ struct FormatterParityTests {
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
+  }
+
+  @Test("Both formatters produce identical output with record statistics")
+  func recordStatisticsParity() {
+    let pid = Self.makePropertyID()
+    let record = Self.makeRecord(
+      propertyID: pid,
+      statistics: Self.makeStatistics()
+    )
+
+    let swiftTestingOutput = FailureFormatter.format(
+      value: 1,
+      record: record,
+      propertyID: pid
+    )
+    let xcTestOutput = XCTestFailureFormatter.format(
+      value: 1,
+      record: record,
+      propertyID: pid
+    )
+
+    #expect(swiftTestingOutput == xcTestOutput)
+    #expect(swiftTestingOutput.contains("Events: large=1, small=2"))
+    #expect(swiftTestingOutput.contains("Notes: bucket=small"))
+    #expect(swiftTestingOutput.contains("Target score: 2.0"))
+  }
+
+  @Test("Both formatters produce identical output with report statistics")
+  func reportStatisticsParity() {
+    let pid = Self.makePropertyID()
+    let statistics = Self.makeStatistics()
+    let record = Self.makeRecord(propertyID: pid, statistics: statistics)
+    let report = Self.makeReport(statistics: statistics)
+
+    let swiftTestingOutput = FailureFormatter.format(
+      value: 1,
+      record: record,
+      propertyID: pid,
+      report: report
+    )
+    let xcTestOutput = XCTestFailureFormatter.format(
+      value: 1,
+      record: record,
+      propertyID: pid,
+      report: report
+    )
+
+    #expect(swiftTestingOutput == xcTestOutput)
+    #expect(swiftTestingOutput.contains("Events: large=1, small=2"))
+    #expect(swiftTestingOutput.contains("Health warnings: excessiveFiltering"))
   }
 }

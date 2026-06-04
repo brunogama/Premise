@@ -108,6 +108,33 @@ struct DiagnosticsFormatTests {
     #expect(output.contains(".premise/examples"))
   }
 
+  @Test("Output includes record statistics when report is absent")
+  func outputIncludesRecordStatistics() {
+    var statistics = RunStatistics()
+    statistics.events = ["small", "small", "large"]
+    statistics.notes = [RunNote(label: "bucket", value: "small")]
+    statistics.targetScore = 2
+
+    let record = FailureRecord(
+      propertyID: Self.testPropertyID,
+      trace: ChoiceTrace(entries: []),
+      errorMessage: "value too small",
+      runCount: 3,
+      shrinkCount: 1,
+      statistics: statistics
+    )
+
+    let output = FailureFormatter.format(
+      value: 3,
+      record: record,
+      propertyID: Self.testPropertyID
+    )
+
+    #expect(output.contains("Events: large=1, small=2"))
+    #expect(output.contains("Notes: bucket=small"))
+    #expect(output.contains("Target score: 2.0"))
+  }
+
   // MARK: - Value Rendering
 
   @Test("String counterexample renders with quotes removed")

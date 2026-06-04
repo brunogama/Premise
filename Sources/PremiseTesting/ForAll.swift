@@ -249,13 +249,6 @@ public func forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
 ) async throws {
-  // Wrap the data-aware property into a strategy that captures the data
-  // reference through the draw phase.
-  let wrappedStrategy = Strategy<Value>(
-    label: strategy.label,
-    draw: strategy.draw,
-    shrink: strategy.shrink
-  )
   let propertyID = PropertyIdentity(
     fileID: fileID,
     line: UInt(line),
@@ -264,54 +257,31 @@ public func forAll<Value: Sendable>(
   )
 
   let runner = Runner(
-    strategy: wrappedStrategy,
+    strategy: strategy,
     config: config,
     propertyID: propertyID
   )
+  let database = makeDatabase(config: config)
+  let executor = ReplayFirstExecutor(runner: runner, database: database)
+  let result = try await executor.executeDetailed(property)
 
-  // For the data-aware variant we run manually so we can pass data through.
-  let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
-
-  for index in 0..<config.maxRuns {
-    let providerSeed = baseSeed &+ UInt64(index)
-    let provider = PseudoRandomProvider(seed: providerSeed, maxDraws: config.maxDrawsPerRun)
-    var data = PremiseData(provider: provider)
-
-    let drawnValue: Value
-    do {
-      drawnValue = try strategy.draw(&data)
-    } catch {
-      continue  // Strategy couldn't produce a valid input, skip.
-    }
-
-    do {
-      try property(drawnValue, &data)
-    } catch {
-      let minimized = runner.minimizeTrace(
-        initialTrace: data.snapshot(),
-        errorMessage: String(describing: error),
-        initialValue: drawnValue,
-        runCount: index + 1,
-        property: { value in try property(value, &data) },
-        seed: baseSeed
-      )
-      let message = FailureFormatter.format(
-        value: minimized.value,
-        record: minimized.record,
-        propertyID: propertyID
-      )
-      let sourceLocation = SourceLocation(
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
-      )
-      Issue.record(
-        Comment(rawValue: message),
-        sourceLocation: sourceLocation
-      )
-      return
-    }
+  if case .failure(let record, value: let value, report: let report) = result {
+    let message = FailureFormatter.format(
+      value: value,
+      record: record,
+      propertyID: propertyID,
+      report: report
+    )
+    let sourceLocation = SourceLocation(
+      fileID: fileID,
+      filePath: filePath,
+      line: line,
+      column: column
+    )
+    Issue.record(
+      Comment(rawValue: message),
+      sourceLocation: sourceLocation
+    )
   }
 }
 
@@ -344,13 +314,14 @@ private func _runForAll<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.execute(property)
+  let result = try await executor.executeDetailed(property)
 
-  if case .failure(let record, value: let value) = result {
+  if case .failure(let record, value: let value, report: let report) = result {
     let message = FailureFormatter.format(
       value: value,
       record: record,
-      propertyID: propertyID
+      propertyID: propertyID,
+      report: report
     )
     let sourceLocation = SourceLocation(
       fileID: fileID,

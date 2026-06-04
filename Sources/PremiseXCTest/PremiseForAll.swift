@@ -211,13 +211,14 @@ private func _xcRunForAll<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.execute(property)
+  let result = try await executor.executeDetailed(property)
 
-  if case .failure(let record, value: let value) = result {
+  if case .failure(let record, value: let value, report: let report) = result {
     let message = XCTestFailureFormatter.format(
       value: value,
       record: record,
-      propertyID: propertyID
+      propertyID: propertyID,
+      report: report
     )
     XCTFail(message, file: file, line: line)
   }
