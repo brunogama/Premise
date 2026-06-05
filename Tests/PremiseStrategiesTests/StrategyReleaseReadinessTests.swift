@@ -81,6 +81,23 @@ func floatingEdgeStrategyIncludesRequestedCases() {
   #expect(samples.contains { abs($0 - 0.5) <= Double.ulpOfOne })
 }
 
+@Test("floating exceptional edge cases bypass finite range filtering")
+func floatingExceptionalEdgeCasesBypassFiniteRangeFiltering() throws {
+  let strategy = Strategy<Double>.edgeCaseFloats(
+    in: 1.0...2.0,
+    includeNaN: true,
+    includeInfinity: true
+  )
+
+  var nanData = replayingEdgeCandidate(index: 2)
+  var positiveInfinityData = replayingEdgeCandidate(index: 3)
+  var negativeInfinityData = replayingEdgeCandidate(index: 4)
+
+  #expect(try strategy.draw(&nanData).isNaN)
+  #expect(try strategy.draw(&positiveInfinityData) == .infinity)
+  #expect(try strategy.draw(&negativeInfinityData) == -Double.infinity)
+}
+
 private struct BoxedInt: Sendable, Equatable {
   var value: Int
 }
@@ -120,4 +137,12 @@ func vectorAndIndexHelpersProduceShrinkableDomainValues() throws {
   #expect(sparse.entries.count <= 3)
   #expect(quantized.value == Double(quantized.raw) * 0.25)
   #expect((0...4).contains(operation.index))
+}
+
+private func replayingEdgeCandidate(index: UInt64) -> PremiseData {
+  PremiseData(
+    provider: ReplayProvider(
+      trace: ChoiceTrace(entries: [.integer(0), .integer(index)])
+    )
+  )
 }
