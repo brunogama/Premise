@@ -16,7 +16,8 @@
       @Steps {
          @Step {
             Open your `Package.swift`. Add Premise to the `dependencies`
-            array. Replace `<version>` with the latest release tag.
+            array. The first stable tag is `v1.0.0`; SwiftPM uses
+            `from: "1.0.0"` for that tag.
 
             @Code(name: "Package.swift", file: "t01-s01-package.swift")
          }

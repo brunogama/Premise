@@ -1,3 +1,4 @@
+#if canImport(Testing)
 import Testing
 
 import PremiseCore
@@ -31,7 +32,31 @@ public func forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value) throws -> Void
 ) async throws {
-  try await _runForAll(
+  try await runForAll(
+    strategy: strategy,
+    config: config,
+    fileID: fileID,
+    filePath: filePath,
+    line: line,
+    column: column,
+    function: function,
+    property: property
+  )
+}
+
+/// Runs an async property test through the Premise engine inside a
+/// swift-testing context.
+public func forAll<Value: Sendable>(
+  _ strategy: Strategy<Value>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  filePath: String = #filePath,
+  line: Int = #line,
+  column: Int = #column,
+  function: String = #function,
+  _ property: @escaping @Sendable (Value) async throws -> Void
+) async throws {
+  try await runForAllAsync(
     strategy: strategy,
     config: config,
     fileID: fileID,
@@ -78,7 +103,7 @@ public func forAll<A: Sendable, B: Sendable>(
       return shrunkA + shrunkB
     }
   )
-  try await _runForAll(
+  try await runForAll(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -88,6 +113,32 @@ public func forAll<A: Sendable, B: Sendable>(
     function: function
   ) { pair in
     try property(pair.0, pair.1)
+  }
+}
+
+/// Runs an async property test over two independently generated values.
+public func forAll<A: Sendable, B: Sendable>(
+  _ strategyA: Strategy<A>,
+  _ strategyB: Strategy<B>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  filePath: String = #filePath,
+  line: Int = #line,
+  column: Int = #column,
+  function: String = #function,
+  _ property: @escaping @Sendable (A, B) async throws -> Void
+) async throws {
+  let combined = zip(strategyA, strategyB)
+  try await runForAllAsync(
+    strategy: combined,
+    config: config,
+    fileID: fileID,
+    filePath: filePath,
+    line: line,
+    column: column,
+    function: function
+  ) { pair in
+    try await property(pair.0, pair.1)
   }
 }
 
@@ -133,7 +184,7 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
       return sA + sB + sC
     }
   )
-  try await _runForAll(
+  try await runForAll(
     strategy: combined,
     config: config,
     fileID: fileID,
@@ -143,6 +194,33 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
     function: function
   ) { triple in
     try property(triple.0, triple.1, triple.2)
+  }
+}
+
+/// Runs an async property test over three independently generated values.
+public func forAll<A: Sendable, B: Sendable, C: Sendable>(
+  _ strategyA: Strategy<A>,
+  _ strategyB: Strategy<B>,
+  _ strategyC: Strategy<C>,
+  config: PropertyConfig = .default,
+  fileID: String = #fileID,
+  filePath: String = #filePath,
+  line: Int = #line,
+  column: Int = #column,
+  function: String = #function,
+  _ property: @escaping @Sendable (A, B, C) async throws -> Void
+) async throws {
+  let combined = zip(strategyA, strategyB, strategyC)
+  try await runForAllAsync(
+    strategy: combined,
+    config: config,
+    fileID: fileID,
+    filePath: filePath,
+    line: line,
+    column: column,
+    function: function
+  ) { triple in
+    try await property(triple.0, triple.1, triple.2)
   }
 }
 
@@ -171,13 +249,6 @@ public func forAll<Value: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
 ) async throws {
-  // Wrap the data-aware property into a strategy that captures the data
-  // reference through the draw phase.
-  let wrappedStrategy = Strategy<Value>(
-    label: strategy.label,
-    draw: strategy.draw,
-    shrink: strategy.shrink
-  )
   let propertyID = PropertyIdentity(
     fileID: fileID,
     line: UInt(line),
@@ -186,54 +257,31 @@ public func forAll<Value: Sendable>(
   )
 
   let runner = Runner(
-    strategy: wrappedStrategy,
+    strategy: strategy,
     config: config,
     propertyID: propertyID
   )
+  let database = makeDatabase(config: config)
+  let executor = ReplayFirstExecutor(runner: runner, database: database)
+  let result = try await executor.executeDetailed(property)
 
-  // For the data-aware variant we run manually so we can pass data through.
-  let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
-
-  for index in 0..<config.maxRuns {
-    let providerSeed = baseSeed &+ UInt64(index)
-    let provider = PseudoRandomProvider(seed: providerSeed, maxDraws: config.maxDrawsPerRun)
-    var data = PremiseData(provider: provider)
-
-    let drawnValue: Value
-    do {
-      drawnValue = try strategy.draw(&data)
-    } catch {
-      continue  // Strategy couldn't produce a valid input, skip.
-    }
-
-    do {
-      try property(drawnValue, &data)
-    } catch {
-      let minimized = runner.minimizeTrace(
-        initialTrace: data.snapshot(),
-        errorMessage: String(describing: error),
-        initialValue: drawnValue,
-        runCount: index + 1,
-        property: { value in try property(value, &data) },
-        seed: baseSeed
-      )
-      let message = FailureFormatter.format(
-        value: minimized.value,
-        record: minimized.record,
-        propertyID: propertyID
-      )
-      let sourceLocation = SourceLocation(
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
-      )
-      Issue.record(
-        Comment(rawValue: message),
-        sourceLocation: sourceLocation
-      )
-      return
-    }
+  if case .failure(let record, value: let value, report: let report) = result {
+    let message = FailureFormatter.format(
+      value: value,
+      record: record,
+      propertyID: propertyID,
+      report: report
+    )
+    let sourceLocation = SourceLocation(
+      fileID: fileID,
+      filePath: filePath,
+      line: line,
+      column: column
+    )
+    Issue.record(
+      Comment(rawValue: message),
+      sourceLocation: sourceLocation
+    )
   }
 }
 
@@ -241,7 +289,7 @@ public func forAll<Value: Sendable>(
 
 /// Shared implementation for all forAll variants.
 // swiftlint:disable:next function_parameter_count
-private func _runForAll<Value: Sendable>(
+private func runForAll<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
   fileID: String,
@@ -264,15 +312,16 @@ private func _runForAll<Value: Sendable>(
     propertyID: propertyID
   )
 
-  let database = FileBackedDatabase()
+  let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.execute(property)
+  let result = try await executor.executeDetailed(property)
 
-  if case .failure(let record, value: let value) = result {
+  if case .failure(let record, value: let value, report: let report) = result {
     let message = FailureFormatter.format(
       value: value,
       record: record,
-      propertyID: propertyID
+      propertyID: propertyID,
+      report: report
     )
     let sourceLocation = SourceLocation(
       fileID: fileID,
@@ -286,3 +335,64 @@ private func _runForAll<Value: Sendable>(
     )
   }
 }
+
+// swiftlint:disable:next function_parameter_count
+private func runForAllAsync<Value: Sendable>(
+  strategy: Strategy<Value>,
+  config: PropertyConfig,
+  fileID: String,
+  filePath: String,
+  line: Int,
+  column: Int,
+  function: String,
+  property: @escaping @Sendable (Value) async throws -> Void
+) async throws {
+  let propertyID = PropertyIdentity(
+    fileID: fileID,
+    line: UInt(line),
+    strategyLabel: strategy.label,
+    functionName: function
+  )
+
+  let runner = Runner(
+    strategy: strategy,
+    config: config,
+    propertyID: propertyID
+  )
+
+  let database = makeDatabase(config: config)
+  let executor = ReplayFirstExecutor(runner: runner, database: database)
+  let result = try await executor.executeDetailed(property)
+
+  if case .failure(let record, value: let value, report: let report) = result {
+    let message = FailureFormatter.format(
+      value: value,
+      record: record,
+      propertyID: propertyID,
+      report: report
+    )
+    let sourceLocation = SourceLocation(
+      fileID: fileID,
+      filePath: filePath,
+      line: line,
+      column: column
+    )
+    Issue.record(
+      Comment(rawValue: message),
+      sourceLocation: sourceLocation
+    )
+  }
+}
+
+private func makeDatabase(config: PropertyConfig) -> any ExampleDatabase {
+  let local = FileBackedDatabase(rootDirectory: config.localDatabaseDirectory)
+  guard let corpusDirectory = config.committedCorpusDirectory else {
+    return local
+  }
+  let corpus = FileBackedDatabase(rootDirectory: corpusDirectory)
+  return CompositeExampleDatabase(
+    replaySources: [corpus, local],
+    writableDatabase: local
+  )
+}
+#endif

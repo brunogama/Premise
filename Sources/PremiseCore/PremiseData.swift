@@ -1,19 +1,30 @@
+/// Mutable draw context passed through strategies and data-aware properties.
 public struct PremiseData: Sendable {
+  /// Execution status for the current draw.
   public enum Status: Sendable, Codable, Equatable {
+    /// The draw can continue.
     case active
+
+    /// The primitive provider has no more replay data or draw budget.
     case exhausted
+
+    /// The current example was marked interesting by the property.
     case interesting
   }
 
   private var provider: PrimitiveProviderState
   private var spanStarts: [SpanStart]
 
+  /// Choices recorded during this draw.
   public private(set) var trace: ChoiceTrace
+
+  /// Current draw status.
   public private(set) var status: Status
 
   /// Observations accumulated during this run.
   public private(set) var statistics: RunStatistics
 
+  /// Creates a draw context backed by a primitive provider.
   public init<Provider: PrimitiveProvider>(provider: Provider) {
     self.provider = PrimitiveProviderState(provider)
     trace = ChoiceTrace()
@@ -24,6 +35,7 @@ public struct PremiseData: Sendable {
 
   // MARK: - Primitive draws
 
+  /// Draws an integer from a closed range.
   public mutating func drawInteger(in range: ClosedRange<Int>) -> Int {
     let raw = drawRawValue(bitCount: requiredBitCount(for: range))
     trace.append(.integer(raw))
@@ -42,6 +54,7 @@ public struct PremiseData: Sendable {
     return lower + Int(raw % (width + 1))
   }
 
+  /// Draws an unsigned integer from a closed range.
   public mutating func drawInteger(in range: ClosedRange<UInt64>) -> UInt64 {
     let raw = drawRawValue(bitCount: requiredBitCount(for: range))
     trace.append(.integer(raw))
@@ -59,6 +72,7 @@ public struct PremiseData: Sendable {
     return range.lowerBound + (raw % (width + 1))
   }
 
+  /// Draws a boolean value.
   public mutating func drawBoolean() -> Bool {
     let value = drawRawValue(bitCount: 1) & 1 == 1
     trace.append(.boolean(value))
@@ -66,6 +80,7 @@ public struct PremiseData: Sendable {
     return value
   }
 
+  /// Draws `count` bytes.
   public mutating func drawBytes(count: Int) -> [UInt8] {
     guard count > 0 else { return [] }
 
@@ -90,6 +105,7 @@ public struct PremiseData: Sendable {
 
   // MARK: - Spans
 
+  /// Records all choices made inside `body` as a shrinkable span.
   public mutating func withSpan<T>(
     _ label: String? = nil,
     _ body: (inout Self) throws -> T
@@ -108,10 +124,12 @@ public struct PremiseData: Sendable {
     return try body(&self)
   }
 
+  /// Marks the current example as interesting.
   public mutating func markInteresting() {
     status = .interesting
   }
 
+  /// Returns the current choice trace.
   public mutating func snapshot() -> ChoiceTrace {
     trace
   }
@@ -142,12 +160,11 @@ public struct PremiseData: Sendable {
     statistics.events.append(label)
   }
 
-  /// Provides a score hint for corpus-guided generation.
+  /// Records a score for diagnostics and future corpus analysis.
   ///
-  /// Higher scores indicate more interesting inputs.  The engine uses this
-  /// to steer subsequent generation toward inputs that maximize the score.
-  /// When multiple `target` calls are made in a single run, the maximum
-  /// score is retained.
+  /// Higher scores indicate more interesting inputs. Premise records and
+  /// reports the maximum score observed in each run; default generation does
+  /// not use the score to steer later examples.
   ///
   /// ```swift
   /// data.target(Double(string.count), label: "string length")

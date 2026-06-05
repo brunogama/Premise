@@ -76,6 +76,7 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
   /// - Parameters:
   ///   - property: The property closure to test.
   ///   - replayTraces: Previously recorded traces to replay first.
+  /// - Throws: Any error while loading persisted replay traces.
   /// - Returns: The result of running the property.
   public func run(
     _ property: @escaping @Sendable (Value) throws -> Void,
@@ -170,7 +171,8 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
         initialValue: earliest.value,
         runCount: earliest.record.runCount,
         property: property,
-        seed: baseSeed
+        seed: baseSeed,
+        statistics: earliest.record.statistics
       )
       return .failure(minimized.record, value: minimized.value)
     }
@@ -182,7 +184,7 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
   private func runSequential(
     baseSeed: UInt64,
     totalRuns: Int,
-    property: @Sendable (Value) throws -> Void
+    property: @escaping @Sendable (Value) throws -> Void
   ) -> RunResult<Value> {
     for runIndex in 0..<totalRuns {
       let seedForIndex = baseSeed &+ UInt64(runIndex)
@@ -202,7 +204,8 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
           initialValue: failure.value,
           runCount: runIndex + 1,
           property: property,
-          seed: baseSeed
+          seed: baseSeed,
+          statistics: failure.record.statistics
         )
         return .failure(minimized.record, value: minimized.value)
       }
@@ -220,7 +223,8 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     initialValue: Value,
     runCount: Int,
     property: @escaping @Sendable (Value) throws -> Void,
-    seed: UInt64?
+    seed: UInt64?,
+    statistics: RunStatistics
   ) -> (record: FailureRecord, value: Value) {
     // Delegate to a Runner for shrinking — Runner already has the
     // full ShrinkMachine integration.
@@ -235,7 +239,8 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
       initialValue: initialValue,
       runCount: runCount,
       property: property,
-      seed: seed
+      seed: seed,
+      statistics: statistics
     )
   }
 
@@ -273,7 +278,8 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
         trace: data.snapshot(),
         errorMessage: String(describing: error),
         runCount: 1,
-        shrinkCount: 0
+        shrinkCount: 0,
+        statistics: data.statistics
       )
       guard let drawnValue else {
         return nil

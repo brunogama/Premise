@@ -11,10 +11,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Always build the macro from source in CI so we verify it compiles.
-  PREMISE_MACRO_SOURCE: "1"
-
 jobs:
   # ---------------------------------------------------------------------------
   # macOS (primary — builds + tests everything including macro)
@@ -26,9 +22,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - swift: "6.1"
+          - swift: "6.2"
             runner: macos-15
-          - swift: "6.0"
+          - swift: "6.3"
+            runner: macos-15
+          - swift: "6.2"
             runner: macos-14
 
     steps:
@@ -37,10 +35,12 @@ jobs:
 
       - name: Select Swift toolchain
         run: |
-          if [[ "${{ matrix.swift }}" == "6.1" ]]; then
+          if [[ "${{ matrix.swift }}" == "6.3" ]]; then
+            sudo xcode-select -s /Applications/Xcode_26.0.app || true
+          elif [[ "${{ matrix.swift }}" == "6.2" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app || true
+          elif [[ "${{ matrix.swift }}" == "6.1" ]]; then
             sudo xcode-select -s /Applications/Xcode_16.3.app || true
-          elif [[ "${{ matrix.swift }}" == "6.0" ]]; then
-            sudo xcode-select -s /Applications/Xcode_16.0.app || true
           fi
           swift --version
 
@@ -51,13 +51,15 @@ jobs:
         run: |
           swift build \
             --explicit-target-dependency-import-check error \
-            -Xswiftc -warnings-as-errors
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
 
       - name: Test
         run: |
           swift test \
             --explicit-target-dependency-import-check error \
-            -Xswiftc -warnings-as-errors
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
 
   # ---------------------------------------------------------------------------
   # Linux (verify cross-platform compilation)
@@ -70,8 +72,8 @@ jobs:
       fail-fast: false
       matrix:
         swift:
-          - "6.1"
-          - "6.0"
+          - "6.2"
+          - "6.3"
 
     steps:
       - name: Check out repository
@@ -81,27 +83,36 @@ jobs:
         run: |
           swift build \
             --explicit-target-dependency-import-check error \
-            -Xswiftc -warnings-as-errors
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
 
       - name: Test
         run: |
           swift test \
             --explicit-target-dependency-import-check error \
-            -Xswiftc -warnings-as-errors
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
 
   # ---------------------------------------------------------------------------
-  # Macro-only smoke test (binary mode — verifies Package.swift resolves)
+  # Macro smoke tests (default macro-free mode plus source macro opt-in)
   # ---------------------------------------------------------------------------
   macro-binary-check:
-    name: Macro binary resolution check
+    name: Macro manifest and source checks
     runs-on: macos-15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # Build WITHOUT PREMISE_MACRO_SOURCE so Package.swift uses binaryTarget.
-      # This step will fail until the first release is published (expected).
-      # We just verify the manifest parses correctly.
-      - name: Verify Package.swift resolves
+      - name: Verify default macro-free manifest
         run: |
-          swift package dump-package > /dev/null 2>&1 && echo "✓ Package manifest valid" || echo "⚠ Binary target not yet available (expected before first release)"
+          swift package dump-package > /dev/null
+
+      - name: Verify source macro opt-in manifest
+        run: |
+          PREMISE_MACRO_SOURCE=1 swift package dump-package > /dev/null
+
+      - name: Build source macro opt-in
+        run: |
+          PREMISE_MACRO_SOURCE=1 swift build \
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete

@@ -30,8 +30,11 @@
    @Section(title: "How the Trace is Stored") {
       @ContentAndMedia {
          After the first failure, Premise writes a JSON file into
-         `.premise/examples/`. Each file corresponds to one property,
-         identified by its source file, line number, and strategy label.
+         `.premise/examples/`. Current replay storage keys files by source
+         file, `forAll` line, and strategy label. The logical
+         ``PropertyIdentity`` can also carry the enclosing function name for
+         metadata and equality; see <doc:FailurePersistenceAndReplay> for the
+         distinction between logical identity and the storage lookup key.
       }
       @Steps {
          @Step {

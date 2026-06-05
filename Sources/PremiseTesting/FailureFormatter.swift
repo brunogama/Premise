@@ -9,11 +9,13 @@ enum FailureFormatter {
   ///   - value: The minimized counterexample that triggered the failure.
   ///   - record: The failure record containing trace, counts, and metadata.
   ///   - propertyID: The property identity for replay instructions.
+  ///   - report: Optional detailed run report for aggregated diagnostics.
   /// - Returns: A multi-line diagnostic string.
   static func format<Value>(
     value: Value,
     record: FailureRecord,
-    propertyID: PropertyIdentity
+    propertyID: PropertyIdentity,
+    report: RunReport? = nil
   ) -> String {
     var lines: [String] = []
 
@@ -25,16 +27,23 @@ enum FailureFormatter {
       location = "\(propertyID.fileID)#\(propertyID.line)"
     }
     lines.append("Property failed: \(location)")
+    lines.append("Failure kind: \(record.discovery.rawValue)")
 
     // Pretty-printed counterexample (use dump for complex types).
     let valueDescription = prettyPrint(value)
-    lines.append("Counterexample: \(valueDescription)")
+    lines.append("Minimal counterexample: \(valueDescription)")
 
     // Error detail.
     lines.append("Error: \(record.errorMessage)")
 
     // Run/shrink summary.
     lines.append("Runs: \(record.runCount), Shrinks: \(record.shrinkCount)")
+    lines.append("Trace entries: \(record.trace.entries.count)")
+    appendStatistics(
+      from: statistics(record: record, report: report),
+      report: report,
+      to: &lines
+    )
 
     // Seed-based replay instruction.
     if let seed = record.seed {
@@ -42,8 +51,8 @@ enum FailureFormatter {
       lines.append("Replay: config: PropertyConfig(seed: \(seed))")
     } else {
       lines.append(
-        "Replay: use trace from "
-          + ".premise/examples to reproduce this failure."
+        "Replay: use the persisted trace from .premise/examples "
+          + "or an exported JSON trace artifact."
       )
     }
 
@@ -76,5 +85,69 @@ enum FailureFormatter {
     }
 
     return String(describing: value)
+  }
+
+  private static func statistics(
+    record: FailureRecord,
+    report: RunReport?
+  ) -> RunStatistics {
+    guard let report else {
+      return record.statistics
+    }
+    return RunStatistics(
+      notes: report.notes,
+      events: eventLabels(from: report.events),
+      targetScore: report.maxTargetScore
+    )
+  }
+
+  private static func eventLabels(from events: [String: Int]) -> [String] {
+    events
+      .sorted { $0.key < $1.key }
+      .flatMap { entry in Array(repeating: entry.key, count: entry.value) }
+  }
+
+  private static func appendStatistics(
+    from statistics: RunStatistics,
+    report: RunReport?,
+    to lines: inout [String]
+  ) {
+    if !statistics.events.isEmpty {
+      lines.append("Events: \(formatEvents(statistics.events))")
+    }
+
+    if !statistics.notes.isEmpty {
+      lines.append("Notes: \(formatNotes(statistics.notes))")
+    }
+
+    if let targetScore = statistics.targetScore {
+      lines.append("Target score: \(targetScore)")
+    }
+
+    guard let report, !report.healthWarnings.isEmpty else {
+      return
+    }
+
+    let warnings = report.healthWarnings
+      .map(\.check.rawValue)
+      .joined(separator: ", ")
+    lines.append("Health warnings: \(warnings)")
+    for warning in report.healthWarnings {
+      lines.append("- \(warning.message)")
+    }
+  }
+
+  private static func formatEvents(_ events: [String]) -> String {
+    Dictionary(grouping: events, by: { $0 })
+      .mapValues(\.count)
+      .sorted { $0.key < $1.key }
+      .map { "\($0.key)=\($0.value)" }
+      .joined(separator: ", ")
+  }
+
+  private static func formatNotes(_ notes: [RunNote]) -> String {
+    notes
+      .map { "\($0.label)=\($0.value)" }
+      .joined(separator: ", ")
   }
 }

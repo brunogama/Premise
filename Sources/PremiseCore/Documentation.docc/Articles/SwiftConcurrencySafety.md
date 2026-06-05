@@ -102,7 +102,12 @@ The reasons:
 2. **Testability**: The engine's own unit tests can exercise `PremiseCore` directly through `swift test` without a test framework adapter.
 3. **Strict concurrency reasoning**: A smaller import surface reduces the risk of accidentally importing types with weaker concurrency guarantees.
 
-The adapters `PremiseTesting` (imports `Testing`) and `PremiseXCTest` (imports `XCTest`) are thin wrappers. They construct a ``Runner``, wrap it in a ``ReplayFirstExecutor``, call `execute`, and translate the ``RunResult`` into the appropriate test framework failure API.
+The adapters `PremiseTesting` (imports `Testing`) and `PremiseXCTest` (imports
+`XCTest`) are thin wrappers. They construct a ``Runner`` and wrap it in a
+``ReplayFirstExecutor``. Synchronous and data-aware `forAll` overloads call
+`executeDetailed` and translate the returned ``DetailedRunResult`` and
+``RunReport`` into the appropriate test framework failure API. Async property
+overloads call `execute` and translate the compact ``RunResult``.
 
 ## PrimitiveProviderState: Copy-on-Write Inside PremiseData
 

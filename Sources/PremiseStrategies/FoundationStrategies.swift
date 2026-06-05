@@ -154,13 +154,12 @@ public extension Strategy where Value == UUID {
         raw[6] = (raw[6] & 0x0F) | 0x40
         raw[8] = (raw[8] & 0x3F) | 0x80
         let hex = raw.map { String(format: "%02x", $0) }.joined()
-        let formatted = [
-          String(hex.prefix(8)),
-          String(hex.dropFirst(8).prefix(4)),
-          String(hex.dropFirst(12).prefix(4)),
-          String(hex.dropFirst(16).prefix(4)),
-          String(hex.dropFirst(20)),
-        ].joined(separator: "-")
+        let first = String(hex.prefix(8))
+        let second = String(hex.dropFirst(8).prefix(4))
+        let third = String(hex.dropFirst(12).prefix(4))
+        let fourth = String(hex.dropFirst(16).prefix(4))
+        let fifth = String(hex.dropFirst(20))
+        let formatted = [first, second, third, fourth, fifth].joined(separator: "-")
         return UUID(uuidString: formatted) ?? UUID()
       },
       shrink: { _ in [] }

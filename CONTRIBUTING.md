@@ -60,6 +60,7 @@ swiftlint lint --strict --config .swiftlint.yml <changed-swift-files>
 bash scripts/validate-boundaries.sh
 swift build --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
 swift test --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
+swift build -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
 ```
 
 If the repository later adds wrapper scripts or CI entrypoints, prefer those

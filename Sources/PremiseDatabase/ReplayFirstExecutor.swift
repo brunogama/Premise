@@ -37,17 +37,96 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   /// 4. Returns the original ``RunResult`` unchanged.
   ///
   /// - Parameter property: The property closure to test.
+  /// - Throws: Any database load/save or trace export error.
   /// - Returns: The result of executing the property.
   public func execute(
-    _ property: @Sendable (Value) throws -> Void
+    _ property: @escaping @Sendable (Value) throws -> Void
   ) async throws -> RunResult<Value> {
     let traces = try await database.loadTraces(for: runner.propertyID)
     let result = await runner.run(property, replayTraces: traces)
 
     if case .failure(let record, value: _) = result {
       try await database.save(record)
+      try exportTraceIfNeeded(record: record, value: result.failureValue)
     }
 
     return result
+  }
+
+  /// Executes the property through the replay-first flow and returns the
+  /// detailed execution report used by diagnostics-capable adapters.
+  public func executeDetailed(
+    _ property: @escaping @Sendable (Value) throws -> Void
+  ) async throws -> DetailedRunResult<Value> {
+    let traces = try await database.loadTraces(for: runner.propertyID)
+    let result = await runner.runDetailed(property, replayTraces: traces)
+
+    try await persistFailureIfNeeded(result)
+
+    return result
+  }
+
+  /// Executes a data-aware property through the replay-first flow and returns
+  /// the detailed execution report used by diagnostics-capable adapters.
+  public func executeDetailed(
+    _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
+  ) async throws -> DetailedRunResult<Value> {
+    let traces = try await database.loadTraces(for: runner.propertyID)
+    let result = await runner.runDetailed(property, replayTraces: traces)
+
+    try await persistFailureIfNeeded(result)
+
+    return result
+  }
+
+  /// Executes an async property through the replay-first flow.
+  public func execute(
+    _ property: @escaping @Sendable (Value) async throws -> Void
+  ) async throws -> RunResult<Value> {
+    let traces = try await database.loadTraces(for: runner.propertyID)
+    let result = await runner.run(property, replayTraces: traces)
+
+    if case .failure(let record, value: _) = result {
+      try await database.save(record)
+      try exportTraceIfNeeded(record: record, value: result.failureValue)
+    }
+
+    return result
+  }
+
+  /// Executes an async property through the replay-first flow and returns the
+  /// detailed execution report used by diagnostics-capable adapters.
+  public func executeDetailed(
+    _ property: @escaping @Sendable (Value) async throws -> Void
+  ) async throws -> DetailedRunResult<Value> {
+    let traces = try await database.loadTraces(for: runner.propertyID)
+    let result = await runner.runDetailed(property, replayTraces: traces)
+
+    try await persistFailureIfNeeded(result)
+
+    return result
+  }
+
+  private func persistFailureIfNeeded(
+    _ result: DetailedRunResult<Value>
+  ) async throws {
+    if case .failure(let record, value: let value, report: _) = result {
+      try await database.save(record)
+      try exportTraceIfNeeded(record: record, value: value)
+    }
+  }
+
+  private func exportTraceIfNeeded(
+    record: FailureRecord,
+    value: Value?
+  ) throws {
+    guard let directory = runner.config.traceExportDirectory else {
+      return
+    }
+    let artifact = FailureTraceArtifact(
+      record: record,
+      valueDescription: value.map { String(describing: $0) }
+    )
+    _ = try FailureTraceExporter.export(artifact, to: directory)
   }
 }

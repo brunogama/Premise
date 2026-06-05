@@ -81,6 +81,33 @@ public extension Strategy {
     )
   }
 
+  /// Alias for ``assume(_:maxAttempts:)`` using terminology common in
+  /// property-testing libraries.
+  func suchThat(
+    _ predicate: @escaping @Sendable (Value) -> Bool,
+    maxAttempts: Int = 32
+  ) -> Strategy<Value> {
+    assume(predicate, maxAttempts: maxAttempts)
+  }
+
+  /// Builds a strategy from a generated size hint in `0...maxSize`.
+  static func sized(
+    maxSize: Int = 100,
+    _ build: @escaping @Sendable (Int) -> Strategy<Value>
+  ) -> Strategy<Value> {
+    precondition(maxSize >= 0, "sized(maxSize:) requires a non-negative size")
+    return Strategy<Value>(
+      label: "sized(maxSize: \(maxSize))",
+      draw: { data in
+        let size = data.drawInteger(in: 0...maxSize)
+        return try build(size).draw(&data)
+      },
+      shrink: { value in
+        build(0).shrink(value)
+      }
+    )
+  }
+
   static func oneOf(_ strategies: [Strategy<Value>]) -> Strategy<Value> {
     precondition(!strategies.isEmpty, "oneOf requires at least one strategy")
     return Strategy<Value>(
@@ -187,9 +214,64 @@ public extension Strategy {
 
     return make(level: config.depth)
   }
+
+  /// Convenience recursive strategy builder with explicit depth and size knobs.
+  static func recursive(
+    maxDepth: Int,
+    desiredSize: Int = 4,
+    expectedBranchSize: Int = 2,
+    leaf: Strategy<Value>,
+    _ build: @escaping @Sendable (Strategy<Value>) -> Strategy<Value>
+  ) -> Strategy<Value> {
+    recursive(
+      RecursiveStrategyConfig(
+        depth: maxDepth,
+        desiredSize: desiredSize,
+        expectedBranchSize: expectedBranchSize
+      ),
+      leaf: leaf,
+      build
+    )
+  }
 }
 
 // MARK: - Zip (parameter packs, free function)
+
+/// Combines two strategies into a tuple and shrinks one component at a time.
+public func zip<A: Sendable, B: Sendable>(
+  _ first: Strategy<A>,
+  _ second: Strategy<B>
+) -> Strategy<(A, B)> {
+  Strategy<(A, B)>(
+    label: "zip(\(first.label), \(second.label))",
+    draw: { data in
+      (try first.draw(&data), try second.draw(&data))
+    },
+    shrink: { value in
+      first.shrink(value.0).map { ($0, value.1) }
+        + second.shrink(value.1).map { (value.0, $0) }
+    }
+  )
+}
+
+/// Combines three strategies into a tuple and shrinks one component at a time.
+public func zip<A: Sendable, B: Sendable, C: Sendable>(
+  _ first: Strategy<A>,
+  _ second: Strategy<B>,
+  _ third: Strategy<C>
+) -> Strategy<(A, B, C)> {
+  Strategy<(A, B, C)>(
+    label: "zip(\(first.label), \(second.label), \(third.label))",
+    draw: { data in
+      (try first.draw(&data), try second.draw(&data), try third.draw(&data))
+    },
+    shrink: { value in
+      first.shrink(value.0).map { ($0, value.1, value.2) }
+        + second.shrink(value.1).map { (value.0, $0, value.2) }
+        + third.shrink(value.2).map { (value.0, value.1, $0) }
+    }
+  )
+}
 
 /// Combines an arbitrary number of strategies into a tuple using Swift
 /// parameter packs.  Each component is drawn independently and shrinking

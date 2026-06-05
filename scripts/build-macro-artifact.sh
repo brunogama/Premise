@@ -11,7 +11,7 @@
 #   ./scripts/build-macro-artifact.sh --all     # cross-compile all targets (CI)
 #
 # Requirements:
-#   - Swift 6.0+ toolchain
+#   - Swift 6.2+ toolchain
 #   - PREMISE_MACRO_SOURCE=1 must be set (this script sets it)
 #
 # The script outputs:
@@ -28,7 +28,7 @@ export PREMISE_MACRO_SOURCE=1
 ARTIFACT_NAME="PremiseMacrosPlugin"
 BUILD_DIR=".build/artifacts"
 BUNDLE_DIR="${BUILD_DIR}/${ARTIFACT_NAME}.artifactbundle"
-SWIFT_VERSION="6.1"
+ARTIFACT_VERSION="${PREMISE_MACRO_VERSION:-1.0.0}"
 
 rm -rf "$BUNDLE_DIR" "${BUILD_DIR}/${ARTIFACT_NAME}.artifactbundle.zip"
 mkdir -p "$BUILD_DIR"
@@ -105,10 +105,13 @@ build_plugin() {
   local candidates=(
     # macOS --arch builds
     ".build/apple/Products/Release/${ARTIFACT_NAME}"
+    ".build/apple/Products/Release/${ARTIFACT_NAME}-tool"
     # Standard release build
     "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}"
+    "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}-tool"
     # Linux cross-compile paths
     ".build/release/${ARTIFACT_NAME}"
+    ".build/release/${ARTIFACT_NAME}-tool"
   )
 
   for candidate in "${candidates[@]}"; do
@@ -192,7 +195,7 @@ cat > "${BUNDLE_DIR}/info.json" <<INFOJSON
   "schemaVersion": "1.0",
   "artifacts": {
     "${ARTIFACT_NAME}": {
-      "version": "1.0.0",
+      "version": "${ARTIFACT_VERSION}",
       "type": "executable",
       "variants": [${variants_json}
       ]

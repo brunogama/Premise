@@ -119,7 +119,7 @@ static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
 ) -> Strategy<[Key: Element]>
 ```
 
-Generates a `[Key: Element]` dictionary. Duplicate keys are resolved by taking the later value. Pairs are drawn in a stable sort order to make shrinking deterministic.
+Generates a `[Key: Element]` dictionary with the requested number of unique keys. Duplicate keys are retried; if the key strategy cannot produce enough unique keys within the attempt budget, the generation is rejected instead of returning a smaller dictionary. Pairs are emitted in a stable sort order to make shrinking deterministic.
 
 ```swift
 .dictionaries(
@@ -140,7 +140,7 @@ static func sets<Element: Hashable & Sendable>(
 ) -> Strategy<Set<Element>>
 ```
 
-Generates a `Set<Element>`. Elements are drawn in stable sort order.
+Generates a `Set<Element>` with the requested number of unique elements. Duplicate elements are retried; if the element strategy cannot produce enough unique values within the attempt budget, the generation is rejected instead of returning a smaller set. Elements are emitted in stable sort order.
 
 ```swift
 .sets(of: .integers(in: 0...50), count: 0...10)
@@ -458,8 +458,30 @@ let biasedCoin: Strategy<Bool> = buildWeightedStrategy {
 }
 ```
 
+## Type-Driven Derivation
+
+Use `StrategyRegistry` when generic helpers need a strategy by type instead of
+receiving a strategy value directly. Registries are immutable, so each
+registration returns a scoped copy that is safe to pass into one property or
+fixture without mutating global state.
+
+```swift
+let registry = StrategyRegistry.standard
+  .register(UserID.self) { registry in
+    registry.strategy(for: Int.self)
+      .map { UserID(rawValue: $0) }
+  }
+let userIDs = registry.strategy(for: UserID.self)
+```
+
+The closure form keeps strict-concurrency checking explicit and lets derived
+strategies depend on other registered strategies. Domain types can also conform
+to `StrategyProviding` when they should derive themselves from whichever
+registry a test supplies.
+
 ## Next Steps
 
 - See <doc:AdvancedCombinators> for detailed examples of `flatMap`, `frequency`, and `recursive`.
 - See <doc:CustomStrategies> to build a `Strategy<Value>` for your own domain types.
+- See <doc:StatefulRuleMachines> for rule-based stateful testing examples.
 - See <doc:GivenMacroAndConfiguration> for the `@given` macro and `PropertyConfig` presets.

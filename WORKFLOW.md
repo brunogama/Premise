@@ -109,6 +109,7 @@ established:
 bash scripts/validate-boundaries.sh
 swift build --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
 swift test --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
+swift build -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
 ```
 
 ## Escalation Triggers

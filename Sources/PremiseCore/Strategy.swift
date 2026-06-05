@@ -50,6 +50,17 @@ public extension Strategy {
       shrink: { _ in [] }
     )
   }
+
+  /// Returns a copy of this strategy with a replacement value-level shrinker.
+  func shrinking(
+    _ shrinker: @escaping @Sendable (Value) -> [Value]
+  ) -> Strategy<Value> {
+    Strategy<Value>(
+      label: label,
+      draw: draw,
+      shrink: shrinker
+    )
+  }
 }
 
 // MARK: - Debug & inspection

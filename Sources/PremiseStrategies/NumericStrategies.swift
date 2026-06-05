@@ -8,7 +8,7 @@ public extension Strategy where Value == Int8 {
     Strategy<Int8>(
       label: "int8(in: \(range))",
       draw: { data in
-        T(
+        Int8(
           truncatingIfNeeded: drawEdgeBiasedInteger(
             in: Int(range.lowerBound)...Int(range.upperBound),
             using: &data
@@ -85,12 +85,16 @@ public extension Strategy where Value == Int64 {
 public extension Strategy where Value == Int {
   /// Any `Int` in the full representable range.
   static var any: Strategy<Int> { integers(in: .min ... .max) }
-  /// Positive integers (1 ... Int.max).
+
+  /// Positive integers greater than zero.
   static var positive: Strategy<Int> { integers(in: 1 ... .max) }
+
   /// Negative integers (Int.min ... -1).
   static var negative: Strategy<Int> { integers(in: .min ... -1) }
-  /// Non-negative integers (0 ... Int.max).
+
+  /// Integers greater than or equal to zero.
   static var nonNegative: Strategy<Int> { integers(in: 0 ... .max) }
+
   /// Non-zero integers (positive or negative).
   static var nonZero: Strategy<Int> { .oneOf([.positive, .negative]) }
 }
@@ -268,6 +272,46 @@ public extension Strategy where Value == Double {
       }
     )
   }
+
+  /// Edge-biased `Double` generation with opt-in exceptional values.
+  ///
+  /// Finite edge candidates are constrained to `range`. When enabled,
+  /// `NaN` and infinities are yielded independently of `range` because
+  /// `NaN` is not contained by any Swift range and infinities exercise
+  /// exceptional floating-point behavior outside finite bounds.
+  static func edgeCaseFloats(
+    in range: ClosedRange<Double>,
+    includeNaN: Bool = false,
+    includeInfinity: Bool = false,
+    includeDenormals: Bool = false,
+    epsilonAround pivot: Double? = nil
+  ) -> Strategy<Double> {
+    Strategy<Double>(
+      label: "edgeCaseFloats(in: \(range))",
+      draw: { data in
+        let candidates = doubleEdgeCandidates(
+          in: range,
+          includeNaN: includeNaN,
+          includeInfinity: includeInfinity,
+          includeDenormals: includeDenormals,
+          epsilonAround: pivot
+        )
+        let edgePick = data.drawInteger(in: 0...3)
+        if edgePick < 3, !candidates.isEmpty {
+          let index = data.drawInteger(in: 0...(candidates.count - 1))
+          return candidates[index]
+        }
+        return drawEdgeBiasedFloat(in: range, using: &data)
+      },
+      shrink: { value in
+        if value.isNaN || value.isInfinite {
+          return [0.0].filter { range.contains($0) }
+        }
+        let candidates = [0.0, range.lowerBound, value / 2]
+        return candidates.filter { range.contains($0) && $0 != value }
+      }
+    )
+  }
 }
 
 // MARK: - Private helpers
@@ -278,4 +322,56 @@ private func offsetSigned64(_ raw: UInt64, into range: ClosedRange<Int64>) -> In
   if lower == .min, upper == .max { return Int64(bitPattern: raw) }
   let span = UInt64(bitPattern: upper &- lower)
   return lower &+ Int64(bitPattern: raw % (span &+ 1))
+}
+
+private func doubleEdgeCandidates(
+  in range: ClosedRange<Double>,
+  includeNaN: Bool,
+  includeInfinity: Bool,
+  includeDenormals: Bool,
+  epsilonAround pivot: Double?
+) -> [Double] {
+  var candidates = finiteDoubleEdgeCandidates(in: range)
+  candidates.append(
+    contentsOf: exceptionalDoubleEdgeCandidates(
+      includeNaN: includeNaN,
+      includeInfinity: includeInfinity
+    )
+  )
+  if includeDenormals {
+    candidates.append(
+      contentsOf: [
+        Double.leastNonzeroMagnitude,
+        -Double.leastNonzeroMagnitude,
+      ].filter { range.contains($0) }
+    )
+  }
+  if let pivot {
+    candidates.append(
+      contentsOf: [
+        pivot,
+        pivot + Double.ulpOfOne,
+        pivot - Double.ulpOfOne,
+      ].filter { range.contains($0) }
+    )
+  }
+  return candidates
+}
+
+private func finiteDoubleEdgeCandidates(in range: ClosedRange<Double>) -> [Double] {
+  [range.lowerBound, range.upperBound, 0.0].filter { range.contains($0) }
+}
+
+private func exceptionalDoubleEdgeCandidates(
+  includeNaN: Bool,
+  includeInfinity: Bool
+) -> [Double] {
+  var candidates: [Double] = []
+  if includeNaN {
+    candidates.append(.nan)
+  }
+  if includeInfinity {
+    candidates.append(contentsOf: [.infinity, -.infinity])
+  }
+  return candidates
 }

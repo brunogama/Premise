@@ -30,6 +30,9 @@ dependencies: [
 ]
 ```
 
+The first stable release is tagged `v1.0.0`; SwiftPM version requirements omit
+the `v` prefix and use `from: "1.0.0"`.
+
 Then add the targets you need:
 
 ```swift
@@ -46,7 +49,7 @@ Then add the targets you need:
 
 ### Requirements
 
-- Swift 6.1+
+- Swift 6.2+
 - macOS 13+ / iOS 16+ / tvOS 16+ / watchOS 9+ / visionOS 1+
 
 ## Quick Start
@@ -108,9 +111,17 @@ Premise ships a catalog of built-in strategies in `PremiseStrategies`:
 | `strategy.flatMap { ... }` | Dependent generation |
 | `strategy.filter { ... }` | Post-condition filter |
 | `strategy.assume { ... }` | Precondition filter |
+| `strategy.suchThat { ... }` | Assumption-style precondition filter |
+| `Strategy.sized(maxSize:) { ... }` | Size-aware generation |
 | `strategy.optional()` | Wraps in `Optional` |
 | `strategyA \|\|\| strategyB` | Choice operator (`oneOf`) |
 | `zip(s1, s2, s3)` | Variadic tuple composition |
+| `.edgeCaseFloats(...)` | Finite/NaN/Inf/denormal/epsilon float cases |
+| `.arrays(of:count:)` | Exact-size collection generation |
+| `.arrays(of:minCount:maxCount:)` | Min/max collection generation |
+| `.denseVector(...)`, `.sparseVector(...)` | Vector-ish numeric data |
+| `.quantizedValues(...)` | Quantized numeric buckets |
+| `.indexOperations(...)` | Generic index workflow operations |
 
 ### Custom Strategies
 
@@ -130,6 +141,33 @@ let positiveEven = Strategy<Int>(
 )
 ```
 
+Replace or add custom shrink behavior with `shrinking`:
+
+```swift
+let smallFirst = positiveEven.shrinking { value in
+    value > 2 ? [2, value / 2] : []
+}
+```
+
+### Type-Driven Derivation
+
+Use `StrategyRegistry` when a test helper needs a strategy by type rather than
+by explicit parameter. The registry is immutable, so overrides are scoped to the
+test that creates them:
+
+```swift
+let registry = StrategyRegistry.standard
+    .register(UserID.self) { registry in
+        registry.strategy(for: Int.self)
+            .map { UserID(rawValue: $0) }
+    }
+
+let ids = registry.strategy(for: UserID.self)
+```
+
+Custom domain types can conform to `StrategyProviding` to derive themselves
+from the registry without global mutable state.
+
 ## Configuration
 
 Use built-in presets or chainable builders:
@@ -145,6 +183,8 @@ let config = PropertyConfig.default
     .runs(200)
     .seed(42)
     .timeout(seconds: 30)
+    .replayingCorpus(from: URL(fileURLWithPath: ".premise/corpus"))
+    .exportingFailureTraces(to: URL(fileURLWithPath: ".premise/artifacts"))
 
 // Full memberwise init
 let config = PropertyConfig(
@@ -154,7 +194,65 @@ let config = PropertyConfig(
 )
 ```
 
-## @given Macro
+Use a committed replay corpus when CI finds a failure that should become a
+permanent regression case. JSON failure trace artifacts can be uploaded by CI,
+reviewed, and copied into the corpus so future runs replay them before fresh
+generation.
+
+## Stateful Testing
+
+`PremiseTesting` includes a small operation-sequence checker for model-based
+database and index workflows:
+
+```swift
+try await checkOperationSequence(
+    operations,
+    initialModel: ModelState(),
+    initialSystem: DatabaseState()
+) { model, system in
+    #expect(model.snapshot == system.snapshot)
+}
+```
+
+Generate shrinkable operation lists with:
+
+```swift
+let operations = Strategy<[IndexOperation]>.indexOperationSequences(
+    length: 1...50,
+    indexRange: 0...10,
+    value: -100...100
+)
+```
+
+For workflows where the engine should choose which operation comes next,
+use the rule-based DSL:
+
+```swift
+var machine = RuleBasedStateMachine(makeInitialState: {
+    ModelAndDatabase()
+})
+
+struct ModelMismatch: Error {}
+
+machine.rule("insert", argument: Strategy<Int>.integers(in: 0...100)) { state, value in
+    try await state.database.insert(value)
+    state.model.insert(value)
+}
+
+machine.invariant("model matches database") { state in
+    let databaseValues = try await state.database.values()
+    guard databaseValues == state.model.values else {
+        throw ModelMismatch()
+    }
+}
+
+try await checkRuleBasedStateMachine(machine)
+```
+
+Use `makeInitialState` for reference-backed state such as databases so each
+generated example starts with fresh storage.
+
+## Optional @given Macro
 
 For zero-boilerplate property tests, use the `@given` macro (inspired by Hypothesis's `@given` decorator):
 
@@ -174,7 +272,23 @@ func largeSearchSpace(n: Int) {
 }
 ```
 
-The macro plugin ships as a pre-built binary — users don't need to compile swift-syntax. To build from source: `PREMISE_MACRO_SOURCE=1 swift build`.
+The default manifest is macro-free: `PremiseCore`, `PremiseStrategies`, and
+`PremiseTesting` build without downloading a macro artifact or resolving
+`swift-syntax`.
+
+To work on `@given` locally, opt into source macros:
+
+```bash
+PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
+```
+
+Release automation validates the binary macro path with:
+
+```bash
+PREMISE_MACRO_BINARY=1 \
+PREMISE_MACRO_BINARY_CHECKSUM=<checksum> \
+swift package dump-package
+```
 
 ## Package Structure
 
@@ -187,7 +301,13 @@ The macro plugin ships as a pre-built binary — users don't need to compile swi
 | `PremiseXCTest` | XCTest adapter (`premise_forAll`) |
 | `PremiseParallel` | Parallel property execution (v2) |
 | `PremiseTelemetry` | Engine event hooks and telemetry sinks (v2) |
-| `PremiseMacros` | `@given` macro (pre-built binary, no swift-syntax needed) |
+| `PremiseMacros` | Optional `@given` macro (source or release-binary opt-in) |
+
+## Still Separate From The Core
+
+The Hypothesis-inspired ghostwriter CLI, external fuzzer bridge, and expanded
+network/regex/timezone strategy catalog are intentionally separate extension
+areas. They do not need to affect the macro-free `PremiseCore` path.
 
 The default build ships the five v1 products. V2 extension modules are additive
 and don't change the v1 API surface. Optional trait-gated targets exist for
@@ -220,6 +340,7 @@ With full boundary enforcement:
 bash scripts/validate-boundaries.sh
 swift build --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
 swift test --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
+swift build -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
 ```
 
 ## Contributing

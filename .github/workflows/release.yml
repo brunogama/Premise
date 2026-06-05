@@ -38,11 +38,11 @@ jobs:
             arch_flag: "--arch x86_64"
           - platform: linux-x86_64
             runner: ubuntu-latest
-            container: swift:6.1
+            container: swift:6.2
             arch_flag: ""
           - platform: linux-arm64
             runner: ubuntu-24.04-arm
-            container: swift:6.1
+            container: swift:6.2
             arch_flag: ""
 
     steps:
@@ -55,6 +55,7 @@ jobs:
             --product "$ARTIFACT_NAME" \
             --configuration release \
             -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete \
             ${{ matrix.arch_flag }}
 
       - name: Locate and prepare binary
@@ -64,8 +65,11 @@ jobs:
           BIN_PATH=""
           for candidate in \
             ".build/apple/Products/Release/${ARTIFACT_NAME}" \
+            ".build/apple/Products/Release/${ARTIFACT_NAME}-tool" \
             "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}" \
-            ".build/release/${ARTIFACT_NAME}"; do
+            "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}-tool" \
+            ".build/release/${ARTIFACT_NAME}" \
+            ".build/release/${ARTIFACT_NAME}-tool"; do
             if [[ -f "$candidate" ]]; then
               BIN_PATH="$candidate"
               break
@@ -74,7 +78,7 @@ jobs:
 
           if [[ -z "$BIN_PATH" ]]; then
             echo "::error::Could not locate built binary for ${{ matrix.platform }}"
-            find .build -name "${ARTIFACT_NAME}" -type f 2>/dev/null || true
+            find .build -name "${ARTIFACT_NAME}*" -type f 2>/dev/null || true
             exit 1
           fi
 
@@ -201,6 +205,13 @@ jobs:
             "${{ steps.bundle.outputs.zip }}" \
             checksum.txt \
             --clobber
+
+      - name: Verify binary macro manifest
+        env:
+          PREMISE_MACRO_BINARY: "1"
+          PREMISE_MACRO_BINARY_CHECKSUM: ${{ steps.bundle.outputs.checksum }}
+        run: |
+          swift package dump-package > /dev/null
 
       - name: Comment checksum on release
         env:
