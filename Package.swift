@@ -97,11 +97,14 @@ let package = Package(
     .library(name: "PremiseCore", targets: ["PremiseCore"]),
     .library(name: "PremiseStrategies", targets: ["PremiseStrategies"]),
     .library(name: "PremiseDatabase", targets: ["PremiseDatabase"]),
+    .library(name: "PremiseFuzzing", targets: ["PremiseFuzzing"]),
+    .library(name: "PremiseGhostwriter", targets: ["PremiseGhostwriter"]),
     .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
     .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
     .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
     .library(name: "PremiseCoverageGuided", targets: ["PremiseCoverageGuided"]),
+    .executable(name: "PremiseGhostwriterTool", targets: ["PremiseGhostwriterTool"]),
     .executable(name: "PremiseReplayTool", targets: ["PremiseReplayTool"]),
   ] + macroProducts,
   traits: [
@@ -120,6 +123,28 @@ let package = Package(
     .target(
       name: "PremiseDatabase",
       dependencies: ["PremiseCore"]
+    ),
+    .target(
+      name: "PremiseFuzzing",
+      dependencies: [
+        "PremiseCore",
+        "PremiseDatabase",
+      ]
+    ),
+    .target(name: "PremiseGhostwriter"),
+    .executableTarget(
+      name: "PremiseGhostwriterTool",
+      dependencies: ["PremiseGhostwriter"]
+    ),
+    .plugin(
+      name: "PremiseGhostwriterPlugin",
+      capability: .command(
+        intent: .custom(
+          verb: "premise-ghostwriter",
+          description: "Generate Premise property-test skeletons"
+        )
+      ),
+      dependencies: ["PremiseGhostwriterTool"]
     ),
     .target(
       name: "PremiseTesting",
@@ -210,6 +235,19 @@ let package = Package(
         "PremiseCore",
         "PremiseDatabase",
       ]
+    ),
+    .testTarget(
+      name: "PremiseFuzzingTests",
+      dependencies: [
+        "PremiseCore",
+        "PremiseDatabase",
+        "PremiseFuzzing",
+        "PremiseStrategies",
+      ]
+    ),
+    .testTarget(
+      name: "PremiseGhostwriterTests",
+      dependencies: ["PremiseGhostwriter"]
     ),
     .testTarget(
       name: "PremiseTestingIntegrationTests",
