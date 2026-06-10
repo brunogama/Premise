@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added adapter-level explicit examples, including expected-failing examples.
+- Added property-body rejection through `PremiseData.assume` and `reject`.
+- Added settings scaffolding for per-example deadlines, verbosity,
+  derandomized seeds, reproduction blob output, multiple-bug policy, and
+  backend selection.
+
 ## v1.0.0 - 2026-06-04
 
 ### Added

@@ -183,6 +183,9 @@ let config = PropertyConfig.default
     .runs(200)
     .seed(42)
     .timeout(seconds: 30)
+    .deadline(seconds: 0.2)
+    .derandomize()
+    .verbosity(.verbose)
     .replayingCorpus(from: URL(fileURLWithPath: ".premise/corpus"))
     .exportingFailureTraces(to: URL(fileURLWithPath: ".premise/artifacts"))
 
@@ -198,6 +201,27 @@ Use a committed replay corpus when CI finds a failure that should become a
 permanent regression case. JSON failure trace artifacts can be uploaded by CI,
 reviewed, and copied into the corpus so future runs replay them before fresh
 generation.
+
+Run known edge cases before generation with explicit examples:
+
+```swift
+try await forAll(
+    .integers(in: 0...100),
+    explicitExamples: [0, 100],
+    examples: [.xfail(42, reason: "known bug")]
+) { n in
+    #expect(n != 42)
+}
+```
+
+Inside data-aware properties, reject invalid generated cases without failing:
+
+```swift
+try await forAll(.integers(in: -100...100)) { n, data in
+    try data.assume(n != 0, reason: "division by zero")
+    #expect(100 / n <= 100)
+}
+```
 
 ## Stateful Testing
 
