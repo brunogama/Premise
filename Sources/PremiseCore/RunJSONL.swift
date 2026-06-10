@@ -74,6 +74,9 @@ public struct RunJSONLEvent: Sendable, Codable, Equatable {
   /// Highest target score observed during the run.
   public var maxTargetScore: Double?
 
+  /// Distinct failures observed when multiple-bug reporting was enabled.
+  public var failures: [RunFailureSummary]
+
   /// Non-fatal health warnings emitted by the run.
   public var healthWarnings: [HealthWarning]
 
@@ -111,6 +114,7 @@ public struct RunJSONLEvent: Sendable, Codable, Equatable {
     self.events = report.events
     self.notes = report.notes
     self.maxTargetScore = report.maxTargetScore
+    self.failures = report.failures
     self.healthWarnings = report.healthWarnings
   }
 

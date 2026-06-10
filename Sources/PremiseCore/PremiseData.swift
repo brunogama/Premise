@@ -195,11 +195,12 @@ public struct PremiseData: Sendable {
     statistics.events.append(label)
   }
 
-  /// Records a score for diagnostics and future corpus analysis.
+  /// Records a score for diagnostics and targeted search.
   ///
   /// Higher scores indicate more interesting inputs. Premise records and
-  /// reports the maximum score observed in each run; default generation does
-  /// not use the score to steer later examples.
+  /// reports the maximum score observed in each run. When
+  /// ``PropertyPhase/target`` is enabled, the runner mutates high-scoring
+  /// traces to steer later examples.
   ///
   /// ```swift
   /// data.target(Double(string.count), label: "string length")

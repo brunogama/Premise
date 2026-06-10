@@ -14,6 +14,10 @@ private enum PhaseTestError: Error, CustomStringConvertible {
   }
 }
 
+private final class FlakySwitch: @unchecked Sendable {
+  var shouldFail = true
+}
+
 @Test("Explicit examples run before generated examples")
 func explicitExamplesRunBeforeGeneration() async {
   let strategy = Strategy<Int>.just(99)
@@ -216,6 +220,72 @@ func jsonlRunOutputWritesStructuredRunEvents() async throws {
   #expect(event.propertyID == propertyID)
   #expect(event.outcome == .passed)
   #expect(event.runCount == 1)
+}
+
+@Test("Target phase records targeted examples and target scores")
+func targetPhaseRecordsTargetScores() async {
+  let runner = Runner(
+    strategy: Strategy<Int>.integers(in: 0...100),
+    config: PropertyConfig(maxRuns: 8, seed: 1).phases([.target])
+  )
+
+  let result = await runner.runDetailed { value, data in
+    data.target(Double(value), label: "magnitude")
+  }
+
+  guard case .passed(let report) = result else {
+    Issue.record("Expected target phase run to pass")
+    return
+  }
+
+  #expect(report.runCount == 8)
+  #expect(report.phaseCounts[.target] == 8)
+  #expect(report.maxTargetScore != nil)
+}
+
+@Test("Multiple bug reporting records distinct failures")
+func multipleBugReportingRecordsDistinctFailures() async {
+  let runner = Runner(
+    strategy: Strategy<Int>.integers(in: 0...100),
+    config: PropertyConfig(maxRuns: 20, seed: 1)
+      .noShrink()
+      .reportingMultipleBugs(.all)
+  )
+
+  let result = await runner.runDetailed { value in
+    throw PhaseTestError.failed("bad value \(value)")
+  }
+
+  guard case .failure(_, _, let report) = result else {
+    Issue.record("Expected failure with multiple-bug reporting")
+    return
+  }
+
+  #expect(report.failures.count > 1)
+}
+
+@Test("Flaky failures are reported when replay does not reproduce")
+func flakyFailureIsReportedWhenReplayDoesNotReproduce() async {
+  let state = FlakySwitch()
+  let runner = Runner(
+    strategy: Strategy<Int>.just(1),
+    config: PropertyConfig(maxRuns: 1, seed: 1)
+  )
+
+  let result = await runner.runDetailed { _ in
+    if state.shouldFail {
+      state.shouldFail = false
+      throw PhaseTestError.failed("first run only")
+    }
+  }
+
+  guard case .failure(let record, _, _) = result else {
+    Issue.record("Expected flaky failure")
+    return
+  }
+
+  #expect(record.errorMessage.contains("Flaky failure"))
+  #expect(record.errorMessage.contains("did not reproduce"))
 }
 
 @Test("Per-example deadline reports a failure")
