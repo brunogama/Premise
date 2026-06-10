@@ -8,6 +8,18 @@ import Foundation
 /// core types, ensuring unsupported future formats fail explicitly.
 public enum PersistenceCodec {
 
+  // MARK: - Replay blobs
+
+  /// Encodes a trace into a copy-paste-safe Premise replay blob.
+  public static func encodeTraceBlob(_ trace: ChoiceTrace) throws -> String {
+    try trace.reproductionBlob()
+  }
+
+  /// Decodes a copy-paste-safe Premise replay blob into a trace.
+  public static func decodeTraceBlob(_ blob: String) throws -> ChoiceTrace {
+    try ChoiceTrace.decodeReproductionBlob(blob)
+  }
+
   // MARK: - Encode
 
   /// Wraps a ``FailureRecord`` into the current versioned envelope.

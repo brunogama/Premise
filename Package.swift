@@ -101,6 +101,7 @@ let package = Package(
     .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
     .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
+    .executable(name: "PremiseReplayTool", targets: ["PremiseReplayTool"]),
   ] + macroProducts,
   traits: [
     .trait(name: "CoverageGuided"),
@@ -143,6 +144,23 @@ let package = Package(
     .target(
       name: "PremiseTelemetry",
       dependencies: ["PremiseCore"]
+    ),
+    .executableTarget(
+      name: "PremiseReplayTool",
+      dependencies: [
+        "PremiseCore",
+        "PremiseDatabase",
+      ]
+    ),
+    .plugin(
+      name: "PremiseReplayPlugin",
+      capability: .command(
+        intent: .custom(
+          verb: "premise-replay",
+          description: "Inspect and decode Premise replay trace artifacts"
+        )
+      ),
+      dependencies: ["PremiseReplayTool"]
     ),
 
     .target(
