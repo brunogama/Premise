@@ -368,8 +368,10 @@ private func draw<Value: Sendable>(
     }
   } catch let error as StrategyError {
     switch error {
-    case .filterExhausted, .assumptionFailed:
+    case .filterExhausted, .assumptionFailed, .noExamples:
       return nil
+    case .invalidRegex:
+      throw error
     @unknown default:
       throw error
     }
