@@ -442,16 +442,16 @@ Likely files:
 
 Tasks:
 
-- [ ] Add `PremiseGhostwriter` executable or SwiftPM command plugin.
-- [ ] Generate fuzz/no-crash test skeletons.
-- [ ] Generate roundtrip tests.
-- [ ] Generate equivalence/differential tests.
-- [ ] Generate idempotence tests.
-- [ ] Generate binary operation law tests.
-- [ ] Add `FuzzInputProvider`.
-- [ ] Add `fuzzOneInput` API.
-- [ ] Save failing fuzz inputs to the database.
-- [ ] Document libFuzzer/AFL integration.
+- [x] Add `PremiseGhostwriter` executable or SwiftPM command plugin.
+- [x] Generate fuzz/no-crash test skeletons.
+- [x] Generate roundtrip tests.
+- [x] Generate equivalence/differential tests.
+- [x] Generate idempotence tests.
+- [x] Generate binary operation law tests.
+- [x] Add `FuzzInputProvider`.
+- [x] Add `fuzzOneInput` API.
+- [x] Save failing fuzz inputs to the database.
+- [x] Document libFuzzer/AFL integration.
 
 Validation:
 

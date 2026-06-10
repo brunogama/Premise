@@ -26,6 +26,11 @@
 - Added state-machine initialize rules, teardown actions, consuming bundles,
   multi-output rules, invariant `checkDuringInit`, replay/persistence,
   shrinkable traces, and printable minimal failing programs.
+- Added `PremiseGhostwriter` and the `swift package premise-ghostwriter`
+  command plugin for generating fuzz, roundtrip, equivalence, idempotence, and
+  binary-operation law test skeletons.
+- Added `PremiseFuzzing` with `FuzzInputProvider` and `fuzzOneInput` for
+  libFuzzer/AFL-style byte-input harnesses with failure persistence.
 
 ## v1.0.0 - 2026-06-04
 

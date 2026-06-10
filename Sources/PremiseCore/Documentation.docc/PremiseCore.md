@@ -49,6 +49,7 @@ The framework adapters (`PremiseTesting` for swift-testing, `PremiseXCTest` for 
 - <doc:CustomStrategies>
 - <doc:AdvancedCombinators>
 - <doc:StatefulRuleMachines>
+- <doc:GhostwriterAndFuzzing>
 - <doc:ShrinkingExplained>
 
 ### Persistence and Replay

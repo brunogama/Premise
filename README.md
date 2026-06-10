@@ -291,6 +291,35 @@ let config = PropertyConfig.ci
     .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
 ```
 
+## Ghostwriter and Fuzzing
+
+Generate starter properties from the command line:
+
+```bash
+swift package premise-ghostwriter \
+  --kind roundtrip \
+  --module MyApp \
+  --type Payload \
+  --strategy 'Strategy<Payload>.payloads()' \
+  --encode 'try JSONEncoder().encode($0)' \
+  --decode 'try JSONDecoder().decode(Payload.self, from: $0)'
+```
+
+Bridge libFuzzer, AFL, or custom byte harnesses into Premise strategies with
+`PremiseFuzzing`:
+
+```swift
+try await fuzzOneInput(
+    Data(fuzzerBytes),
+    strategy: Strategy<Payload>.payloads()
+) { payload in
+    _ = try PayloadParser.parse(payload)
+}
+```
+
+Failures are saved as Premise replay traces, with the original fuzz bytes
+recorded in run statistics for corpus triage.
+
 ## Stateful Testing
 
 `PremiseTesting` includes a small operation-sequence checker for model-based
