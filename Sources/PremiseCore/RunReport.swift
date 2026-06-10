@@ -5,6 +5,15 @@ public enum HealthCheck: String, Sendable, Codable, Hashable, CaseIterable {
   case emptySearch
 }
 
+/// Distinguishes where an example was rejected.
+public enum RejectionKind: String, Sendable, Codable, Hashable, CaseIterable {
+  /// The strategy could not draw a satisfying value.
+  case draw
+
+  /// The property body rejected the example after observing generated data.
+  case property
+}
+
 /// A non-fatal warning about property execution quality.
 public struct HealthWarning: Sendable, Codable, Equatable {
   /// Health check that produced the warning.
@@ -28,6 +37,9 @@ public struct RunReport: Sendable, Codable, Equatable {
   /// Number of generated examples rejected by assumptions.
   public var rejectedCount: Int
 
+  /// Rejected examples grouped by where the rejection occurred.
+  public var rejectionCounts: [RejectionKind: Int]
+
   /// Example counts grouped by execution phase.
   public var phaseCounts: [PropertyPhase: Int]
 
@@ -47,6 +59,7 @@ public struct RunReport: Sendable, Codable, Equatable {
   public init(
     runCount: Int = 0,
     rejectedCount: Int = 0,
+    rejectionCounts: [RejectionKind: Int] = [:],
     phaseCounts: [PropertyPhase: Int] = [:],
     events: [String: Int] = [:],
     notes: [RunNote] = [],
@@ -55,6 +68,7 @@ public struct RunReport: Sendable, Codable, Equatable {
   ) {
     self.runCount = runCount
     self.rejectedCount = rejectedCount
+    self.rejectionCounts = rejectionCounts
     self.phaseCounts = phaseCounts
     self.events = events
     self.notes = notes
@@ -69,8 +83,9 @@ public struct RunReport: Sendable, Codable, Equatable {
   }
 
   /// Records one rejected example.
-  public mutating func recordRejected() {
+  public mutating func recordRejected(_ kind: RejectionKind = .draw) {
     rejectedCount += 1
+    rejectionCounts[kind, default: 0] += 1
   }
 
   /// Merges per-example statistics into this report.

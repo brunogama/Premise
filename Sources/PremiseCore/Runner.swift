@@ -31,15 +31,17 @@ public struct Runner<Value: Sendable>: Sendable {
   /// Executes a data-aware property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
+    examples: [ExplicitExample<Value>] = [],
     _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
     var report = RunReport()
+    let allExplicitExamples = explicitExamples.map { ExplicitExample($0) } + examples
 
     for phase in config.phases {
       switch phase {
       case .explicit:
-        for example in explicitExamples {
+        for example in allExplicitExamples {
           if let failure = executeExplicit(
             example,
             property: property,
@@ -61,8 +63,9 @@ public struct Runner<Value: Sendable>: Sendable {
             report.recordPhase(.replay)
             report.merge(statistics)
 
-          case .rejected:
-            report.recordRejected()
+          case .rejected(let kind, let statistics):
+            report.recordRejected(kind)
+            report.merge(statistics)
 
           case .failure(let failure):
             let minimized = minimizeIfNeeded(
@@ -83,7 +86,7 @@ public struct Runner<Value: Sendable>: Sendable {
         }
 
       case .generate:
-        let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
+        let baseSeed = makeBaseSeed()
         let deadline = config.timeoutSeconds.map { Date(timeIntervalSinceNow: $0) }
 
         for index in 0..<config.maxRuns {
@@ -101,8 +104,9 @@ public struct Runner<Value: Sendable>: Sendable {
             report.recordPhase(.generate)
             report.merge(statistics)
 
-          case .rejected:
-            report.recordRejected()
+          case .rejected(let kind, let statistics):
+            report.recordRejected(kind)
+            report.merge(statistics)
 
           case .failure(let failure):
             let minimized = minimizeIfNeeded(
@@ -137,11 +141,13 @@ public struct Runner<Value: Sendable>: Sendable {
   /// Executes a property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
+    examples: [ExplicitExample<Value>] = [],
     _ property: @escaping @Sendable (Value) throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
     await runDetailed(
       explicitExamples: explicitExamples,
+      examples: examples,
       { value, _ in
         try property(value)
       },
@@ -152,15 +158,17 @@ public struct Runner<Value: Sendable>: Sendable {
   /// Executes an async property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
+    examples: [ExplicitExample<Value>] = [],
     _ property: @escaping @Sendable (Value) async throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
     var report = RunReport()
+    let allExplicitExamples = explicitExamples.map { ExplicitExample($0) } + examples
 
     for phase in config.phases {
       switch phase {
       case .explicit:
-        for example in explicitExamples {
+        for example in allExplicitExamples {
           if let failure = await executeExplicitAsync(
             example,
             property: property,
@@ -182,8 +190,9 @@ public struct Runner<Value: Sendable>: Sendable {
             report.recordPhase(.replay)
             report.merge(statistics)
 
-          case .rejected:
-            report.recordRejected()
+          case .rejected(let kind, let statistics):
+            report.recordRejected(kind)
+            report.merge(statistics)
 
           case .failure(let failure):
             let minimized = await minimizeIfNeeded(
@@ -204,7 +213,7 @@ public struct Runner<Value: Sendable>: Sendable {
         }
 
       case .generate:
-        let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
+        let baseSeed = makeBaseSeed()
         let deadline = config.timeoutSeconds.map { Date(timeIntervalSinceNow: $0) }
 
         for index in 0..<config.maxRuns {
@@ -222,8 +231,9 @@ public struct Runner<Value: Sendable>: Sendable {
             report.recordPhase(.generate)
             report.merge(statistics)
 
-          case .rejected:
-            report.recordRejected()
+          case .rejected(let kind, let statistics):
+            report.recordRejected(kind)
+            report.merge(statistics)
 
           case .failure(let failure):
             let minimized = await minimizeIfNeeded(
@@ -291,7 +301,7 @@ public struct Runner<Value: Sendable>: Sendable {
       }
     }
 
-    let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
+    let baseSeed = makeBaseSeed()
 
     let deadline: Date?
     if let timeout = config.timeoutSeconds {
@@ -351,7 +361,7 @@ public struct Runner<Value: Sendable>: Sendable {
       }
     }
 
-    let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
+    let baseSeed = makeBaseSeed()
 
     let deadline: Date?
     if let timeout = config.timeoutSeconds {
@@ -726,7 +736,7 @@ public struct Runner<Value: Sendable>: Sendable {
   }
 
   private func executeExplicit(
-    _ value: Value,
+    _ example: ExplicitExample<Value>,
     property: @Sendable (Value, inout PremiseData) throws -> Void,
     report: inout RunReport
   ) -> ExecutionFailure<Value>? {
@@ -734,22 +744,36 @@ public struct Runner<Value: Sendable>: Sendable {
       provider: PseudoRandomProvider(seed: 0, maxDraws: config.maxDrawsPerRun)
     )
     report.recordPhase(.explicit)
+    let start = Date()
 
     do {
-      try property(value, &data)
+      try property(example.value, &data)
+      if let deadlineFailure = deadlineFailure(since: start) {
+        report.merge(data.statistics)
+        return makeFailure(
+          value: example.value,
+          data: &data,
+          errorMessage: deadlineFailure,
+          runCount: 0
+        )
+      }
       report.merge(data.statistics)
-      return nil
+      return expectedFailureIfNeeded(example: example, data: &data)
+    } catch is PremiseRejection {
+      report.recordRejected(.property)
+      report.merge(data.statistics)
+      return expectedFailureIfNeeded(example: example, data: &data)
     } catch {
-      let record = FailureRecord(
-        propertyID: propertyID,
-        trace: data.snapshot(),
-        errorMessage: String(describing: error),
-        runCount: 0,
-        shrinkCount: 0,
-        statistics: data.statistics
-      )
       report.merge(data.statistics)
-      return ExecutionFailure(record: record, value: value)
+      if isExpectedToFail(example) {
+        return nil
+      }
+      return makeFailure(
+        value: example.value,
+        data: &data,
+        errorMessage: String(describing: error),
+        runCount: 0
+      )
     }
   }
 
@@ -825,27 +849,39 @@ public struct Runner<Value: Sendable>: Sendable {
     do {
       drawnValue = try strategy.draw(&data)
     } catch {
-      return .rejected
+      return .rejected(.draw, data.statistics)
     }
 
+    let start = Date()
     do {
       try property(drawnValue, &data)
+      if let deadlineFailure = deadlineFailure(since: start) {
+        return .failure(
+          makeFailure(
+            value: drawnValue,
+            data: &data,
+            errorMessage: deadlineFailure,
+            runCount: 1
+          )
+        )
+      }
       return .passed(data.statistics)
+    } catch is PremiseRejection {
+      return .rejected(.property, data.statistics)
     } catch {
-      let record = FailureRecord(
-        propertyID: propertyID,
-        trace: data.snapshot(),
-        errorMessage: String(describing: error),
-        runCount: 1,
-        shrinkCount: 0,
-        statistics: data.statistics
+      return .failure(
+        makeFailure(
+          value: drawnValue,
+          data: &data,
+          errorMessage: String(describing: error),
+          runCount: 1
+        )
       )
-      return .failure(ExecutionFailure(record: record, value: drawnValue))
     }
   }
 
   private func executeExplicitAsync(
-    _ value: Value,
+    _ example: ExplicitExample<Value>,
     property: @escaping @Sendable (Value) async throws -> Void,
     report: inout RunReport
   ) async -> ExecutionFailure<Value>? {
@@ -853,22 +889,36 @@ public struct Runner<Value: Sendable>: Sendable {
       provider: PseudoRandomProvider(seed: 0, maxDraws: config.maxDrawsPerRun)
     )
     report.recordPhase(.explicit)
+    let start = Date()
 
     do {
-      try await property(value)
+      try await property(example.value)
+      if let deadlineFailure = deadlineFailure(since: start) {
+        report.merge(data.statistics)
+        return makeFailure(
+          value: example.value,
+          data: &data,
+          errorMessage: deadlineFailure,
+          runCount: 0
+        )
+      }
       report.merge(data.statistics)
-      return nil
+      return expectedFailureIfNeeded(example: example, data: &data)
+    } catch is PremiseRejection {
+      report.recordRejected(.property)
+      report.merge(data.statistics)
+      return expectedFailureIfNeeded(example: example, data: &data)
     } catch {
-      let record = FailureRecord(
-        propertyID: propertyID,
-        trace: data.snapshot(),
-        errorMessage: String(describing: error),
-        runCount: 0,
-        shrinkCount: 0,
-        statistics: data.statistics
-      )
       report.merge(data.statistics)
-      return ExecutionFailure(record: record, value: value)
+      if isExpectedToFail(example) {
+        return nil
+      }
+      return makeFailure(
+        value: example.value,
+        data: &data,
+        errorMessage: String(describing: error),
+        runCount: 0
+      )
     }
   }
 
@@ -890,22 +940,34 @@ public struct Runner<Value: Sendable>: Sendable {
     do {
       drawnValue = try strategy.draw(&data)
     } catch {
-      return .rejected
+      return .rejected(.draw, data.statistics)
     }
 
+    let start = Date()
     do {
       try await property(drawnValue)
+      if let deadlineFailure = deadlineFailure(since: start) {
+        return .failure(
+          makeFailure(
+            value: drawnValue,
+            data: &data,
+            errorMessage: deadlineFailure,
+            runCount: 1
+          )
+        )
+      }
       return .passed(data.statistics)
+    } catch is PremiseRejection {
+      return .rejected(.property, data.statistics)
     } catch {
-      let record = FailureRecord(
-        propertyID: propertyID,
-        trace: data.snapshot(),
-        errorMessage: String(describing: error),
-        runCount: 1,
-        shrinkCount: 0,
-        statistics: data.statistics
+      return .failure(
+        makeFailure(
+          value: drawnValue,
+          data: &data,
+          errorMessage: String(describing: error),
+          runCount: 1
+        )
       )
-      return .failure(ExecutionFailure(record: record, value: drawnValue))
     }
   }
 
@@ -976,20 +1038,109 @@ public struct Runner<Value: Sendable>: Sendable {
       return nil
     }
 
+    let start = Date()
     do {
       try await property(drawnValue)
+      if let deadlineFailure = deadlineFailure(since: start) {
+        return makeFailure(
+          value: drawnValue,
+          data: &data,
+          errorMessage: deadlineFailure,
+          runCount: 1
+        )
+      }
+      return nil
+    } catch is PremiseRejection {
       return nil
     } catch {
-      let record = FailureRecord(
-        propertyID: propertyID,
-        trace: data.snapshot(),
+      return makeFailure(
+        value: drawnValue,
+        data: &data,
         errorMessage: String(describing: error),
-        runCount: 1,
-        shrinkCount: 0,
-        statistics: data.statistics
+        runCount: 1
       )
-      return ExecutionFailure(record: record, value: drawnValue)
     }
+  }
+
+  private func makeBaseSeed() -> UInt64 {
+    if let seed = config.seed {
+      return seed
+    }
+    if config.derandomize {
+      return stableSeed(for: propertyID)
+    }
+    return UInt64.random(in: .min ... .max)
+  }
+
+  private func stableSeed(for id: PropertyIdentity) -> UInt64 {
+    let input = [
+      id.fileID,
+      String(id.line),
+      id.strategyLabel,
+      id.functionName ?? "",
+    ].joined(separator: "#")
+    var hash: UInt64 = 1_469_598_103_934_665_603
+    for byte in input.utf8 {
+      hash ^= UInt64(byte)
+      hash &*= 1_099_511_628_211
+    }
+    return hash
+  }
+
+  private func deadlineFailure(since start: Date) -> String? {
+    guard let deadline = config.perExampleDeadlineSeconds else {
+      return nil
+    }
+    let elapsed = Date().timeIntervalSince(start)
+    guard elapsed > deadline else {
+      return nil
+    }
+    return String(
+      describing: PropertyDeadlineExceeded(
+        elapsedSeconds: elapsed,
+        deadlineSeconds: deadline
+      )
+    )
+  }
+
+  private func makeFailure(
+    value: Value,
+    data: inout PremiseData,
+    errorMessage: String,
+    runCount: Int
+  ) -> ExecutionFailure<Value> {
+    let record = FailureRecord(
+      propertyID: propertyID,
+      trace: data.snapshot(),
+      errorMessage: errorMessage,
+      runCount: runCount,
+      shrinkCount: 0,
+      statistics: data.statistics
+    )
+    return ExecutionFailure(record: record, value: value)
+  }
+
+  private func expectedFailureIfNeeded(
+    example: ExplicitExample<Value>,
+    data: inout PremiseData
+  ) -> ExecutionFailure<Value>? {
+    guard case .expectedToFail(let reason) = example.expectation else {
+      return nil
+    }
+    let suffix = reason.map { $0.isEmpty ? "" : ": \($0)" } ?? ""
+    return makeFailure(
+      value: example.value,
+      data: &data,
+      errorMessage: "Expected explicit example to fail\(suffix)",
+      runCount: 0
+    )
+  }
+
+  private func isExpectedToFail(_ example: ExplicitExample<Value>) -> Bool {
+    if case .expectedToFail = example.expectation {
+      return true
+    }
+    return false
   }
 }
 
@@ -997,7 +1148,7 @@ public struct Runner<Value: Sendable>: Sendable {
 
 private enum ExecutionAttempt<Value: Sendable> {
   case passed(RunStatistics)
-  case rejected
+  case rejected(RejectionKind, RunStatistics)
   case failure(ExecutionFailure<Value>)
 }
 

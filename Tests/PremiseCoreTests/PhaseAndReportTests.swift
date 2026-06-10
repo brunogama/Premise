@@ -85,3 +85,115 @@ func runReportAggregatesStatistics() async {
   #expect(report.notes.count == 3)
   #expect(report.maxTargetScore != nil)
 }
+
+@Test("Expected-failing explicit examples do not fail the run")
+func expectedFailingExplicitExamplePassesWhenPropertyFails() async {
+  let runner = Runner(
+    strategy: Strategy<Int>.just(99),
+    config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])
+  )
+
+  let result = await runner.runDetailed(
+    examples: [.xfail(3, reason: "known bad input")]
+  ) { value in
+    if value == 3 {
+      throw PhaseTestError.failed("explicit example failed as expected")
+    }
+  }
+
+  guard case .passed(let report) = result else {
+    Issue.record("Expected xfail explicit example to pass the run")
+    return
+  }
+
+  #expect(report.runCount == 1)
+  #expect(report.phaseCounts[.explicit] == 1)
+}
+
+@Test("Expected-failing explicit examples fail if the property passes")
+func expectedFailingExplicitExampleFailsWhenPropertyPasses() async {
+  let runner = Runner(
+    strategy: Strategy<Int>.just(99),
+    config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])
+  )
+
+  let result = await runner.runDetailed(
+    examples: [.xfail(3, reason: "known bad input")]
+  ) { _ in }
+
+  guard case .failure(let record, let value, let report) = result else {
+    Issue.record("Expected unmet xfail to fail the run")
+    return
+  }
+
+  #expect(value == 3)
+  #expect(record.errorMessage.contains("Expected explicit example to fail"))
+  #expect(report.phaseCounts[.explicit] == 1)
+}
+
+@Test("Property-body assumptions reject examples without failing")
+func propertyBodyAssumptionsRejectExamples() async {
+  let runner = Runner(
+    strategy: Strategy<Int>.just(1),
+    config: PropertyConfig(maxRuns: 5, seed: 1)
+  )
+
+  let result = await runner.runDetailed { _, data in
+    try data.assume(false, reason: "domain precondition")
+  }
+
+  guard case .passed(let report) = result else {
+    Issue.record("Expected all rejected examples to produce a passing empty search")
+    return
+  }
+
+  #expect(report.runCount == 0)
+  #expect(report.rejectedCount == 5)
+  #expect(report.rejectionCounts[.property] == 5)
+}
+
+@Test("Derandomized config derives a stable seed from property identity")
+func derandomizedConfigUsesStablePropertySeed() async {
+  let propertyID = PropertyIdentity(
+    fileID: "PhaseAndReportTests.swift",
+    line: 123,
+    strategyLabel: "just(1)",
+    functionName: "derandomizedConfigUsesStablePropertySeed"
+  )
+  let config = PropertyConfig(maxRuns: 1).derandomize()
+  let first = Runner(strategy: Strategy<Int>.just(1), config: config, propertyID: propertyID)
+  let second = Runner(strategy: Strategy<Int>.just(1), config: config, propertyID: propertyID)
+
+  let firstResult = await first.runDetailed { _ in
+    throw PhaseTestError.failed("fail")
+  }
+  let secondResult = await second.runDetailed { _ in
+    throw PhaseTestError.failed("fail")
+  }
+
+  guard case .failure(let firstRecord, _, _) = firstResult,
+    case .failure(let secondRecord, _, _) = secondResult
+  else {
+    Issue.record("Expected both derandomized runs to fail")
+    return
+  }
+
+  #expect(firstRecord.seed == secondRecord.seed)
+}
+
+@Test("Per-example deadline reports a failure")
+func perExampleDeadlineReportsFailure() async {
+  let runner = Runner(
+    strategy: Strategy<Int>.just(1),
+    config: PropertyConfig(maxRuns: 1, seed: 1).deadline(seconds: -1)
+  )
+
+  let result = await runner.runDetailed { _ in }
+
+  guard case .failure(let record, _, _) = result else {
+    Issue.record("Expected deadline failure")
+    return
+  }
+
+  #expect(record.errorMessage.contains("Example exceeded deadline"))
+}
