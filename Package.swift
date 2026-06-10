@@ -213,7 +213,7 @@ let package = Package(
     ),
     .testTarget(
       name: "PremiseTestingIntegrationTests",
-      dependencies: ["PremiseTesting"]
+      dependencies: ["PremiseTesting", "PremiseDatabase"]
     ),
     .testTarget(
       name: "PremiseXCTestIntegrationTests",
