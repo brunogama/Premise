@@ -101,6 +101,7 @@ let package = Package(
     .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
     .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
+    .library(name: "PremiseCoverageGuided", targets: ["PremiseCoverageGuided"]),
     .executable(name: "PremiseReplayTool", targets: ["PremiseReplayTool"]),
   ] + macroProducts,
   traits: [
@@ -165,11 +166,15 @@ let package = Package(
 
     .target(
       name: "PremiseCoverageGuided",
-      dependencies: ["PremiseCore"],
+      dependencies: [
+        "PremiseCore",
+        "CPremiseSanitizerCoverage",
+      ],
       swiftSettings: [
         .define("PREMISE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
       ]
     ),
+    .target(name: "CPremiseSanitizerCoverage"),
     .target(
       name: "PremiseSMT",
       dependencies: [
