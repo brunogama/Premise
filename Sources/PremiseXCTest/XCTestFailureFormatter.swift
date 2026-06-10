@@ -37,6 +37,7 @@ enum XCTestFailureFormatter {
       report: report,
       to: &lines
     )
+    appendMultipleFailures(from: report, to: &lines)
     if let seed = record.seed {
       lines.append("Seed to reproduce: \(seed)")
       lines.append("Replay: config: PropertyConfig(seed: \(seed))")
@@ -120,6 +121,20 @@ enum XCTestFailureFormatter {
     lines.append("Health warnings: \(warnings)")
     for warning in report.healthWarnings {
       lines.append("- \(warning.message)")
+    }
+  }
+
+  private static func appendMultipleFailures(
+    from report: RunReport?,
+    to lines: inout [String]
+  ) {
+    guard let report, report.failures.count > 1 else { return }
+    lines.append("Distinct failures: \(report.failures.count)")
+    for failure in report.failures {
+      lines.append(
+        "- [\(failure.phase.rawValue)] \(failure.errorMessage) "
+          + "(trace entries: \(failure.traceEntryCount))"
+      )
     }
   }
 
