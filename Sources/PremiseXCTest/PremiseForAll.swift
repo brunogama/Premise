@@ -19,6 +19,8 @@ import PremiseStrategies
 public func premise_forAll<Value: Sendable>(
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
   line: UInt = #line,
@@ -28,6 +30,8 @@ public func premise_forAll<Value: Sendable>(
   try await runXCTestForAll(
     strategy: strategy,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     file: file,
     line: line,
@@ -41,6 +45,8 @@ public func premise_forAll<Value: Sendable>(
 public func premise_forAll<Value: Sendable>(
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
   line: UInt = #line,
@@ -50,6 +56,8 @@ public func premise_forAll<Value: Sendable>(
   try await runXCTestForAllAsync(
     strategy: strategy,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     file: file,
     line: line,
@@ -66,6 +74,8 @@ public func premise_forAll<A: Sendable, B: Sendable>(
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B)] = [],
+  examples: [ExplicitExample<(A, B)>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
   line: UInt = #line,
@@ -88,6 +98,8 @@ public func premise_forAll<A: Sendable, B: Sendable>(
   try await runXCTestForAll(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     file: file,
     line: line,
@@ -103,6 +115,8 @@ public func premise_forAll<A: Sendable, B: Sendable>(
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B)] = [],
+  examples: [ExplicitExample<(A, B)>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
   line: UInt = #line,
@@ -113,6 +127,8 @@ public func premise_forAll<A: Sendable, B: Sendable>(
   try await runXCTestForAllAsync(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     file: file,
     line: line,
@@ -131,6 +147,8 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B, C)] = [],
+  examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
   line: UInt = #line,
@@ -155,6 +173,8 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   try await runXCTestForAll(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     file: file,
     line: line,
@@ -171,6 +191,8 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B, C)] = [],
+  examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
   line: UInt = #line,
@@ -181,6 +203,8 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   try await runXCTestForAllAsync(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     file: file,
     line: line,
@@ -196,6 +220,8 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
 private func runXCTestForAll<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String,
   file: StaticString,
   line: UInt,
@@ -217,7 +243,11 @@ private func runXCTestForAll<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(property)
+  let result = try await executor.executeDetailed(
+    explicitExamples: explicitExamples,
+    examples: examples,
+    property
+  )
 
   if case .failure(let record, value: let value, report: let report) = result {
     let message = XCTestFailureFormatter.format(
@@ -234,6 +264,8 @@ private func runXCTestForAll<Value: Sendable>(
 private func runXCTestForAllAsync<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String,
   file: StaticString,
   line: UInt,
@@ -255,7 +287,11 @@ private func runXCTestForAllAsync<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(property)
+  let result = try await executor.executeDetailed(
+    explicitExamples: explicitExamples,
+    examples: examples,
+    property
+  )
 
   if case .failure(let record, value: let value, report: let report) = result {
     let message = XCTestFailureFormatter.format(

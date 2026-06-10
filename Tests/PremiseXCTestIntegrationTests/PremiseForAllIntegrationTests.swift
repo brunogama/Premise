@@ -49,6 +49,34 @@ final class PremiseForAllIntegrationTests: XCTestCase {
       throw PremiseTestError(message: "always fails")
     }
   }
+
+  func testRunsExplicitExamplesBeforeGeneration() async throws {
+    XCTExpectFailure("premise_forAll should report explicit example failures") {
+      $0.compactDescription.contains("explicit example failed")
+    }
+
+    try await premise_forAll(
+      Strategy<Int>.just(99),
+      config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit]),
+      explicitExamples: [3]
+    ) { value in
+      if value == 3 {
+        throw PremiseTestError(message: "explicit example failed")
+      }
+    }
+  }
+
+  func testAcceptsExpectedFailingExplicitExamples() async throws {
+    try await premise_forAll(
+      Strategy<Int>.just(99),
+      config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit]),
+      examples: [.xfail(3, reason: "known bad input")]
+    ) { value in
+      if value == 3 {
+        throw PremiseTestError(message: "explicit example failed as expected")
+      }
+    }
+  }
 }
 
 /// A simple error type for testing property failures.

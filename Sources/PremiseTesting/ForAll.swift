@@ -25,6 +25,8 @@ import PremiseStrategies
 public func forAll<Value: Sendable>(
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -35,6 +37,8 @@ public func forAll<Value: Sendable>(
   try await runForAll(
     strategy: strategy,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     filePath: filePath,
     line: line,
@@ -49,6 +53,8 @@ public func forAll<Value: Sendable>(
 public func forAll<Value: Sendable>(
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -59,6 +65,8 @@ public func forAll<Value: Sendable>(
   try await runForAllAsync(
     strategy: strategy,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     filePath: filePath,
     line: line,
@@ -83,6 +91,8 @@ public func forAll<A: Sendable, B: Sendable>(
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B)] = [],
+  examples: [ExplicitExample<(A, B)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -106,6 +116,8 @@ public func forAll<A: Sendable, B: Sendable>(
   try await runForAll(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     filePath: filePath,
     line: line,
@@ -121,6 +133,8 @@ public func forAll<A: Sendable, B: Sendable>(
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B)] = [],
+  examples: [ExplicitExample<(A, B)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -132,6 +146,8 @@ public func forAll<A: Sendable, B: Sendable>(
   try await runForAllAsync(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     filePath: filePath,
     line: line,
@@ -162,6 +178,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B, C)] = [],
+  examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -187,6 +205,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
   try await runForAll(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     filePath: filePath,
     line: line,
@@ -203,6 +223,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  explicitExamples: [(A, B, C)] = [],
+  examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -214,6 +236,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
   try await runForAllAsync(
     strategy: combined,
     config: config,
+    explicitExamples: explicitExamples,
+    examples: examples,
     fileID: fileID,
     filePath: filePath,
     line: line,
@@ -242,6 +266,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
 public func forAll<Value: Sendable>(
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
   line: Int = #line,
@@ -263,7 +289,11 @@ public func forAll<Value: Sendable>(
   )
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(property)
+  let result = try await executor.executeDetailed(
+    explicitExamples: explicitExamples,
+    examples: examples,
+    property
+  )
 
   if case .failure(let record, value: let value, report: let report) = result {
     let message = FailureFormatter.format(
@@ -292,6 +322,8 @@ public func forAll<Value: Sendable>(
 private func runForAll<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String,
   filePath: String,
   line: Int,
@@ -314,7 +346,11 @@ private func runForAll<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(property)
+  let result = try await executor.executeDetailed(
+    explicitExamples: explicitExamples,
+    examples: examples,
+    property
+  )
 
   if case .failure(let record, value: let value, report: let report) = result {
     let message = FailureFormatter.format(
@@ -340,6 +376,8 @@ private func runForAll<Value: Sendable>(
 private func runForAllAsync<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
+  explicitExamples: [Value] = [],
+  examples: [ExplicitExample<Value>] = [],
   fileID: String,
   filePath: String,
   line: Int,
@@ -362,7 +400,11 @@ private func runForAllAsync<Value: Sendable>(
 
   let database = makeDatabase(config: config)
   let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(property)
+  let result = try await executor.executeDetailed(
+    explicitExamples: explicitExamples,
+    examples: examples,
+    property
+  )
 
   if case .failure(let record, value: let value, report: let report) = result {
     let message = FailureFormatter.format(
