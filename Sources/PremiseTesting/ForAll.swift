@@ -300,7 +300,8 @@ public func forAll<Value: Sendable>(
       value: value,
       record: record,
       propertyID: propertyID,
-      report: report
+      report: report,
+      includeReproductionBlob: config.printReproductionBlob
     )
     let sourceLocation = SourceLocation(
       fileID: fileID,
@@ -357,7 +358,8 @@ private func runForAll<Value: Sendable>(
       value: value,
       record: record,
       propertyID: propertyID,
-      report: report
+      report: report,
+      includeReproductionBlob: config.printReproductionBlob
     )
     let sourceLocation = SourceLocation(
       fileID: fileID,
@@ -411,7 +413,8 @@ private func runForAllAsync<Value: Sendable>(
       value: value,
       record: record,
       propertyID: propertyID,
-      report: report
+      report: report,
+      includeReproductionBlob: config.printReproductionBlob
     )
     let sourceLocation = SourceLocation(
       fileID: fileID,

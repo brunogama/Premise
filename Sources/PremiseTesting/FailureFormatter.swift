@@ -15,7 +15,8 @@ enum FailureFormatter {
     value: Value,
     record: FailureRecord,
     propertyID: PropertyIdentity,
-    report: RunReport? = nil
+    report: RunReport? = nil,
+    includeReproductionBlob: Bool = false
   ) -> String {
     var lines: [String] = []
 
@@ -53,6 +54,13 @@ enum FailureFormatter {
       lines.append(
         "Replay: use the persisted trace from .premise/examples "
           + "or an exported JSON trace artifact."
+      )
+    }
+
+    if includeReproductionBlob, let blob = try? record.trace.reproductionBlob() {
+      lines.append("Reproduction blob: \(blob)")
+      lines.append(
+        "Replay blob: try ChoiceTrace.decodeReproductionBlob(\"\(blob)\")"
       )
     }
 

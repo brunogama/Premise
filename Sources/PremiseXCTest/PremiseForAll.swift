@@ -254,7 +254,8 @@ private func runXCTestForAll<Value: Sendable>(
       value: value,
       record: record,
       propertyID: propertyID,
-      report: report
+      report: report,
+      includeReproductionBlob: config.printReproductionBlob
     )
     XCTFail(message, file: file, line: line)
   }
@@ -298,7 +299,8 @@ private func runXCTestForAllAsync<Value: Sendable>(
       value: value,
       record: record,
       propertyID: propertyID,
-      report: report
+      report: report,
+      includeReproductionBlob: config.printReproductionBlob
     )
     XCTFail(message, file: file, line: line)
   }
