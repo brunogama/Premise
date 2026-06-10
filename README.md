@@ -186,8 +186,10 @@ let config = PropertyConfig.default
     .deadline(seconds: 0.2)
     .derandomize()
     .verbosity(.verbose)
+    .printingReproductionBlob()
     .replayingCorpus(from: URL(fileURLWithPath: ".premise/corpus"))
     .exportingFailureTraces(to: URL(fileURLWithPath: ".premise/artifacts"))
+    .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
 
 // Full memberwise init
 let config = PropertyConfig(
@@ -221,6 +223,35 @@ try await forAll(.integers(in: -100...100)) { n, data in
     try data.assume(n != 0, reason: "division by zero")
     #expect(100 / n <= 100)
 }
+```
+
+## Replay and Trace Tooling
+
+Enable copy-paste replay blobs in diagnostics with:
+
+```swift
+let config = PropertyConfig.ci.printingReproductionBlob()
+```
+
+Decode a blob directly when you want to replay through `Runner`:
+
+```swift
+let trace = try ChoiceTrace.decodeReproductionBlob("premise-trace-v1:...")
+let result = await runner.runDetailed(property, replayTraces: [trace])
+```
+
+Inspect exported trace artifacts or blobs from the command line:
+
+```bash
+swift package premise-replay .premise/artifacts/failure.premise-trace.json
+swift package premise-replay --blob 'premise-trace-v1:...'
+```
+
+For CI parsers, append structured run summaries as JSON Lines:
+
+```swift
+let config = PropertyConfig.ci
+    .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
 ```
 
 ## Stateful Testing

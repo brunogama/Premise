@@ -335,11 +335,11 @@ Likely files:
 
 Tasks:
 
-- [ ] Add stable binary trace/blob encoding or finish ARD binary CBOR trace work.
-- [ ] Add typed unsupported-version errors for replay blobs.
-- [ ] Add copy-paste reproduction output in failure formatter.
-- [ ] Add SwiftPM command plugin: `swift package premise-replay <trace-path>`.
-- [ ] Add JSONL run output mode.
+- [x] Add stable binary trace/blob encoding or finish ARD binary CBOR trace work.
+- [x] Add typed unsupported-version errors for replay blobs.
+- [x] Add copy-paste reproduction output in failure formatter.
+- [x] Add SwiftPM command plugin: `swift package premise-replay <trace-path>`.
+- [x] Add JSONL run output mode.
 
 Validation:
 
@@ -347,6 +347,7 @@ Validation:
 swift test --filter ChoiceTraceTests
 swift test --filter PersistenceFormatCompatibilityTests
 swift package dump-package > /tmp/premise-dump.json
+swift package premise-replay --help
 ```
 
 ### Phase 3 — Search Parity

@@ -9,6 +9,11 @@
 - Added settings scaffolding for per-example deadlines, verbosity,
   derandomized seeds, reproduction blob output, multiple-bug policy, and
   backend selection.
+- Added stable `ChoiceTrace` replay blobs with typed unsupported-version
+  errors and copy-paste diagnostics.
+- Added `PremiseReplayTool` plus the `swift package premise-replay` command
+  plugin for inspecting trace artifacts and blobs.
+- Added JSON Lines run output through `PropertyConfig.writingJSONLines(to:)`.
 
 ## v1.0.0 - 2026-06-04
 
