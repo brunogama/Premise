@@ -31,10 +31,9 @@
 
 ### Coverage Integration
 
-- [ ] **COVR-02**: The coverage-guided provider integrates with LLVM
-      SanitizerCoverage via a C shim that reads `__sanitizer_cov_pcs_init` edge
-      data at runtime.
-- [ ] **COVR-03**: The coverage-guided provider falls back to standard PRNG when
+- [x] **COVR-02**: The coverage-guided provider integrates with LLVM
+      SanitizerCoverage via a C shim that reads registered edge data at runtime.
+- [x] **COVR-03**: The coverage-guided provider falls back to standard PRNG when
       SanitizerCoverage instrumentation is not available.
 
 ### Tooling
@@ -84,8 +83,8 @@
 | ENGI-02 | Phase 7 | Pending |
 | ENGI-03 | Phase 7 | Pending |
 | ENGI-04 | Phase 7 | Pending |
-| COVR-02 | Phase 8 | Pending |
-| COVR-03 | Phase 8 | Pending |
+| COVR-02 | Phase 8 | Complete |
+| COVR-03 | Phase 8 | Complete |
 | TOOL-01 | Phase 9 | Pending |
 | TOOL-02 | Phase 9 | Pending |
 | TOOL-03 | Phase 9 | Pending |

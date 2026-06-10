@@ -363,19 +363,20 @@ Likely files:
 
 Tasks:
 
-- [ ] Add `PropertyPhase.target`.
-- [ ] Add trace mutation provider / corpus prioritizer.
-- [ ] Use `PremiseData.target` to steer generation.
-- [ ] Wire LLVM SanitizerCoverage into `PremiseCoverageGuided`.
-- [ ] Add graceful fallback when coverage instrumentation is absent.
-- [ ] Add flakiness detection.
-- [ ] Add multiple-failure collection and reporting.
+- [x] Add `PropertyPhase.target`.
+- [x] Add trace mutation provider / corpus prioritizer.
+- [x] Use `PremiseData.target` to steer generation.
+- [x] Wire LLVM SanitizerCoverage into `PremiseCoverageGuided`.
+- [x] Add graceful fallback when coverage instrumentation is absent.
+- [x] Add flakiness detection.
+- [x] Add multiple-failure collection and reporting.
 
 Validation:
 
 ```bash
 swift test --filter PremiseCoverageGuidedTests
 swift test --filter Runner
+swift build --target PremiseCoverageGuided
 swift build --traits CoverageGuided
 ```
 

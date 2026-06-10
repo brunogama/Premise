@@ -14,6 +14,11 @@
 - Added `PremiseReplayTool` plus the `swift package premise-replay` command
   plugin for inspecting trace artifacts and blobs.
 - Added JSON Lines run output through `PropertyConfig.writingJSONLines(to:)`.
+- Added targeted search via `PropertyPhase.target`, trace mutation, and
+  `PremiseData.target` steering.
+- Added SanitizerCoverage snapshot integration for `PremiseCoverageGuided` with
+  graceful fallback when instrumentation is absent.
+- Added flakiness detection and multiple-failure reporting.
 
 ## v1.0.0 - 2026-06-04
 

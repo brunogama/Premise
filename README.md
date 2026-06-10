@@ -225,6 +225,27 @@ try await forAll(.integers(in: -100...100)) { n, data in
 }
 ```
 
+Use the targeted phase to mutate high-scoring traces from `data.target(...)`:
+
+```swift
+let config = PropertyConfig.default
+    .phases([.generate, .target, .shrink])
+
+try await forAll(.integers(in: 0...1_000), config: config) { value, data in
+    data.target(Double(value), label: "magnitude")
+    #expect(value <= 900)
+}
+```
+
+Collect more than the first distinct failure when exploring broad spaces:
+
+```swift
+let config = PropertyConfig.thorough.reportingMultipleBugs(.all)
+```
+
+Premise also reports flaky failures when a failing trace cannot be replayed or
+replays with a different error.
+
 ## Replay and Trace Tooling
 
 Enable copy-paste replay blobs in diagnostics with:
