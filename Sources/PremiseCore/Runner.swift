@@ -51,7 +51,7 @@ public struct Runner<Value: Sendable>: Sendable {
               enabledChecks: config.healthChecks,
               maxRuns: config.maxRuns
             )
-            return .failure(failure.record, value: failure.value, report: report)
+            return finish(.failure(failure.record, value: failure.value, report: report))
           }
         }
 
@@ -81,7 +81,7 @@ public struct Runner<Value: Sendable>: Sendable {
               enabledChecks: config.healthChecks,
               maxRuns: config.maxRuns
             )
-            return .failure(minimized.record, value: minimized.value, report: report)
+            return finish(.failure(minimized.record, value: minimized.value, report: report))
           }
         }
 
@@ -122,7 +122,7 @@ public struct Runner<Value: Sendable>: Sendable {
               enabledChecks: config.healthChecks,
               maxRuns: config.maxRuns
             )
-            return .failure(minimized.record, value: minimized.value, report: report)
+            return finish(.failure(minimized.record, value: minimized.value, report: report))
           }
         }
 
@@ -135,7 +135,7 @@ public struct Runner<Value: Sendable>: Sendable {
       enabledChecks: config.healthChecks,
       maxRuns: config.maxRuns
     )
-    return .passed(report)
+    return finish(.passed(report))
   }
 
   /// Executes a property and returns diagnostics-rich results.
@@ -178,7 +178,7 @@ public struct Runner<Value: Sendable>: Sendable {
               enabledChecks: config.healthChecks,
               maxRuns: config.maxRuns
             )
-            return .failure(failure.record, value: failure.value, report: report)
+            return finish(.failure(failure.record, value: failure.value, report: report))
           }
         }
 
@@ -208,7 +208,7 @@ public struct Runner<Value: Sendable>: Sendable {
               enabledChecks: config.healthChecks,
               maxRuns: config.maxRuns
             )
-            return .failure(minimized.record, value: minimized.value, report: report)
+            return finish(.failure(minimized.record, value: minimized.value, report: report))
           }
         }
 
@@ -249,7 +249,7 @@ public struct Runner<Value: Sendable>: Sendable {
               enabledChecks: config.healthChecks,
               maxRuns: config.maxRuns
             )
-            return .failure(minimized.record, value: minimized.value, report: report)
+            return finish(.failure(minimized.record, value: minimized.value, report: report))
           }
         }
 
@@ -262,7 +262,7 @@ public struct Runner<Value: Sendable>: Sendable {
       enabledChecks: config.healthChecks,
       maxRuns: config.maxRuns
     )
-    return .passed(report)
+    return finish(.passed(report))
   }
 
   /// Executes the property, replaying any stored traces first, then running
@@ -1141,6 +1141,19 @@ public struct Runner<Value: Sendable>: Sendable {
       return true
     }
     return false
+  }
+
+  private func finish(_ result: DetailedRunResult<Value>) -> DetailedRunResult<Value> {
+    emitJSONLineIfNeeded(for: result)
+    return result
+  }
+
+  private func emitJSONLineIfNeeded(for result: DetailedRunResult<Value>) {
+    guard let outputURL = config.jsonlOutputURL else {
+      return
+    }
+    let event = RunJSONLEvent(propertyID: propertyID, result: result)
+    try? RunJSONLWriter.append(event, to: outputURL)
   }
 }
 

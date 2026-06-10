@@ -92,6 +92,9 @@ public struct PropertyConfig: Sendable {
   /// Directory where JSON trace artifacts should be exported.
   public var traceExportDirectory: URL?
 
+  /// File where structured JSON Lines run events should be appended.
+  public var jsonlOutputURL: URL?
+
   /// Per-property wall-clock timeout in seconds.  When non-nil, the runner
   ///
   /// will stop after the deadline is exceeded and report the best failure
@@ -133,6 +136,7 @@ public struct PropertyConfig: Sendable {
     localDatabaseDirectory: URL? = nil,
     committedCorpusDirectory: URL? = nil,
     traceExportDirectory: URL? = nil,
+    jsonlOutputURL: URL? = nil,
     timeoutSeconds: Double? = nil,
     perExampleDeadlineSeconds: Double? = nil,
     verbosity: PropertyVerbosity = .normal,
@@ -151,6 +155,7 @@ public struct PropertyConfig: Sendable {
     self.localDatabaseDirectory = localDatabaseDirectory
     self.committedCorpusDirectory = committedCorpusDirectory
     self.traceExportDirectory = traceExportDirectory
+    self.jsonlOutputURL = jsonlOutputURL
     self.timeoutSeconds = timeoutSeconds
     self.perExampleDeadlineSeconds = perExampleDeadlineSeconds
     self.verbosity = verbosity
@@ -253,6 +258,13 @@ public struct PropertyConfig: Sendable {
   public func exportingFailureTraces(to directory: URL) -> Self {
     var copy = self
     copy.traceExportDirectory = directory
+    return copy
+  }
+
+  /// Appends structured JSON Lines run events to the given file.
+  public func writingJSONLines(to fileURL: URL) -> Self {
+    var copy = self
+    copy.jsonlOutputURL = fileURL
     return copy
   }
 

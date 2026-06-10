@@ -45,6 +45,47 @@ func choiceTraceRecordsAndRoundTrips() throws {
   #expect(trace.spans.first?.label == "payload")
 }
 
+@Test("ChoiceTrace stable binary blobs round-trip")
+func choiceTraceStableBinaryBlobRoundTrips() throws {
+  let trace = ChoiceTrace(
+    entries: [
+      .bits(ChoiceTrace.BitEntry(count: 5, value: 17)),
+      .integer(42),
+      .boolean(true),
+      .bytes([1, 2, 3]),
+    ],
+    spans: [ChoiceTrace.Span(label: "payload", start: 1, end: 4)]
+  )
+
+  let data = try trace.binaryEncoded()
+  let decoded = try ChoiceTrace(binaryData: data)
+  let blob = try trace.reproductionBlob()
+  let blobDecoded = try ChoiceTrace.decodeReproductionBlob(blob)
+
+  #expect(Array(data.prefix(4)) == ChoiceTrace.binaryMagic)
+  #expect(decoded == trace)
+  #expect(blob.hasPrefix(ChoiceTrace.reproductionBlobPrefix))
+  #expect(blobDecoded == trace)
+}
+
+@Test("ChoiceTrace blob decoder rejects unsupported versions")
+func choiceTraceBlobDecoderRejectsUnsupportedVersions() throws {
+  let trace = ChoiceTrace(entries: [.integer(1)])
+  var data = try trace.binaryEncoded()
+  data[4] = 0
+  data[5] = 2
+
+  #expect(throws: ChoiceTraceBlobError.self) {
+    try ChoiceTrace(binaryData: data)
+  }
+
+  do {
+    _ = try ChoiceTrace(binaryData: data)
+  } catch let error as ChoiceTraceBlobError {
+    #expect(error == .unsupportedVersion(found: 2, supported: 1...1))
+  }
+}
+
 @Test("PremiseData tracks active, exhausted, and interesting status")
 func premiseDataTracksStatusTransitions() {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 1, maxDraws: 1))

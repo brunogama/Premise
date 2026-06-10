@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import PremiseCore
@@ -179,6 +180,42 @@ func derandomizedConfigUsesStablePropertySeed() async {
   }
 
   #expect(firstRecord.seed == secondRecord.seed)
+}
+
+@Test("JSONL run output writes structured run events")
+func jsonlRunOutputWritesStructuredRunEvents() async throws {
+  let directory = FileManager.default.temporaryDirectory
+    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+  let outputURL = directory.appendingPathComponent("premise-runs.jsonl")
+  let propertyID = PropertyIdentity(
+    fileID: "PhaseAndReportTests.swift",
+    line: 321,
+    strategyLabel: "just(1)",
+    functionName: "jsonlRunOutputWritesStructuredRunEvents"
+  )
+  let runner = Runner(
+    strategy: Strategy<Int>.just(1),
+    config: PropertyConfig(maxRuns: 1, seed: 1).writingJSONLines(to: outputURL),
+    propertyID: propertyID
+  )
+
+  let result = await runner.runDetailed { _ in }
+  guard case .passed = result else {
+    Issue.record("Expected JSONL output run to pass")
+    return
+  }
+
+  let output = try String(contentsOf: outputURL, encoding: .utf8)
+  let lines = output.split(separator: "\n")
+  #expect(lines.count == 1)
+
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  let event = try decoder.decode(RunJSONLEvent.self, from: Data(lines[0].utf8))
+  #expect(event.event == "premise.run")
+  #expect(event.propertyID == propertyID)
+  #expect(event.outcome == .passed)
+  #expect(event.runCount == 1)
 }
 
 @Test("Per-example deadline reports a failure")
