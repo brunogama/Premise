@@ -182,7 +182,7 @@ Current state:
 Partial/missing:
 
 - `map`, `flatMap`, `oneOf`, `frequency`, and `recursive` mostly have empty shrinkers.
-- Stateful testing does not shrink failing programs.
+- Higher-order combinator shrink quality remains uneven; stateful testing now has minimal trace/program shrinking.
 
 ### P1 — Strategy Catalog Parity
 
@@ -211,18 +211,10 @@ Missing high-value Hypothesis strategy equivalents:
 
 Current state:
 
-- `RuleBasedStateMachine` exists with rules, preconditions, invariants, and bundles.
+- `RuleBasedStateMachine` has rules, preconditions, invariants, initialize rules, teardown actions, bundles, consuming bundle draws, multi-output rules, invariant `checkDuringInit`, trace/program shrinking, persisted replay traces, and printable minimal failing programs.
 
 Missing:
 
-- Initialization rules.
-- Teardown.
-- Consuming bundles.
-- Multiple rule outputs.
-- Invariant `checkDuringInit`.
-- Shrinking failing operation sequences.
-- Persisted/replayable state-machine programs.
-- Printable minimal failing program.
 - Integration with `PropertyConfig` stateful settings.
 
 ### P2 — Tooling and Ecosystem Parity
@@ -421,15 +413,15 @@ Likely files:
 
 Tasks:
 
-- [ ] Represent stateful runs as shrinkable operation traces.
-- [ ] Add initialize rules.
-- [ ] Add teardown.
-- [ ] Add consuming bundles.
-- [ ] Add multiple bundle outputs.
-- [ ] Add invariant `checkDuringInit`.
-- [ ] Shrink failing rule sequences and rule arguments.
-- [ ] Persist and replay state-machine failures.
-- [ ] Print minimal failing programs.
+- [x] Represent stateful runs as shrinkable operation traces.
+- [x] Add initialize rules.
+- [x] Add teardown.
+- [x] Add consuming bundles.
+- [x] Add multiple bundle outputs.
+- [x] Add invariant `checkDuringInit`.
+- [x] Shrink failing rule sequences and rule arguments.
+- [x] Persist and replay state-machine failures.
+- [x] Print minimal failing programs.
 
 Validation:
 

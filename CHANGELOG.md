@@ -23,6 +23,9 @@
   richer URLs, date/time helpers, UUID options, index/range helpers, Decimal,
   rational and complex domains, fixed records, unique arrays, deferred/shared
   strategies, generated functions, enum cases, and composite builders.
+- Added state-machine initialize rules, teardown actions, consuming bundles,
+  multi-output rules, invariant `checkDuringInit`, replay/persistence,
+  shrinkable traces, and printable minimal failing programs.
 
 ## v1.0.0 - 2026-06-04
 

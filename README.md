@@ -331,18 +331,32 @@ machine.rule("insert", argument: Strategy<Int>.integers(in: 0...100)) { state, v
     state.model.insert(value)
 }
 
-machine.invariant("model matches database") { state in
+machine.initialize("seed", argument: Strategy<Int>.just(0)) { state, seed in
+    try await state.database.insert(seed)
+    state.model.insert(seed)
+}
+
+machine.invariant("model matches database", checkDuringInit: false) { state in
     let databaseValues = try await state.database.values()
     guard databaseValues == state.model.values else {
         throw ModelMismatch()
     }
 }
 
+machine.teardown("close database") { state in
+    try await state.database.close()
+}
+
 try await checkRuleBasedStateMachine(machine)
 ```
 
 Use `makeInitialState` for reference-backed state such as databases so each
-generated example starts with fresh storage.
+generated example starts with fresh storage. State-machine failures include a
+replay trace and a printable minimized program. Persist and replay failures by
+supplying a stable `propertyID` and `localDatabaseDirectory` in
+`StateMachineConfig`. Bundles also support consuming draws with
+`bundle.consumingStrategy()` and rules can emit multiple bundle outputs with
+`targets: (bundleA, bundleB)`.
 
 ## Optional @given Macro
 

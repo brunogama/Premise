@@ -9,9 +9,10 @@ input. Stateful systems need a wider lens: caches, indexes, queues, parsers,
 and clients often fail only after several valid operations interact.
 
 A rule-based state machine describes that workflow as a set of named rules. For
-each generated example, Premise creates a fresh state value, checks all
-invariants, repeatedly chooses an enabled rule, draws the rule argument, runs
-the rule body, and checks the invariants again.
+each generated example, Premise creates a fresh state value, optionally runs
+initialize rules, checks invariants, repeatedly chooses an enabled rule, draws
+the rule argument, runs the rule body, and checks the invariants again. Failing
+runs carry a replay trace and a minimized printable program.
 
 Use a rule machine when the engine should choose the next operation at runtime.
 Use an operation-sequence strategy when you already want to generate a plain
@@ -67,8 +68,10 @@ try await checkRuleBasedStateMachine(
 ```
 
 Rules receive the mutable state and a generated argument. A precondition decides
-whether the rule is currently enabled. Invariants run before the first step and
-after every executed rule.
+whether the rule is currently enabled. Invariants run before initialization by
+default, after initialization, and after every executed rule. Pass
+`checkDuringInit: false` for invariants that only make sense after initialize
+rules have populated required state.
 
 ## Reference-Backed State
 
@@ -176,12 +179,53 @@ machine.rule("delete existing id", argument: ids.strategy()) { state, id in
 
 When a bundle is empty, a consuming rule is skipped for that draw. This is
 useful for workflows like "create, then update" or "open, then close" where
-later operations need values discovered during the run.
+later operations need values discovered during the run. Use
+`ids.consumingStrategy()` to remove the selected value from the bundle, and use
+`targets: (bundleA, bundleB)` when one rule produces multiple outputs.
 
-## Failure Metadata
+## Initialize and Teardown
 
-When a rule, precondition, state factory, or invariant throws,
+Initialize rules run before normal rules and can populate state or bundles:
+
+```swift
+machine.initialize("open account", argument: Strategy<Int>.integers(in: 1...10), target: ids) { state, id in
+    state.open(id)
+    return id
+}
+```
+
+Teardown actions run after normal rule execution and are useful for closing
+resources or asserting final state:
+
+```swift
+machine.teardown("close") { state in
+    try await state.database.close()
+}
+```
+
+## Failure Metadata and Replay
+
+When a rule, precondition, state factory, invariant, or teardown throws,
 `checkRuleBasedStateMachine` reports a `StateMachineFailure`. The failure
-includes the base seed, generated example index, step index, phase, and the
-rule or invariant name when available. Use those fields to reproduce and narrow
-stateful failures without guessing which operation caused the break.
+includes the base seed, generated example index, step index, phase, rule or
+invariant name when available, a replay trace, shrink count, and a printable
+minimal failing program.
+
+To persist and replay state-machine failures, provide a stable property identity
+and database directory:
+
+```swift
+let config = StateMachineConfig(
+    propertyID: PropertyIdentity(
+        fileID: "IndexStateMachineTests.swift",
+        line: 1,
+        strategyLabel: "index-state-machine",
+        functionName: "indexStateMachine"
+    ),
+    localDatabaseDirectory: URL(fileURLWithPath: ".premise/state-machines")
+)
+
+try await checkRuleBasedStateMachine(machine, config: config)
+```
+
+The next run loads stored replay traces before generating fresh programs.
