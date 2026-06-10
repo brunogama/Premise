@@ -90,6 +90,53 @@ let digits    = Array("0123456789")
 
 **Shrinking:** Drops the last character.
 
+### Regex, network, and identifiers
+
+```swift
+static func regex(_ pattern: String, length: ClosedRange<Int> = 0...128) -> Strategy<String>
+static func domainNames() -> Strategy<String>
+static func emailAddresses() -> Strategy<String>
+static func ipv4Addresses() -> Strategy<String>
+static func ipv6Addresses() -> Strategy<String>
+```
+
+`regex` supports a practical generation subset: literals, `.`, character
+classes, escaped literals, and `?`, `*`, `+`, `{n}`, and `{m,n}` quantifiers.
+Generated candidates are still checked against `NSRegularExpression` before
+being returned.
+
+```swift
+.regex("[a-z]{3}[0-9]{2}")
+.domainNames(labels: 2...4)
+.emailAddresses()
+.ipv4Addresses()
+```
+
+### URLs, dates, and identifiers
+
+```swift
+Strategy<URL>.web()
+Strategy<TimeZone>.timeZones()
+Strategy<DateComponents>.dateTimes(years: 1970...2099)
+Strategy<Double>.timeIntervals(in: -60...60)
+Strategy<Duration>.durations(seconds: -10...10)
+Strategy<UUID>.version4(includeNil: true)
+```
+
+Use these for URL routing, calendar/timezone-sensitive code, durations, and UUID
+fields including nil UUID edge cases.
+
+### Numeric domain helpers
+
+```swift
+Strategy<Decimal>.decimals(mantissa: -1000...1000, scale: 0...4)
+Strategy<PremiseRational>.rationals()
+Strategy<PremiseComplex>.complexNumbers()
+```
+
+Premise includes small `PremiseRational` and `PremiseComplex` value types for
+projects that do not already define rational or complex numeric domains.
+
 ## Collection Strategies
 
 These strategies live in the same module and produce Swift collection types.
@@ -147,6 +194,32 @@ Generates a `Set<Element>` with the requested number of unique elements. Duplica
 ```
 
 **Shrinking:** Drops the last element.
+
+### Fixed dictionaries, records, and unique arrays
+
+```swift
+Strategy<[String: Int]>.record([
+    "id": .integers(in: 0...999),
+    "age": .integers(in: 0...120),
+])
+
+Strategy<[Int]>.uniqueArrays(of: .integers(in: 0...100), length: 3...10)
+Strategy<[User]>.arrays(of: users, length: 1...20, uniqueBy: \.id)
+```
+
+Fixed dictionaries and records draw one value per declared key. Unique arrays
+retry duplicate values or duplicate keys and reject the draw if they cannot fill
+the requested size.
+
+### Ranges and indices
+
+```swift
+Strategy<Int>.indices(in: 0..<array.count)
+Strategy<Range<Int>>.ranges(in: 0..<100)
+Strategy<ClosedRange<Int>>.closedRanges(in: 0...100)
+```
+
+These helpers generate valid slice/index inputs for collection APIs.
 
 ## Combinators
 
@@ -259,6 +332,24 @@ Always returns the same constant value. Useful as a base case in recursive strat
 .just(Date.distantPast)
 ```
 
+### nothing
+
+```swift
+static func nothing(label: String = "nothing") -> Strategy<Value>
+```
+
+Never produces examples. This is useful as an impossible branch in conditional
+strategy construction; the runner rejects attempts that draw from it.
+
+### sampled values and enum cases
+
+```swift
+static func sampled(from values: some Collection<Value>) -> Strategy<Value>
+static var cases: Strategy<Value> // when Value: CaseIterable
+```
+
+Use `sampled(from:)` for fixed catalogs and `.cases` for enums.
+
 ### constant
 
 ```swift
@@ -296,6 +387,20 @@ Generates a random permutation of the given array using a Fisher-Yates shuffle d
 ```swift
 let shuffled = Strategy<Int>.permutations(of: [1, 2, 3, 4, 5])
 ```
+
+### deferred, shared, composite, and generated functions
+
+```swift
+Strategy<Value>.deferred { makeStrategy() }
+Strategy<Pair>.shared(.integers(in: 0...10)) { shared in zip(shared, shared) }
+Strategy<Value>.composite { data in try data.draw(otherStrategy) }
+Strategy<GeneratedFunction<Input, Output>>.generatedFunctions(inputs: inputs, outputs: outputs)
+```
+
+`deferred` supports mutually-recursive definitions, `shared` lets one generated
+value be reused inside a larger generated example, `composite` provides direct
+`PremiseData` access for custom builders, and generated functions provide a
+stable table-backed callable value for callback-like inputs.
 
 ### assume
 

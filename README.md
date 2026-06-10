@@ -102,10 +102,19 @@ Premise ships a catalog of built-in strategies in `PremiseStrategies`:
 | `.ascii`, `.letter`, `.digit`, `.unicode` | Character strategies |
 | `Strategy<String>.unicode(length: 5...20)` | Unicode strings |
 | `Strategy<Date>.any`, `.dates(in: range)` | Date generation |
-| `Strategy<UUID>.any` | Random v4 UUIDs |
-| `Strategy<URL>.http` | Random HTTP/HTTPS URLs |
-| `.just(value)`, `.constant(value)` | Constant values |
-| `.elements(of: [...])` | Uniform choice from array |
+| `Strategy<TimeZone>.timeZones()` | Time zone generation |
+| `Strategy<DateComponents>.dateTimes(...)` | Date-time components |
+| `Strategy<Duration>.durations(seconds:)` | Swift duration values |
+| `Strategy<UUID>.any`, `.nilUUID`, `.version4(includeNil:)` | UUIDs including nil edge cases |
+| `Strategy<URL>.http`, `.web(...)` | Random HTTP/HTTPS URLs |
+| `Strategy<String>.regex(...)` | Regex-shaped strings |
+| `Strategy<String>.domainNames()`, `.emailAddresses()` | Domain and email strings |
+| `Strategy<String>.ipv4Addresses()`, `.ipv6Addresses()` | IP address strings |
+| `Strategy<Decimal>.decimals(...)` | Decimal values |
+| `Strategy<PremiseRational>.rationals()` | Rational numbers |
+| `Strategy<PremiseComplex>.complexNumbers()` | Complex numbers |
+| `.just(value)`, `.constant(value)`, `.nothing()` | Constant and impossible branches |
+| `.elements(of: [...])`, `.sampled(from: ...)`, `.cases` | Fixed catalogs and enum cases |
 | `.permutations(of: [...])` | Fisher-Yates shuffle |
 | `strategy.map { ... }` | Transform output |
 | `strategy.flatMap { ... }` | Dependent generation |
@@ -113,12 +122,19 @@ Premise ships a catalog of built-in strategies in `PremiseStrategies`:
 | `strategy.assume { ... }` | Precondition filter |
 | `strategy.suchThat { ... }` | Assumption-style precondition filter |
 | `Strategy.sized(maxSize:) { ... }` | Size-aware generation |
+| `Strategy.deferred { ... }` | Deferred/mutually recursive strategies |
+| `Strategy.shared(...) { ... }` | Shared values within one example |
+| `Strategy.composite { data in ... }` | Custom composite strategy builder |
+| `Strategy<GeneratedFunction<_, _>>.generatedFunctions(...)` | Table-backed generated callbacks |
 | `strategy.optional()` | Wraps in `Optional` |
 | `strategyA \|\|\| strategyB` | Choice operator (`oneOf`) |
 | `zip(s1, s2, s3)` | Variadic tuple composition |
 | `.edgeCaseFloats(...)` | Finite/NaN/Inf/denormal/epsilon float cases |
 | `.arrays(of:count:)` | Exact-size collection generation |
 | `.arrays(of:minCount:maxCount:)` | Min/max collection generation |
+| `.uniqueArrays(of:length:)`, `.arrays(of:length:uniqueBy:)` | Unique arrays by value/key |
+| `.record(...)`, `.fixedDictionary(...)` | Fixed-shape dictionaries |
+| `Strategy<Int>.indices(in:)`, `Strategy<Range<Int>>.ranges(in:)` | Index/range inputs |
 | `.denseVector(...)`, `.sparseVector(...)` | Vector-ish numeric data |
 | `.quantizedValues(...)` | Quantized numeric buckets |
 | `.indexOperations(...)` | Generic index workflow operations |

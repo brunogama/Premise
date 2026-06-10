@@ -392,16 +392,16 @@ Likely files:
 
 Priority order:
 
-- [ ] `Strategy.nothing()` / never strategy.
-- [ ] Regex string generation.
-- [ ] IP/domain/email strategies.
-- [ ] More complete URL strategy.
-- [ ] Date/time/timezone/duration strategies.
-- [ ] Fixed dictionary / record strategies.
-- [ ] Unique arrays by value/key.
-- [ ] Decimal/rational/complex equivalents where appropriate.
-- [ ] Deferred/shared/generated-function strategies.
-- [ ] Composite strategy builder ergonomics.
+- [x] `Strategy.nothing()` / never strategy.
+- [x] Regex string generation.
+- [x] IP/domain/email strategies.
+- [x] More complete URL strategy.
+- [x] Date/time/timezone/duration strategies.
+- [x] Fixed dictionary / record strategies.
+- [x] Unique arrays by value/key.
+- [x] Decimal/rational/complex equivalents where appropriate.
+- [x] Deferred/shared/generated-function strategies.
+- [x] Composite strategy builder ergonomics.
 
 Validation:
 

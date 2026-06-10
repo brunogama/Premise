@@ -19,6 +19,10 @@
 - Added SanitizerCoverage snapshot integration for `PremiseCoverageGuided` with
   graceful fallback when instrumentation is absent.
 - Added flakiness detection and multiple-failure reporting.
+- Expanded the strategy catalog with `nothing`, regex strings, network strings,
+  richer URLs, date/time helpers, UUID options, index/range helpers, Decimal,
+  rational and complex domains, fixed records, unique arrays, deferred/shared
+  strategies, generated functions, enum cases, and composite builders.
 
 ## v1.0.0 - 2026-06-04
 
