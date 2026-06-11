@@ -1,147 +1,152 @@
+<div align="center">
+
 # Swift Premise
 
-A Swift-native property-based testing framework built around a deterministic
-choice-trace engine. Premise produces minimal, replayable counterexamples
-with structural shrinking — and it does so under Swift 6 strict concurrency
-from day one.
+**Swift-native property-based testing with deterministic replay, structural shrinking, and Swift 6 concurrency safety.**
+
+[![CI](https://img.shields.io/github/actions/workflow/status/brunogama/Premise/ci.yml?style=flat-square&label=CI)](https://github.com/brunogama/Premise/actions)
+![Swift](https://img.shields.io/badge/Swift-6.2+-f05138?style=flat-square&logo=swift&logoColor=white)
+![SwiftPM](https://img.shields.io/badge/SwiftPM-compatible-blue?style=flat-square)
+![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS-lightgrey?style=flat-square)
+
+[Get started](#getting-started) • [Features](#features) • [Strategies](#strategies) • [Replay](#replay-and-trace-tooling) • [Stateful testing](#stateful-testing) • [Tooling](#ghostwriter-and-fuzzing)
+
+</div>
+
+Swift Premise is a property-based testing framework for Swift. Describe the
+behavior your code must always satisfy, then let Premise generate many inputs,
+shrink failures to minimal counterexamples, and replay those failures
+repeatably in future runs.
+
+> [!NOTE]
+> Premise is inspired by Python's Hypothesis, but the API is intentionally
+> Swift-native: value-oriented strategies, `Sendable` public types, async-aware
+> adapters, SwiftPM plugins, and an optional macro layer that stays out of the
+> default dependency graph.
 
 ## Features
 
-- **Deterministic replay** — every failure is captured as a choice trace that
-  reproduces the exact same counterexample.
-- **Structural shrinking** — the engine automatically minimizes failing inputs
-  so you see the simplest case that breaks your property.
-- **Persistent failure storage** — failing traces are written to disk and
-  replayed first on subsequent runs, so regressions stay caught.
-- **Protocol-witness strategies** — generators use a value-oriented
-  `Strategy<Value>` design with no existential overhead in the hot path.
-- **Swift 6 strict concurrency** — all public APIs are `Sendable`-safe with
-  complete concurrency checking.
-- **Adapters for swift-testing and XCTest** — thin integration layers let you
-  use Premise with either test framework.
+- **Deterministic replay** — every failing run records a `ChoiceTrace` that can
+  be decoded and replayed exactly.
+- **Structural shrinking** — failing choices are minimized at the trace level,
+  with strategy-specific shrinkers for common Swift values.
+- **Persistent failures** — file-backed and SQLite-backed databases replay known
+  failures before fresh generation.
+- **Rich strategy catalog** — primitives, collections, URLs, UUIDs, dates,
+  regex-shaped strings, network strings, records, vectors, recursive data, and
+  more.
+- **swift-testing and XCTest adapters** — use `forAll` or `premise_forAll`
+  without changing your test framework.
+- **Stateful testing** — generate operation sequences or rule-based state
+  machine programs with replayable minimal failures.
+- **Tooling included** — replay trace inspection, ghostwritten property
+  skeletons, JSONL run output, and fuzzer byte-input bridging.
+- **Strict concurrency** — built for Swift 6 complete strict-concurrency checks.
 
-## Installation
+## Getting started
 
-Add Premise as a dependency in your `Package.swift`:
+### Requirements
+
+- Swift 6.2 or newer
+- macOS 13+, iOS 16+, tvOS 16+, watchOS 9+, or visionOS 1+
+
+### Install with SwiftPM
+
+Add the package dependency:
 
 ```swift
+// Package.swift
 dependencies: [
     .package(url: "https://github.com/brunogama/Premise.git", from: "1.0.0"),
 ]
 ```
 
-The first stable release is tagged `v1.0.0`; SwiftPM version requirements omit
-the `v` prefix and use `from: "1.0.0"`.
-
-Then add the targets you need:
+Then add the products you need to your test target:
 
 ```swift
 .testTarget(
-    name: "MyTests",
+    name: "MyPackageTests",
     dependencies: [
-        // For swift-testing:
         .product(name: "PremiseTesting", package: "SwiftPremise"),
-        // Or for XCTest:
-        .product(name: "PremiseXCTest", package: "SwiftPremise"),
+        .product(name: "PremiseStrategies", package: "SwiftPremise"),
     ]
 )
 ```
 
-### Requirements
+For XCTest, use `PremiseXCTest` instead of `PremiseTesting`.
 
-- Swift 6.2+
-- macOS 13+ / iOS 16+ / tvOS 16+ / watchOS 9+ / visionOS 1+
-
-## Quick Start
-
-### swift-testing
+### Your first property
 
 ```swift
 import Testing
-import PremiseTesting
 import PremiseStrategies
+import PremiseTesting
 
 @Test func additionIsCommutative() async throws {
-    try await forAll(.integers(in: -1000...1000)) { x in
-        try await forAll(.integers(in: -1000...1000)) { y in
-            #expect(x + y == y + x)
-        }
+    try await forAll(
+        Strategy<Int>.integers(in: -1_000...1_000),
+        Strategy<Int>.integers(in: -1_000...1_000)
+    ) { x, y in
+        #expect(x + y == y + x)
     }
 }
 ```
 
-### XCTest
+The XCTest adapter exposes the same engine through `premise_forAll`:
 
 ```swift
 import XCTest
-import PremiseXCTest
 import PremiseStrategies
+import PremiseXCTest
 
 final class MathTests: XCTestCase {
     func testAdditionIsCommutative() async throws {
-        try await premise_forAll(.integers(in: -1000...1000)) { x in
-            try await premise_forAll(.integers(in: -1000...1000)) { y in
-                XCTAssertEqual(x + y, y + x)
-            }
+        try await premise_forAll(
+            Strategy<Int>.integers(in: -1_000...1_000),
+            Strategy<Int>.integers(in: -1_000...1_000)
+        ) { x, y in
+            XCTAssertEqual(x + y, y + x)
         }
     }
 }
 ```
 
+## How it works
+
+1. **Draw** — a strategy asks `PremiseData` for primitive choices.
+2. **Record** — every choice is stored in a deterministic `ChoiceTrace`.
+3. **Check** — your property runs against the generated value.
+4. **Shrink** — on failure, Premise replays smaller traces until the
+   counterexample is minimal.
+5. **Persist** — the failure is stored and replayed first on the next run.
+
 ## Strategies
 
-Premise ships a catalog of built-in strategies in `PremiseStrategies`:
+Strategies are values of type `Strategy<Value>`. They describe how to generate,
+replay, and shrink a value.
 
-| Strategy | Description |
-|----------|-------------|
-| `.integers(in: 0...100)` | Integers in a closed range (edge-biased) |
-| `.booleans` | Random `Bool` values |
-| `.floats(in: 0.0...1.0)` | Doubles in a closed range (edge-biased) |
-| `.bytes(length: 16)` | Fixed-length byte arrays |
-| `.strings(from: chars, length: 1...10)` | Strings from a character set |
-| `.ascii`, `.letter`, `.digit`, `.unicode` | Character strategies |
-| `Strategy<String>.unicode(length: 5...20)` | Unicode strings |
-| `Strategy<Date>.any`, `.dates(in: range)` | Date generation |
-| `Strategy<TimeZone>.timeZones()` | Time zone generation |
-| `Strategy<DateComponents>.dateTimes(...)` | Date-time components |
-| `Strategy<Duration>.durations(seconds:)` | Swift duration values |
-| `Strategy<UUID>.any`, `.nilUUID`, `.version4(includeNil:)` | UUIDs including nil edge cases |
-| `Strategy<URL>.http`, `.web(...)` | Random HTTP/HTTPS URLs |
-| `Strategy<String>.regex(...)` | Regex-shaped strings |
-| `Strategy<String>.domainNames()`, `.emailAddresses()` | Domain and email strings |
-| `Strategy<String>.ipv4Addresses()`, `.ipv6Addresses()` | IP address strings |
-| `Strategy<Decimal>.decimals(...)` | Decimal values |
-| `Strategy<PremiseRational>.rationals()` | Rational numbers |
-| `Strategy<PremiseComplex>.complexNumbers()` | Complex numbers |
-| `.just(value)`, `.constant(value)`, `.nothing()` | Constant and impossible branches |
-| `.elements(of: [...])`, `.sampled(from: ...)`, `.cases` | Fixed catalogs and enum cases |
-| `.permutations(of: [...])` | Fisher-Yates shuffle |
-| `strategy.map { ... }` | Transform output |
-| `strategy.flatMap { ... }` | Dependent generation |
-| `strategy.filter { ... }` | Post-condition filter |
-| `strategy.assume { ... }` | Precondition filter |
-| `strategy.suchThat { ... }` | Assumption-style precondition filter |
-| `Strategy.sized(maxSize:) { ... }` | Size-aware generation |
-| `Strategy.deferred { ... }` | Deferred/mutually recursive strategies |
-| `Strategy.shared(...) { ... }` | Shared values within one example |
-| `Strategy.composite { data in ... }` | Custom composite strategy builder |
-| `Strategy<GeneratedFunction<_, _>>.generatedFunctions(...)` | Table-backed generated callbacks |
-| `strategy.optional()` | Wraps in `Optional` |
-| `strategyA \|\|\| strategyB` | Choice operator (`oneOf`) |
-| `zip(s1, s2, s3)` | Variadic tuple composition |
-| `.edgeCaseFloats(...)` | Finite/NaN/Inf/denormal/epsilon float cases |
-| `.arrays(of:count:)` | Exact-size collection generation |
-| `.arrays(of:minCount:maxCount:)` | Min/max collection generation |
-| `.uniqueArrays(of:length:)`, `.arrays(of:length:uniqueBy:)` | Unique arrays by value/key |
-| `.record(...)`, `.fixedDictionary(...)` | Fixed-shape dictionaries |
-| `Strategy<Int>.indices(in:)`, `Strategy<Range<Int>>.ranges(in:)` | Index/range inputs |
-| `.denseVector(...)`, `.sparseVector(...)` | Vector-ish numeric data |
-| `.quantizedValues(...)` | Quantized numeric buckets |
-| `.indexOperations(...)` | Generic index workflow operations |
+| Category | Examples |
+| --- | --- |
+| Primitives | integers, unsigned integers, booleans, floats, bytes, constants |
+| Text | ASCII, Unicode, regex-shaped strings, domains, emails, IPv4/IPv6 |
+| Foundation | `Date`, `DateComponents`, `Duration`, `TimeZone`, `UUID`, `URL` |
+| Collections | arrays, sets, dictionaries, fixed records, unique arrays |
+| Composition | `map`, `flatMap`, `filter`, `zip`, `oneOf`, weighted choices |
+| Recursive data | deferred and recursive strategies with size controls |
+| Numeric domains | `Decimal`, rational numbers, complex numbers, vectors |
+| Workflows | ranges, indices, generated functions, index operations |
 
-### Custom Strategies
+```swift
+let user = Strategy<[String: Int]>.record([
+    "id": .integers(in: 1...10_000),
+    "age": .integers(in: 0...120),
+])
 
-Build your own `Strategy<Value>` with a draw function and an optional shrinker:
+let emails = Strategy<String>.emailAddresses()
+let payloads = Strategy<[UInt8]>.bytes(length: 0...512)
+```
+
+Create custom strategies directly when your domain needs special structure:
 
 ```swift
 let positiveEven = Strategy<Int>(
@@ -151,149 +156,143 @@ let positiveEven = Strategy<Int>(
         return Int(n) * 2
     },
     shrink: { value in
-        guard value > 2 else { return [] }
-        return [value - 2]
+        value > 2 ? [2, value / 2] : []
     }
 )
 ```
 
-Replace or add custom shrink behavior with `shrinking`:
-
-```swift
-let smallFirst = positiveEven.shrinking { value in
-    value > 2 ? [2, value / 2] : []
-}
-```
-
-### Type-Driven Derivation
-
-Use `StrategyRegistry` when a test helper needs a strategy by type rather than
-by explicit parameter. The registry is immutable, so overrides are scoped to the
-test that creates them:
-
-```swift
-let registry = StrategyRegistry.standard
-    .register(UserID.self) { registry in
-        registry.strategy(for: Int.self)
-            .map { UserID(rawValue: $0) }
-    }
-
-let ids = registry.strategy(for: UserID.self)
-```
-
-Custom domain types can conform to `StrategyProviding` to derive themselves
-from the registry without global mutable state.
+See the [strategy catalog](Sources/PremiseCore/Documentation.docc/Articles/StrategyCatalog.md)
+for the full built-in reference.
 
 ## Configuration
 
-Use built-in presets or chainable builders:
+Use presets for common test budgets, or customize a run with builder-style
+configuration:
 
 ```swift
-// Presets
-try await forAll(.integers(in: 0...100), config: .quick) { n in ... }    // 20 runs
-try await forAll(.integers(in: 0...100), config: .thorough) { n in ... } // 1,000 runs
-try await forAll(.integers(in: 0...100), config: .ci) { n in ... }       // 500 runs, 60s timeout
-
-// Chainable builders
-let config = PropertyConfig.default
-    .runs(200)
+let config = PropertyConfig.ci
+    .runs(500)
     .seed(42)
-    .timeout(seconds: 30)
     .deadline(seconds: 0.2)
     .derandomize()
-    .verbosity(.verbose)
     .printingReproductionBlob()
-    .replayingCorpus(from: URL(fileURLWithPath: ".premise/corpus"))
     .exportingFailureTraces(to: URL(fileURLWithPath: ".premise/artifacts"))
     .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
 
-// Full memberwise init
-let config = PropertyConfig(
-    maxRuns: 200,
-    maxShrinkIterations: 500,
-    seed: 42
-)
+try await forAll(Strategy<Int>.integers(in: 0...100), config: config) { value in
+    #expect(value <= 100)
+}
 ```
 
-Use a committed replay corpus when CI finds a failure that should become a
-permanent regression case. JSON failure trace artifacts can be uploaded by CI,
-reviewed, and copied into the corpus so future runs replay them before fresh
-generation.
+Useful presets:
 
-Run known edge cases before generation with explicit examples:
+| Preset | Intended use |
+| --- | --- |
+| `.quick` | Fast local feedback |
+| `.default` | Normal development checks |
+| `.thorough` | Larger exploratory runs |
+| `.ci` | CI-friendly timeout and diagnostics |
+
+Use explicit examples for edge cases and known failures:
 
 ```swift
 try await forAll(
-    .integers(in: 0...100),
+    Strategy<Int>.integers(in: 0...100),
     explicitExamples: [0, 100],
-    examples: [.xfail(42, reason: "known bug")]
-) { n in
-    #expect(n != 42)
+    examples: [.xfail(42, reason: "known production bug")]
+) { value in
+    #expect(value != 42)
 }
 ```
 
-Inside data-aware properties, reject invalid generated cases without failing:
+Use data-aware properties when validity depends on the generated value:
 
 ```swift
-try await forAll(.integers(in: -100...100)) { n, data in
-    try data.assume(n != 0, reason: "division by zero")
-    #expect(100 / n <= 100)
+try await forAll(Strategy<Int>.integers(in: -100...100)) { value, data in
+    try data.assume(value != 0, reason: "division by zero")
+    #expect(100 / value <= 100)
 }
 ```
 
-Use the targeted phase to mutate high-scoring traces from `data.target(...)`:
+## Replay and trace tooling
 
-```swift
-let config = PropertyConfig.default
-    .phases([.generate, .target, .shrink])
-
-try await forAll(.integers(in: 0...1_000), config: config) { value, data in
-    data.target(Double(value), label: "magnitude")
-    #expect(value <= 900)
-}
-```
-
-Collect more than the first distinct failure when exploring broad spaces:
-
-```swift
-let config = PropertyConfig.thorough.reportingMultipleBugs(.all)
-```
-
-Premise also reports flaky failures when a failing trace cannot be replayed or
-replays with a different error.
-
-## Replay and Trace Tooling
-
-Enable copy-paste replay blobs in diagnostics with:
+Premise can print copy-paste reproduction blobs in adapter diagnostics:
 
 ```swift
 let config = PropertyConfig.ci.printingReproductionBlob()
 ```
 
-Decode a blob directly when you want to replay through `Runner`:
+Replay a blob directly:
 
 ```swift
 let trace = try ChoiceTrace.decodeReproductionBlob("premise-trace-v1:...")
 let result = await runner.runDetailed(property, replayTraces: [trace])
 ```
 
-Inspect exported trace artifacts or blobs from the command line:
+Inspect persisted traces or exported artifacts from the command line:
 
 ```bash
 swift package premise-replay .premise/artifacts/failure.premise-trace.json
 swift package premise-replay --blob 'premise-trace-v1:...'
 ```
 
-For CI parsers, append structured run summaries as JSON Lines:
+> [!TIP]
+> Commit important replay traces into a corpus directory and use
+> `.replayingCorpus(from:)` so CI always starts with known regressions.
+
+## Stateful testing
+
+Use rule-based state machines when correctness depends on valid operation
+sequences:
 
 ```swift
-let config = PropertyConfig.ci
-    .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
+import PremiseStrategies
+import PremiseTesting
+
+struct CounterHarness: Sendable {
+    var model = 0
+    var system = 0
+}
+
+struct ModelMismatch: Error {}
+
+var machine = RuleBasedStateMachine(initialState: CounterHarness())
+
+machine.rule("increment", argument: Strategy<Int>.integers(in: 1...3)) { state, amount in
+    state.model += amount
+    state.system += amount
+}
+
+machine.rule(
+    "decrement",
+    argument: Strategy<Int>.integers(in: 1...3),
+    precondition: { $0.system > 0 },
+    { state, amount in
+        state.model -= min(amount, state.model)
+        state.system -= min(amount, state.system)
+    }
+)
+
+machine.invariant("model matches system") { state in
+    guard state.model == state.system else { throw ModelMismatch() }
+}
+
+try await checkRuleBasedStateMachine(
+    machine,
+    config: StateMachineConfig(maxExamples: 50, maxSteps: 20, seed: 42)
+)
 ```
 
-## Ghostwriter and Fuzzing
+State machines support initialize rules, teardown actions, preconditions,
+bundles, consuming bundle values, multiple outputs, invariant init control,
+minimal failing programs, and persisted replay traces.
 
-Generate starter properties from the command line:
+For simpler model-based tests, generate an explicit operation list with
+`checkOperationSequence`.
+
+## Ghostwriter and fuzzing
+
+Generate starter properties with the SwiftPM command plugin:
 
 ```bash
 swift package premise-ghostwriter \
@@ -305,10 +304,21 @@ swift package premise-ghostwriter \
   --decode 'try JSONDecoder().decode(Payload.self, from: $0)'
 ```
 
-Bridge libFuzzer, AFL, or custom byte harnesses into Premise strategies with
-`PremiseFuzzing`:
+Supported templates:
+
+- `fuzz-no-crash`
+- `roundtrip`
+- `equivalence`
+- `idempotence`
+- `binary-operation-laws`
+
+Bridge libFuzzer, AFL, or custom byte-input harnesses through `PremiseFuzzing`:
 
 ```swift
+import Foundation
+import PremiseFuzzing
+import PremiseStrategies
+
 try await fuzzOneInput(
     Data(fuzzerBytes),
     strategy: Strategy<Payload>.payloads()
@@ -317,176 +327,70 @@ try await fuzzOneInput(
 }
 ```
 
-Failures are saved as Premise replay traces, with the original fuzz bytes
-recorded in run statistics for corpus triage.
+Failing fuzz inputs are saved as Premise replay traces, with the original bytes
+recorded in run statistics for triage.
 
-## Stateful Testing
+## Optional `@given` macro
 
-`PremiseTesting` includes a small operation-sequence checker for model-based
-database and index workflows:
-
-```swift
-try await checkOperationSequence(
-    operations,
-    initialModel: ModelState(),
-    initialSystem: DatabaseState()
-) { model, system in
-    #expect(model.snapshot == system.snapshot)
-}
-```
-
-Generate shrinkable operation lists with:
-
-```swift
-let operations = Strategy<[IndexOperation]>.indexOperationSequences(
-    length: 1...50,
-    indexRange: 0...10,
-    value: -100...100
-)
-```
-
-For workflows where the engine should choose which operation comes next,
-use the rule-based DSL:
-
-```swift
-var machine = RuleBasedStateMachine(makeInitialState: {
-    ModelAndDatabase()
-})
-
-struct ModelMismatch: Error {}
-
-machine.rule("insert", argument: Strategy<Int>.integers(in: 0...100)) { state, value in
-    try await state.database.insert(value)
-    state.model.insert(value)
-}
-
-machine.initialize("seed", argument: Strategy<Int>.just(0)) { state, seed in
-    try await state.database.insert(seed)
-    state.model.insert(seed)
-}
-
-machine.invariant("model matches database", checkDuringInit: false) { state in
-    let databaseValues = try await state.database.values()
-    guard databaseValues == state.model.values else {
-        throw ModelMismatch()
-    }
-}
-
-machine.teardown("close database") { state in
-    try await state.database.close()
-}
-
-try await checkRuleBasedStateMachine(machine)
-```
-
-Use `makeInitialState` for reference-backed state such as databases so each
-generated example starts with fresh storage. State-machine failures include a
-replay trace and a printable minimized program. Persist and replay failures by
-supplying a stable `propertyID` and `localDatabaseDirectory` in
-`StateMachineConfig`. Bundles also support consuming draws with
-`bundle.consumingStrategy()` and rules can emit multiple bundle outputs with
-`targets: (bundleA, bundleB)`.
-
-## Optional @given Macro
-
-For zero-boilerplate property tests, use the `@given` macro (inspired by Hypothesis's `@given` decorator):
-
-```swift
-import PremiseMacros
-import PremiseTesting
-
-@given(.integers(in: 0...100), .ascii)
-func additionIsCommutative(a: Int, s: String) {
-    #expect(a + s.count >= a)
-}
-
-// With configuration:
-@given(.integers(in: 0...100), config: .thorough)
-func largeSearchSpace(n: Int) {
-    #expect(n * 2 / 2 == n)
-}
-```
-
-The default manifest is macro-free: `PremiseCore`, `PremiseStrategies`, and
-`PremiseTesting` build without downloading a macro artifact or resolving
-`swift-syntax`.
-
-To work on `@given` locally, opt into source macros:
+The default manifest is macro-free: core products build without downloading a
+macro artifact or resolving `swift-syntax`. If you want decorator-style syntax,
+opt in to the macro product:
 
 ```bash
 PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
 ```
 
-Release automation validates the binary macro path with:
+```swift
+import Testing
+import PremiseMacros
+import PremiseTesting
 
-```bash
-PREMISE_MACRO_BINARY=1 \
-PREMISE_MACRO_BINARY_CHECKSUM=<checksum> \
-swift package dump-package
+@given(.integers(in: 0...100), .ascii)
+func lengthDoesNotReduceNumber(n: Int, text: String) {
+    #expect(n + text.count >= n)
+}
 ```
 
-## Package Structure
+## Package map
 
-| Module | Purpose |
-|--------|---------|
-| `PremiseCore` | Deterministic choice-trace engine, runner, shrink machine |
-| `PremiseStrategies` | Built-in generation strategies and combinators |
-| `PremiseDatabase` | File-backed (v1) and SQLite WAL (v2) failure persistence |
-| `PremiseTesting` | swift-testing adapter (`forAll`) |
-| `PremiseXCTest` | XCTest adapter (`premise_forAll`) |
-| `PremiseParallel` | Parallel property execution (v2) |
-| `PremiseTelemetry` | Engine event hooks and telemetry sinks (v2) |
-| `PremiseMacros` | Optional `@given` macro (source or release-binary opt-in) |
+| Product | Purpose |
+| --- | --- |
+| `PremiseCore` | Choice traces, runners, shrink machines, reports, config |
+| `PremiseStrategies` | Built-in strategies, combinators, derivation helpers |
+| `PremiseDatabase` | File-backed, SQLite, and composite failure persistence |
+| `PremiseTesting` | swift-testing adapter and stateful testing APIs |
+| `PremiseXCTest` | XCTest adapter |
+| `PremiseFuzzing` | Byte-input fuzzing bridge |
+| `PremiseGhostwriter` | Property-test skeleton generation |
+| `PremiseParallel` | Parallel property execution |
+| `PremiseTelemetry` | Engine event hooks and telemetry sinks |
+| `PremiseCoverageGuided` | SanitizerCoverage snapshots and coverage guidance |
+| `PremiseMacros` | Optional `@given` macro |
 
-## Still Separate From The Core
-
-The Hypothesis-inspired ghostwriter CLI, external fuzzer bridge, and expanded
-network/regex/timezone strategy catalog are intentionally separate extension
-areas. They do not need to affect the macro-free `PremiseCore` path.
-
-The default build ships the five v1 products. V2 extension modules are additive
-and don't change the v1 API surface. Optional trait-gated targets exist for
-coverage-guided exploration (`CoverageGuided` trait) and SMT-backed providers
-(`SMT` trait).
-
-## How It Works
-
-1. **Draw** — the engine feeds random choices through a `PrimitiveProvider` and
-   records every decision in a `ChoiceTrace`.
-2. **Test** — your property closure receives the generated value and either
-   passes or throws.
-3. **Shrink** — on failure, the `ShrinkMachine` replays progressively simpler
-   traces until it finds a minimal counterexample.
-4. **Persist** — the failing trace and its `FailureRecord` are saved to the
-   example database.
-5. **Replay** — on the next run, persisted failures are replayed first so
-   regressions fail immediately.
-
-## Validation
+## Local development
 
 ```bash
+# Build all default products
 swift build
+
+# Run tests
 swift test
-```
 
-With full boundary enforcement:
-
-```bash
+# Validate target boundaries
 bash scripts/validate-boundaries.sh
-swift build --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
-swift test --explicit-target-dependency-import-check error -Xswiftc -warnings-as-errors
-swift build -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+
+# Build optional source macros
+PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
 ```
 
-## Contributing
+> [!IMPORTANT]
+> Use a Swift toolchain with the `Testing` module available for the Swift
+> Testing test targets. The package itself is SwiftPM-first and builds without
+> optional macro dependencies by default.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [RULES.md](RULES.md), and
-[WORKFLOW.md](WORKFLOW.md) before opening a PR.
+## Learn more
 
-## Security
-
-See [SECURITY.md](SECURITY.md) for vulnerability reporting instructions.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+- [How the engine works](Sources/PremiseCore/Documentation.docc/Articles/HowTheEngineWorks.md)
+- [Failure persistence and replay](Sources/PremiseCore/Documentation.docc/Articles/FailurePersistenceAndReplay.md)
+- [Stateful rule machines](Sources/PremiseCore/Documentation.docc/Articles/StatefulRuleMachines.md)
+- [Ghostwriter and fuzzer bridge](Sources/PremiseCore/Documentation.docc/Articles/GhostwriterAndFuzzing.md)
