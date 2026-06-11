@@ -104,6 +104,16 @@ struct PersistenceFormatCompatibilityTests {
     #expect(decoded.statistics == RunStatistics())
   }
 
+  @Test("Persistence codec encodes and decodes trace blobs")
+  func traceBlobRoundTrip() throws {
+    let trace = sampleRecord().trace
+    let blob = try PersistenceCodec.encodeTraceBlob(trace)
+    let decoded = try PersistenceCodec.decodeTraceBlob(blob)
+
+    #expect(blob.hasPrefix(ChoiceTrace.reproductionBlobPrefix))
+    #expect(decoded == trace)
+  }
+
   @Test("Decode rejects unsupported trace format version")
   func unsupportedTraceVersionThrows() throws {
     let original = sampleRecord()

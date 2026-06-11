@@ -22,7 +22,8 @@ public struct RunNote: Sendable, Equatable, Codable {
 /// Statistics are populated via ``PremiseData/note(_:value:)``,
 /// ``PremiseData/event(_:)``, and ``PremiseData/target(_:label:)``
 /// inside the property body or strategy draw phase.  They are purely
-/// informational and do not affect generation, replay, or shrinking.
+/// informational during normal generation. When ``PropertyPhase/target`` is
+/// enabled, target scores steer trace mutation toward higher-scoring inputs.
 ///
 /// ```swift
 /// forAll(.integers(in: 0...100)) { n, data in

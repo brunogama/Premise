@@ -102,10 +102,19 @@ Premise ships a catalog of built-in strategies in `PremiseStrategies`:
 | `.ascii`, `.letter`, `.digit`, `.unicode` | Character strategies |
 | `Strategy<String>.unicode(length: 5...20)` | Unicode strings |
 | `Strategy<Date>.any`, `.dates(in: range)` | Date generation |
-| `Strategy<UUID>.any` | Random v4 UUIDs |
-| `Strategy<URL>.http` | Random HTTP/HTTPS URLs |
-| `.just(value)`, `.constant(value)` | Constant values |
-| `.elements(of: [...])` | Uniform choice from array |
+| `Strategy<TimeZone>.timeZones()` | Time zone generation |
+| `Strategy<DateComponents>.dateTimes(...)` | Date-time components |
+| `Strategy<Duration>.durations(seconds:)` | Swift duration values |
+| `Strategy<UUID>.any`, `.nilUUID`, `.version4(includeNil:)` | UUIDs including nil edge cases |
+| `Strategy<URL>.http`, `.web(...)` | Random HTTP/HTTPS URLs |
+| `Strategy<String>.regex(...)` | Regex-shaped strings |
+| `Strategy<String>.domainNames()`, `.emailAddresses()` | Domain and email strings |
+| `Strategy<String>.ipv4Addresses()`, `.ipv6Addresses()` | IP address strings |
+| `Strategy<Decimal>.decimals(...)` | Decimal values |
+| `Strategy<PremiseRational>.rationals()` | Rational numbers |
+| `Strategy<PremiseComplex>.complexNumbers()` | Complex numbers |
+| `.just(value)`, `.constant(value)`, `.nothing()` | Constant and impossible branches |
+| `.elements(of: [...])`, `.sampled(from: ...)`, `.cases` | Fixed catalogs and enum cases |
 | `.permutations(of: [...])` | Fisher-Yates shuffle |
 | `strategy.map { ... }` | Transform output |
 | `strategy.flatMap { ... }` | Dependent generation |
@@ -113,12 +122,19 @@ Premise ships a catalog of built-in strategies in `PremiseStrategies`:
 | `strategy.assume { ... }` | Precondition filter |
 | `strategy.suchThat { ... }` | Assumption-style precondition filter |
 | `Strategy.sized(maxSize:) { ... }` | Size-aware generation |
+| `Strategy.deferred { ... }` | Deferred/mutually recursive strategies |
+| `Strategy.shared(...) { ... }` | Shared values within one example |
+| `Strategy.composite { data in ... }` | Custom composite strategy builder |
+| `Strategy<GeneratedFunction<_, _>>.generatedFunctions(...)` | Table-backed generated callbacks |
 | `strategy.optional()` | Wraps in `Optional` |
 | `strategyA \|\|\| strategyB` | Choice operator (`oneOf`) |
 | `zip(s1, s2, s3)` | Variadic tuple composition |
 | `.edgeCaseFloats(...)` | Finite/NaN/Inf/denormal/epsilon float cases |
 | `.arrays(of:count:)` | Exact-size collection generation |
 | `.arrays(of:minCount:maxCount:)` | Min/max collection generation |
+| `.uniqueArrays(of:length:)`, `.arrays(of:length:uniqueBy:)` | Unique arrays by value/key |
+| `.record(...)`, `.fixedDictionary(...)` | Fixed-shape dictionaries |
+| `Strategy<Int>.indices(in:)`, `Strategy<Range<Int>>.ranges(in:)` | Index/range inputs |
 | `.denseVector(...)`, `.sparseVector(...)` | Vector-ish numeric data |
 | `.quantizedValues(...)` | Quantized numeric buckets |
 | `.indexOperations(...)` | Generic index workflow operations |
@@ -183,8 +199,13 @@ let config = PropertyConfig.default
     .runs(200)
     .seed(42)
     .timeout(seconds: 30)
+    .deadline(seconds: 0.2)
+    .derandomize()
+    .verbosity(.verbose)
+    .printingReproductionBlob()
     .replayingCorpus(from: URL(fileURLWithPath: ".premise/corpus"))
     .exportingFailureTraces(to: URL(fileURLWithPath: ".premise/artifacts"))
+    .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
 
 // Full memberwise init
 let config = PropertyConfig(
@@ -198,6 +219,106 @@ Use a committed replay corpus when CI finds a failure that should become a
 permanent regression case. JSON failure trace artifacts can be uploaded by CI,
 reviewed, and copied into the corpus so future runs replay them before fresh
 generation.
+
+Run known edge cases before generation with explicit examples:
+
+```swift
+try await forAll(
+    .integers(in: 0...100),
+    explicitExamples: [0, 100],
+    examples: [.xfail(42, reason: "known bug")]
+) { n in
+    #expect(n != 42)
+}
+```
+
+Inside data-aware properties, reject invalid generated cases without failing:
+
+```swift
+try await forAll(.integers(in: -100...100)) { n, data in
+    try data.assume(n != 0, reason: "division by zero")
+    #expect(100 / n <= 100)
+}
+```
+
+Use the targeted phase to mutate high-scoring traces from `data.target(...)`:
+
+```swift
+let config = PropertyConfig.default
+    .phases([.generate, .target, .shrink])
+
+try await forAll(.integers(in: 0...1_000), config: config) { value, data in
+    data.target(Double(value), label: "magnitude")
+    #expect(value <= 900)
+}
+```
+
+Collect more than the first distinct failure when exploring broad spaces:
+
+```swift
+let config = PropertyConfig.thorough.reportingMultipleBugs(.all)
+```
+
+Premise also reports flaky failures when a failing trace cannot be replayed or
+replays with a different error.
+
+## Replay and Trace Tooling
+
+Enable copy-paste replay blobs in diagnostics with:
+
+```swift
+let config = PropertyConfig.ci.printingReproductionBlob()
+```
+
+Decode a blob directly when you want to replay through `Runner`:
+
+```swift
+let trace = try ChoiceTrace.decodeReproductionBlob("premise-trace-v1:...")
+let result = await runner.runDetailed(property, replayTraces: [trace])
+```
+
+Inspect exported trace artifacts or blobs from the command line:
+
+```bash
+swift package premise-replay .premise/artifacts/failure.premise-trace.json
+swift package premise-replay --blob 'premise-trace-v1:...'
+```
+
+For CI parsers, append structured run summaries as JSON Lines:
+
+```swift
+let config = PropertyConfig.ci
+    .writingJSONLines(to: URL(fileURLWithPath: ".premise/runs.jsonl"))
+```
+
+## Ghostwriter and Fuzzing
+
+Generate starter properties from the command line:
+
+```bash
+swift package premise-ghostwriter \
+  --kind roundtrip \
+  --module MyApp \
+  --type Payload \
+  --strategy 'Strategy<Payload>.payloads()' \
+  --encode 'try JSONEncoder().encode($0)' \
+  --decode 'try JSONDecoder().decode(Payload.self, from: $0)'
+```
+
+Bridge libFuzzer, AFL, or custom byte harnesses into Premise strategies with
+`PremiseFuzzing`:
+
+```swift
+try await fuzzOneInput(
+    Data(fuzzerBytes),
+    strategy: Strategy<Payload>.payloads()
+) { payload in
+    _ = try PayloadParser.parse(payload)
+}
+```
+
+Failures are saved as Premise replay traces, with the original fuzz bytes
+recorded in run statistics for corpus triage.
 
 ## Stateful Testing
 
@@ -239,18 +360,32 @@ machine.rule("insert", argument: Strategy<Int>.integers(in: 0...100)) { state, v
     state.model.insert(value)
 }
 
-machine.invariant("model matches database") { state in
+machine.initialize("seed", argument: Strategy<Int>.just(0)) { state, seed in
+    try await state.database.insert(seed)
+    state.model.insert(seed)
+}
+
+machine.invariant("model matches database", checkDuringInit: false) { state in
     let databaseValues = try await state.database.values()
     guard databaseValues == state.model.values else {
         throw ModelMismatch()
     }
 }
 
+machine.teardown("close database") { state in
+    try await state.database.close()
+}
+
 try await checkRuleBasedStateMachine(machine)
 ```
 
 Use `makeInitialState` for reference-backed state such as databases so each
-generated example starts with fresh storage.
+generated example starts with fresh storage. State-machine failures include a
+replay trace and a printable minimized program. Persist and replay failures by
+supplying a stable `propertyID` and `localDatabaseDirectory` in
+`StateMachineConfig`. Bundles also support consuming draws with
+`bundle.consumingStrategy()` and rules can emit multiple bundle outputs with
+`targets: (bundleA, bundleB)`.
 
 ## Optional @given Macro
 

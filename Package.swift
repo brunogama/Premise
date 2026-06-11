@@ -97,10 +97,15 @@ let package = Package(
     .library(name: "PremiseCore", targets: ["PremiseCore"]),
     .library(name: "PremiseStrategies", targets: ["PremiseStrategies"]),
     .library(name: "PremiseDatabase", targets: ["PremiseDatabase"]),
+    .library(name: "PremiseFuzzing", targets: ["PremiseFuzzing"]),
+    .library(name: "PremiseGhostwriter", targets: ["PremiseGhostwriter"]),
     .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
     .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
     .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
+    .library(name: "PremiseCoverageGuided", targets: ["PremiseCoverageGuided"]),
+    .executable(name: "PremiseGhostwriterTool", targets: ["PremiseGhostwriterTool"]),
+    .executable(name: "PremiseReplayTool", targets: ["PremiseReplayTool"]),
   ] + macroProducts,
   traits: [
     .trait(name: "CoverageGuided"),
@@ -118,6 +123,28 @@ let package = Package(
     .target(
       name: "PremiseDatabase",
       dependencies: ["PremiseCore"]
+    ),
+    .target(
+      name: "PremiseFuzzing",
+      dependencies: [
+        "PremiseCore",
+        "PremiseDatabase",
+      ]
+    ),
+    .target(name: "PremiseGhostwriter"),
+    .executableTarget(
+      name: "PremiseGhostwriterTool",
+      dependencies: ["PremiseGhostwriter"]
+    ),
+    .plugin(
+      name: "PremiseGhostwriterPlugin",
+      capability: .command(
+        intent: .custom(
+          verb: "premise-ghostwriter",
+          description: "Generate Premise property-test skeletons"
+        )
+      ),
+      dependencies: ["PremiseGhostwriterTool"]
     ),
     .target(
       name: "PremiseTesting",
@@ -144,14 +171,35 @@ let package = Package(
       name: "PremiseTelemetry",
       dependencies: ["PremiseCore"]
     ),
+    .executableTarget(
+      name: "PremiseReplayTool",
+      dependencies: [
+        "PremiseCore",
+        "PremiseDatabase",
+      ]
+    ),
+    .plugin(
+      name: "PremiseReplayPlugin",
+      capability: .command(
+        intent: .custom(
+          verb: "premise-replay",
+          description: "Inspect and decode Premise replay trace artifacts"
+        )
+      ),
+      dependencies: ["PremiseReplayTool"]
+    ),
 
     .target(
       name: "PremiseCoverageGuided",
-      dependencies: ["PremiseCore"],
+      dependencies: [
+        "PremiseCore",
+        "CPremiseSanitizerCoverage",
+      ],
       swiftSettings: [
         .define("PREMISE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
       ]
     ),
+    .target(name: "CPremiseSanitizerCoverage"),
     .target(
       name: "PremiseSMT",
       dependencies: [
@@ -189,8 +237,21 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "PremiseFuzzingTests",
+      dependencies: [
+        "PremiseCore",
+        "PremiseDatabase",
+        "PremiseFuzzing",
+        "PremiseStrategies",
+      ]
+    ),
+    .testTarget(
+      name: "PremiseGhostwriterTests",
+      dependencies: ["PremiseGhostwriter"]
+    ),
+    .testTarget(
       name: "PremiseTestingIntegrationTests",
-      dependencies: ["PremiseTesting"]
+      dependencies: ["PremiseTesting", "PremiseDatabase"]
     ),
     .testTarget(
       name: "PremiseXCTestIntegrationTests",

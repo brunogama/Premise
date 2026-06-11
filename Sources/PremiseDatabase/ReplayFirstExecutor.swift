@@ -56,10 +56,17 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   /// Executes the property through the replay-first flow and returns the
   /// detailed execution report used by diagnostics-capable adapters.
   public func executeDetailed(
+    explicitExamples: [Value] = [],
+    examples: [ExplicitExample<Value>] = [],
     _ property: @escaping @Sendable (Value) throws -> Void
   ) async throws -> DetailedRunResult<Value> {
     let traces = try await database.loadTraces(for: runner.propertyID)
-    let result = await runner.runDetailed(property, replayTraces: traces)
+    let result = await runner.runDetailed(
+      explicitExamples: explicitExamples,
+      examples: examples,
+      property,
+      replayTraces: traces
+    )
 
     try await persistFailureIfNeeded(result)
 
@@ -69,10 +76,17 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   /// Executes a data-aware property through the replay-first flow and returns
   /// the detailed execution report used by diagnostics-capable adapters.
   public func executeDetailed(
+    explicitExamples: [Value] = [],
+    examples: [ExplicitExample<Value>] = [],
     _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
   ) async throws -> DetailedRunResult<Value> {
     let traces = try await database.loadTraces(for: runner.propertyID)
-    let result = await runner.runDetailed(property, replayTraces: traces)
+    let result = await runner.runDetailed(
+      explicitExamples: explicitExamples,
+      examples: examples,
+      property,
+      replayTraces: traces
+    )
 
     try await persistFailureIfNeeded(result)
 
@@ -97,10 +111,17 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   /// Executes an async property through the replay-first flow and returns the
   /// detailed execution report used by diagnostics-capable adapters.
   public func executeDetailed(
+    explicitExamples: [Value] = [],
+    examples: [ExplicitExample<Value>] = [],
     _ property: @escaping @Sendable (Value) async throws -> Void
   ) async throws -> DetailedRunResult<Value> {
     let traces = try await database.loadTraces(for: runner.propertyID)
-    let result = await runner.runDetailed(property, replayTraces: traces)
+    let result = await runner.runDetailed(
+      explicitExamples: explicitExamples,
+      examples: examples,
+      property,
+      replayTraces: traces
+    )
 
     try await persistFailureIfNeeded(result)
 

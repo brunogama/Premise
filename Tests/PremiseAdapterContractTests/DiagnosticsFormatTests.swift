@@ -110,6 +110,27 @@ struct DiagnosticsFormatTests {
     #expect(output.contains(".premise/examples"))
   }
 
+  @Test("Output includes reproduction blob when requested")
+  func outputIncludesReproductionBlobWhenRequested() throws {
+    let record = FailureRecord(
+      propertyID: Self.testPropertyID,
+      trace: ChoiceTrace(entries: [.integer(7)]),
+      errorMessage: "value too small",
+      runCount: 1,
+      shrinkCount: 0
+    )
+
+    let output = FailureFormatter.format(
+      value: 7,
+      record: record,
+      propertyID: Self.testPropertyID,
+      includeReproductionBlob: true
+    )
+
+    #expect(output.contains("Reproduction blob: premise-trace-v1:"))
+    #expect(output.contains("ChoiceTrace.decodeReproductionBlob"))
+  }
+
   @Test("Output includes record statistics when report is absent")
   func outputIncludesRecordStatistics() {
     var statistics = RunStatistics()

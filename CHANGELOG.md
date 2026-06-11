@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added adapter-level explicit examples, including expected-failing examples.
+- Added property-body rejection through `PremiseData.assume` and `reject`.
+- Added settings scaffolding for per-example deadlines, verbosity,
+  derandomized seeds, reproduction blob output, multiple-bug policy, and
+  backend selection.
+- Added stable `ChoiceTrace` replay blobs with typed unsupported-version
+  errors and copy-paste diagnostics.
+- Added `PremiseReplayTool` plus the `swift package premise-replay` command
+  plugin for inspecting trace artifacts and blobs.
+- Added JSON Lines run output through `PropertyConfig.writingJSONLines(to:)`.
+- Added targeted search via `PropertyPhase.target`, trace mutation, and
+  `PremiseData.target` steering.
+- Added SanitizerCoverage snapshot integration for `PremiseCoverageGuided` with
+  graceful fallback when instrumentation is absent.
+- Added flakiness detection and multiple-failure reporting.
+- Expanded the strategy catalog with `nothing`, regex strings, network strings,
+  richer URLs, date/time helpers, UUID options, index/range helpers, Decimal,
+  rational and complex domains, fixed records, unique arrays, deferred/shared
+  strategies, generated functions, enum cases, and composite builders.
+- Added state-machine initialize rules, teardown actions, consuming bundles,
+  multi-output rules, invariant `checkDuringInit`, replay/persistence,
+  shrinkable traces, and printable minimal failing programs.
+- Added `PremiseGhostwriter` and the `swift package premise-ghostwriter`
+  command plugin for generating fuzz, roundtrip, equivalence, idempotence, and
+  binary-operation law test skeletons.
+- Added `PremiseFuzzing` with `FuzzInputProvider` and `fuzzOneInput` for
+  libFuzzer/AFL-style byte-input harnesses with failure persistence.
+
 ## v1.0.0 - 2026-06-04
 
 ### Added

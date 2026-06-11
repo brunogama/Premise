@@ -38,6 +38,19 @@ public extension Strategy {
     Strategy(label: "just(\(String(describing: value)))", draw: { _ in value }, shrink: { _ in [] })
   }
 
+  /// A strategy that never produces examples.
+  ///
+  /// Use `nothing()` as a placeholder in conditional strategy construction or
+  /// to model impossible branches. Drawing from it throws during generation,
+  /// so the runner rejects that attempt instead of reporting a property failure.
+  static func nothing(label: String = "nothing") -> Strategy<Value> {
+    Strategy<Value>(
+      label: label,
+      draw: { _ in throw StrategyError.noExamples(label: label) },
+      shrink: { _ in [] }
+    )
+  }
+
   func map<NewValue: Sendable>(
     _ transform: @escaping @Sendable (Value) -> NewValue
   ) -> Strategy<NewValue> {

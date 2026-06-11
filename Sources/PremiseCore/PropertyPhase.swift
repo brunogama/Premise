@@ -9,6 +9,9 @@ public enum PropertyPhase: String, Sendable, Codable, Hashable, CaseIterable {
   /// Generate fresh pseudo-random examples.
   case generate
 
+  /// Mutate high-scoring traces to steer toward larger `target()` scores.
+  case target
+
   /// Minimize a failing example.
   case shrink
 }

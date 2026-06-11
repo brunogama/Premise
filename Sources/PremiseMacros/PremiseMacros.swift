@@ -27,9 +27,15 @@
 /// }
 /// ```
 ///
-/// You can pass a `config:` label as the last argument:
+/// You can pass `config:`, `explicitExamples:`, and `examples:` labels after
+/// the strategy arguments:
 /// ```swift
-/// @given(.integers(in: 0...100), config: .thorough)
+/// @given(
+///   .integers(in: 0...100),
+///   config: .thorough,
+///   explicitExamples: [0, 100],
+///   examples: [.xfail(42, reason: "known bug")]
+/// )
 /// func largeSpace(n: Int) { ... }
 /// ```
 @attached(peer, names: overloaded)

@@ -131,6 +131,18 @@ struct CoverageGuidanceIsolationTests {
     #expect(edges == 1)
   }
 
+  @Test("SanitizerCoverage gracefully reports absence without instrumentation")
+  func sanitizerCoverageGracefullyReportsAbsence() async {
+    SanitizerCoverage.reset()
+    let tracker = CoverageTracker(guide: EdgeCountGuide(), capacity: 64)
+    let score = await tracker.recordCurrentSanitizerCoverage(trace: ChoiceTrace())
+
+    if !SanitizerCoverage.isAvailable {
+      #expect(SanitizerCoverage.snapshot() == nil)
+      #expect(score == nil)
+    }
+  }
+
   @Test("CoverageTracker with no records has zero state")
   func emptyTrackerHasZeroState() async {
     let tracker = CoverageTracker(guide: EdgeCountGuide(), capacity: 64)

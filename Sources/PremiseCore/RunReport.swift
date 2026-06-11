@@ -5,6 +5,33 @@ public enum HealthCheck: String, Sendable, Codable, Hashable, CaseIterable {
   case emptySearch
 }
 
+/// Distinguishes where an example was rejected.
+public enum RejectionKind: String, Sendable, Codable, Hashable, CaseIterable {
+  /// The strategy could not draw a satisfying value.
+  case draw
+
+  /// The property body rejected the example after observing generated data.
+  case property
+}
+
+/// Errors raised when a property failure cannot be reproduced reliably.
+public enum PropertyFlakiness: Error, Sendable, Equatable, CustomStringConvertible {
+  /// A failure was observed once, but replaying its trace did not fail again.
+  case failureNotReproducible(originalError: String)
+
+  /// Replaying a failing trace produced a different error.
+  case failureChanged(originalError: String, replayedError: String)
+
+  public var description: String {
+    switch self {
+    case .failureNotReproducible(let originalError):
+      return "Flaky failure: trace did not reproduce original error: \(originalError)"
+    case .failureChanged(let originalError, let replayedError):
+      return "Flaky failure: replay changed from `\(originalError)` to `\(replayedError)`."
+    }
+  }
+}
+
 /// A non-fatal warning about property execution quality.
 public struct HealthWarning: Sendable, Codable, Equatable {
   /// Health check that produced the warning.
@@ -20,6 +47,33 @@ public struct HealthWarning: Sendable, Codable, Equatable {
   }
 }
 
+/// Summary of one distinct failure observed during a run.
+public struct RunFailureSummary: Sendable, Codable, Equatable {
+  /// Phase that observed the failure.
+  public let phase: PropertyPhase
+
+  /// Error message captured from the failing property.
+  public let errorMessage: String
+
+  /// Number of entries in the minimized trace.
+  public let traceEntryCount: Int
+
+  /// Number of shrink steps applied to this failure.
+  public let shrinkCount: Int
+
+  /// Whether the failure was newly found or replayed from corpus.
+  public let discovery: FailureDiscovery
+
+  /// Creates a compact failure summary.
+  public init(phase: PropertyPhase, record: FailureRecord) {
+    self.phase = phase
+    self.errorMessage = record.errorMessage
+    self.traceEntryCount = record.trace.entries.count
+    self.shrinkCount = record.shrinkCount
+    self.discovery = record.discovery
+  }
+}
+
 /// Aggregated observations from all attempted examples.
 public struct RunReport: Sendable, Codable, Equatable {
   /// Number of examples that reached the property body.
@@ -27,6 +81,9 @@ public struct RunReport: Sendable, Codable, Equatable {
 
   /// Number of generated examples rejected by assumptions.
   public var rejectedCount: Int
+
+  /// Rejected examples grouped by where the rejection occurred.
+  public var rejectionCounts: [RejectionKind: Int]
 
   /// Example counts grouped by execution phase.
   public var phaseCounts: [PropertyPhase: Int]
@@ -40,6 +97,9 @@ public struct RunReport: Sendable, Codable, Equatable {
   /// Maximum target score observed during the run.
   public var maxTargetScore: Double?
 
+  /// Distinct failures observed when multiple-bug reporting is enabled.
+  public var failures: [RunFailureSummary]
+
   /// Non-fatal runtime quality warnings.
   public var healthWarnings: [HealthWarning]
 
@@ -47,18 +107,22 @@ public struct RunReport: Sendable, Codable, Equatable {
   public init(
     runCount: Int = 0,
     rejectedCount: Int = 0,
+    rejectionCounts: [RejectionKind: Int] = [:],
     phaseCounts: [PropertyPhase: Int] = [:],
     events: [String: Int] = [:],
     notes: [RunNote] = [],
     maxTargetScore: Double? = nil,
+    failures: [RunFailureSummary] = [],
     healthWarnings: [HealthWarning] = []
   ) {
     self.runCount = runCount
     self.rejectedCount = rejectedCount
+    self.rejectionCounts = rejectionCounts
     self.phaseCounts = phaseCounts
     self.events = events
     self.notes = notes
     self.maxTargetScore = maxTargetScore
+    self.failures = failures
     self.healthWarnings = healthWarnings
   }
 
@@ -69,8 +133,16 @@ public struct RunReport: Sendable, Codable, Equatable {
   }
 
   /// Records one rejected example.
-  public mutating func recordRejected() {
+  public mutating func recordRejected(_ kind: RejectionKind = .draw) {
     rejectedCount += 1
+    rejectionCounts[kind, default: 0] += 1
+  }
+
+  /// Records one distinct failure observed in the given phase.
+  public mutating func recordFailure(_ record: FailureRecord, phase: PropertyPhase) {
+    let summary = RunFailureSummary(phase: phase, record: record)
+    guard !failures.contains(summary) else { return }
+    failures.append(summary)
   }
 
   /// Merges per-example statistics into this report.

@@ -43,14 +43,21 @@ public struct GivenMacro: PeerMacro {
       throw MacroError.missingStrategies
     }
 
-    // Separate config from strategy args early so arity check is correct.
+    // Separate config/example metadata from strategy args early so arity check is correct.
     var strategyExprs: [String] = []
     var configArg: String?
+    var explicitExamplesArg: String?
+    var examplesArg: String?
 
     for arg in arguments {
-      if arg.label?.text == "config" {
+      switch arg.label?.text {
+      case "config":
         configArg = arg.expression.trimmedDescription
-      } else {
+      case "explicitExamples":
+        explicitExamplesArg = arg.expression.trimmedDescription
+      case "examples":
+        examplesArg = arg.expression.trimmedDescription
+      default:
         strategyExprs.append(arg.expression.trimmedDescription)
       }
     }
@@ -75,16 +82,25 @@ public struct GivenMacro: PeerMacro {
     let strategiesList = strategyExprs.joined(separator: ", ")
     let paramList = paramNames.joined(separator: ", ")
 
-    let configPart: String
+    var labeledArguments: [String] = []
     if let configArg {
-      configPart = ", config: \(configArg)"
-    } else {
-      configPart = ""
+      labeledArguments.append("config: \(configArg)")
     }
+    if let explicitExamplesArg {
+      labeledArguments.append("explicitExamples: \(explicitExamplesArg)")
+    }
+    if let examplesArg {
+      labeledArguments.append("examples: \(examplesArg)")
+    }
+
+    let labeledPart =
+      labeledArguments.isEmpty
+      ? ""
+      : ", \(labeledArguments.joined(separator: ", "))"
 
     let generated: DeclSyntax = """
       @Test func \(raw: funcName)() async throws {
-          try await forAll(\(raw: strategiesList)\(raw: configPart)) { \(raw: paramList) in
+          try await forAll(\(raw: strategiesList)\(raw: labeledPart)) { \(raw: paramList) in
               \(raw: bodyStatements)
           }
       }

@@ -15,7 +15,8 @@ enum FailureFormatter {
     value: Value,
     record: FailureRecord,
     propertyID: PropertyIdentity,
-    report: RunReport? = nil
+    report: RunReport? = nil,
+    includeReproductionBlob: Bool = false
   ) -> String {
     var lines: [String] = []
 
@@ -44,6 +45,7 @@ enum FailureFormatter {
       report: report,
       to: &lines
     )
+    appendMultipleFailures(from: report, to: &lines)
 
     // Seed-based replay instruction.
     if let seed = record.seed {
@@ -53,6 +55,13 @@ enum FailureFormatter {
       lines.append(
         "Replay: use the persisted trace from .premise/examples "
           + "or an exported JSON trace artifact."
+      )
+    }
+
+    if includeReproductionBlob, let blob = try? record.trace.reproductionBlob() {
+      lines.append("Reproduction blob: \(blob)")
+      lines.append(
+        "Replay blob: try ChoiceTrace.decodeReproductionBlob(\"\(blob)\")"
       )
     }
 
@@ -134,6 +143,20 @@ enum FailureFormatter {
     lines.append("Health warnings: \(warnings)")
     for warning in report.healthWarnings {
       lines.append("- \(warning.message)")
+    }
+  }
+
+  private static func appendMultipleFailures(
+    from report: RunReport?,
+    to lines: inout [String]
+  ) {
+    guard let report, report.failures.count > 1 else { return }
+    lines.append("Distinct failures: \(report.failures.count)")
+    for failure in report.failures {
+      lines.append(
+        "- [\(failure.phase.rawValue)] \(failure.errorMessage) "
+          + "(trace entries: \(failure.traceEntryCount))"
+      )
     }
   }
 

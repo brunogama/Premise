@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import PremiseCore
@@ -100,6 +101,111 @@ func floatingExceptionalEdgeCasesBypassFiniteRangeFiltering() throws {
 
 private struct BoxedInt: Sendable, Equatable {
   var value: Int
+}
+
+private enum TinyCase: CaseIterable, Sendable {
+  case first
+  case second
+}
+
+@Test("nothing strategy rejects draws")
+func nothingStrategyRejectsDraws() {
+  var data = PremiseData(provider: PseudoRandomProvider(seed: 40, maxDraws: 8))
+  #expect(throws: StrategyError.self) {
+    try Strategy<Int>.nothing().draw(&data)
+  }
+}
+
+@Test("catalog string strategies cover regex network and email shapes")
+func catalogStringStrategiesCoverRegexNetworkAndEmailShapes() throws {
+  var data = PremiseData(provider: PseudoRandomProvider(seed: 41, maxDraws: 512))
+
+  let regex = try Strategy<String>.regex("[a-c]{2}[0-9]").draw(&data)
+  let domain = try Strategy<String>.domainNames(labels: 2...2).draw(&data)
+  let email = try Strategy<String>.emailAddresses().draw(&data)
+  let ipv4 = try Strategy<String>.ipv4Addresses().draw(&data)
+  let ipv6 = try Strategy<String>.ipv6Addresses().draw(&data)
+
+  #expect(regex.count == 3)
+  #expect(regex.prefix(2).allSatisfy { ["a", "b", "c"].contains($0) })
+  #expect(regex.last?.isNumber == true)
+  #expect(domain.contains("."))
+  #expect(email.contains("@"))
+  #expect(ipv4.split(separator: ".").count == 4)
+  #expect(ipv6.contains(":"))
+}
+
+@Test("catalog url date uuid and range strategies draw valid values")
+func catalogURLDateUUIDAndRangeStrategiesDrawValidValues() throws {
+  var data = PremiseData(provider: PseudoRandomProvider(seed: 42, maxDraws: 512))
+
+  let url = try Strategy<URL>.web(maxPathSegments: 2, maxQueryItems: 1).draw(&data)
+  let timeZone = try Strategy<TimeZone>.timeZones(identifiers: ["UTC"]).draw(&data)
+  let components = try Strategy<DateComponents>.dateTimes(years: 2020...2021).draw(&data)
+  let duration = try Strategy<Duration>.durations(seconds: -2...2).draw(&data)
+  let nilUUID = try Strategy<UUID>.nilUUID.draw(&data)
+  let index = try Strategy<Int>.indices(in: 0..<3).draw(&data)
+  let range = try Strategy<Range<Int>>.ranges(in: 0..<5).draw(&data)
+  let closedRange = try Strategy<ClosedRange<Int>>.closedRanges(in: 0...5).draw(&data)
+
+  #expect(["http", "https"].contains(url.scheme))
+  #expect(url.host != nil)
+  #expect(timeZone.identifier == "UTC")
+  #expect((2020...2021).contains(components.year ?? 0))
+  #expect(duration >= .seconds(-2) && duration <= .seconds(2))
+  #expect(nilUUID.uuidString == "00000000-0000-0000-0000-000000000000")
+  #expect((0..<3).contains(index))
+  #expect(range.lowerBound >= 0 && range.upperBound <= 5)
+  #expect(closedRange.lowerBound >= 0 && closedRange.upperBound <= 5)
+}
+
+@Test("catalog numeric strategies draw decimal rational and complex values")
+func catalogNumericStrategiesDrawDecimalRationalAndComplexValues() throws {
+  var data = PremiseData(provider: PseudoRandomProvider(seed: 43, maxDraws: 128))
+
+  let decimal = try Strategy<Decimal>.decimals(mantissa: -10...10, scale: 0...2).draw(&data)
+  let rational = try Strategy<PremiseRational>.rationals(numerator: -10...10, denominator: 1...10)
+    .draw(&data)
+  let complex = try Strategy<PremiseComplex>.complexNumbers(real: -1...1, imaginary: -1...1)
+    .draw(&data)
+
+  #expect(decimal >= Decimal(-10) && decimal <= Decimal(10))
+  #expect(rational.denominator > 0)
+  #expect((-1...1).contains(complex.real))
+  #expect((-1...1).contains(complex.imaginary))
+}
+
+@Test("catalog record unique shared deferred enum and generated function helpers work")
+func catalogCompositionHelpersWork() throws {
+  var data = PremiseData(provider: PseudoRandomProvider(seed: 44, maxDraws: 512))
+
+  let fixed = try Strategy<[String: Int]>.record([
+    "a": .integers(in: 0...10),
+    "b": .integers(in: 0...10),
+  ]).draw(&data)
+  let unique = try Strategy<[Int]>.uniqueArrays(of: .integers(in: 0...20), length: 3...3)
+    .draw(&data)
+  let pair = try Strategy<(Int, Int)>.shared(.integers(in: 0...10)) { shared in
+    zip(shared, shared)
+  }.draw(&data)
+  let deferred = try Strategy<Int>.deferred { .just(7) }.draw(&data)
+  let enumCase = try Strategy<TinyCase>.cases.draw(&data)
+  let generated = try Strategy<GeneratedFunction<Int, String>>.generatedFunctions(
+    inputs: .integers(in: 0...3),
+    outputs: .elements(of: ["a", "b"]),
+    tableSize: 1...3
+  ).draw(&data)
+  let composite = try Strategy<Int>.composite { drawData in
+    drawData.drawInteger(in: 1...3)
+  }.draw(&data)
+
+  #expect(Set(fixed.keys) == ["a", "b"])
+  #expect(Set(unique).count == unique.count)
+  #expect(pair.0 == pair.1)
+  #expect(deferred == 7)
+  #expect([TinyCase.first, .second].contains(enumCase))
+  #expect(generated(1) == generated(1))
+  #expect((1...3).contains(composite))
 }
 
 @Test("custom domain strategies can replace shrinkers")

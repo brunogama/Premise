@@ -45,6 +45,34 @@ func forAllFailureContainsCounterexample() async throws {
   }
 }
 
+@Test("forAll runs explicit examples before generation")
+func forAllRunsExplicitExamplesBeforeGeneration() async throws {
+  await withKnownIssue {
+    try await forAll(
+      Strategy<Int>.just(99),
+      config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit]),
+      explicitExamples: [3]
+    ) { value in
+      if value == 3 {
+        throw PropertyTestFailure(message: "explicit example failed")
+      }
+    }
+  }
+}
+
+@Test("forAll accepts expected-failing explicit examples")
+func forAllAcceptsExpectedFailingExplicitExamples() async throws {
+  try await forAll(
+    Strategy<Int>.just(99),
+    config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit]),
+    examples: [.xfail(3, reason: "known bad input")]
+  ) { value in
+    if value == 3 {
+      throw PropertyTestFailure(message: "explicit example failed as expected")
+    }
+  }
+}
+
 /// A simple error type for testing property failures.
 private struct PropertyTestFailure: Error, CustomStringConvertible {
   let message: String

@@ -14,6 +14,12 @@ public enum StrategyError: Error, Sendable, CustomStringConvertible {
   /// satisfying value within the allowed number of attempts.
   case assumptionFailed(label: String, maxAttempts: Int)
 
+  /// A strategy intentionally has no possible examples.
+  case noExamples(label: String)
+
+  /// A regex-backed string strategy received an unsupported or invalid pattern.
+  case invalidRegex(label: String, reason: String)
+
   public var description: String {
     switch self {
     case .filterExhausted(let label, let max):
@@ -28,6 +34,12 @@ public enum StrategyError: Error, Sendable, CustomStringConvertible {
         Strategy '\(label)' failed assumption after \(max) attempts. \
         Consider widening the base strategy.
         """
+
+    case .noExamples(let label):
+      return "Strategy '\(label)' does not produce examples."
+
+    case .invalidRegex(let label, let reason):
+      return "Strategy '\(label)' has an invalid regex pattern: \(reason)"
     }
   }
 }

@@ -176,6 +176,34 @@ struct FormatterParityTests {
     #expect(swiftTestingOutput.contains("Target score: 2.0"))
   }
 
+  @Test("Both formatters produce identical reproduction blob output")
+  func reproductionBlobParity() {
+    let pid = Self.makePropertyID()
+    let record = FailureRecord(
+      propertyID: pid,
+      trace: ChoiceTrace(entries: [.integer(7)]),
+      errorMessage: "value 7 failed",
+      runCount: 1,
+      shrinkCount: 0
+    )
+
+    let swiftTestingOutput = FailureFormatter.format(
+      value: 7,
+      record: record,
+      propertyID: pid,
+      includeReproductionBlob: true
+    )
+    let xcTestOutput = XCTestFailureFormatter.format(
+      value: 7,
+      record: record,
+      propertyID: pid,
+      includeReproductionBlob: true
+    )
+
+    #expect(swiftTestingOutput == xcTestOutput)
+    #expect(swiftTestingOutput.contains("Reproduction blob: premise-trace-v1:"))
+  }
+
   @Test("Both formatters produce identical output with report statistics")
   func reportStatisticsParity() {
     let pid = Self.makePropertyID()

@@ -1,3 +1,19 @@
+/// Error used to reject the current example without failing the property.
+public enum PremiseRejection: Error, Sendable, Equatable, CustomStringConvertible {
+  /// The property assumed a condition that was not satisfied.
+  case assumptionFailed(reason: String? = nil)
+
+  public var description: String {
+    switch self {
+    case .assumptionFailed(let reason):
+      if let reason, !reason.isEmpty {
+        return "Assumption rejected: \(reason)"
+      }
+      return "Assumption rejected"
+    }
+  }
+}
+
 /// Mutable draw context passed through strategies and data-aware properties.
 public struct PremiseData: Sendable {
   /// Execution status for the current draw.
@@ -124,6 +140,25 @@ public struct PremiseData: Sendable {
     return try body(&self)
   }
 
+  /// Rejects the current example unless `condition` is true.
+  ///
+  /// Use this inside data-aware properties when the validity condition depends
+  /// on multiple generated values or external state observed by the property.
+  /// Rejected examples are counted separately from failures.
+  public mutating func assume(
+    _ condition: @autoclosure () -> Bool,
+    reason: String? = nil
+  ) throws {
+    guard condition() else {
+      throw PremiseRejection.assumptionFailed(reason: reason)
+    }
+  }
+
+  /// Rejects the current example without failing the property.
+  public mutating func reject(reason: String? = nil) throws {
+    throw PremiseRejection.assumptionFailed(reason: reason)
+  }
+
   /// Marks the current example as interesting.
   public mutating func markInteresting() {
     status = .interesting
@@ -160,11 +195,12 @@ public struct PremiseData: Sendable {
     statistics.events.append(label)
   }
 
-  /// Records a score for diagnostics and future corpus analysis.
+  /// Records a score for diagnostics and targeted search.
   ///
   /// Higher scores indicate more interesting inputs. Premise records and
-  /// reports the maximum score observed in each run; default generation does
-  /// not use the score to steer later examples.
+  /// reports the maximum score observed in each run. When
+  /// ``PropertyPhase/target`` is enabled, the runner mutates high-scoring
+  /// traces to steer later examples.
   ///
   /// ```swift
   /// data.target(Double(string.count), label: "string length")

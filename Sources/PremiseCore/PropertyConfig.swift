@@ -1,5 +1,52 @@
 import Foundation
 
+/// Verbosity level for property execution diagnostics.
+public enum PropertyVerbosity: String, Sendable, Codable, Hashable, CaseIterable {
+  case quiet
+  case normal
+  case verbose
+  case debug
+}
+
+/// Policy for reporting more than one distinct failure in a single property run.
+public enum MultipleBugReporting: String, Sendable, Codable, Hashable, CaseIterable {
+  /// Stop after the first failure.
+  case first
+
+  /// Collect all distinct failures when supported by the runner.
+  case all
+}
+
+/// Primitive generation backend selected for a property run.
+public enum PropertyBackend: String, Sendable, Codable, Hashable, CaseIterable {
+  /// The default deterministic Premise provider.
+  case premise
+
+  /// Solver-backed generation when the SMT extension is available.
+  case smt
+
+  /// Coverage-guided generation when instrumentation is available.
+  case coverageGuided
+}
+
+/// Error reported when an example exceeds its configured deadline.
+public struct PropertyDeadlineExceeded: Error, Sendable, Equatable, CustomStringConvertible {
+  /// Observed example runtime in seconds.
+  public let elapsedSeconds: Double
+
+  /// Configured deadline in seconds.
+  public let deadlineSeconds: Double
+
+  public init(elapsedSeconds: Double, deadlineSeconds: Double) {
+    self.elapsedSeconds = elapsedSeconds
+    self.deadlineSeconds = deadlineSeconds
+  }
+
+  public var description: String {
+    "Example exceeded deadline: elapsed=\(elapsedSeconds)s deadline=\(deadlineSeconds)s"
+  }
+}
+
 /// Per-property execution configuration.
 ///
 /// Use the memberwise initialiser for full control, or the chainable
@@ -45,11 +92,33 @@ public struct PropertyConfig: Sendable {
   /// Directory where JSON trace artifacts should be exported.
   public var traceExportDirectory: URL?
 
+  /// File where structured JSON Lines run events should be appended.
+  public var jsonlOutputURL: URL?
+
   /// Per-property wall-clock timeout in seconds.  When non-nil, the runner
   ///
   /// will stop after the deadline is exceeded and report the best failure
   /// found so far (or pass if none).
   public var timeoutSeconds: Double?
+
+  /// Per-example execution deadline in seconds.
+  public var perExampleDeadlineSeconds: Double?
+
+  /// Diagnostic verbosity for adapters and future structured output.
+  public var verbosity: PropertyVerbosity
+
+  /// Whether to derive a deterministic seed from the property identity when
+  /// no explicit seed is supplied.
+  public var derandomize: Bool
+
+  /// Whether diagnostics should include a reproduction blob when available.
+  public var printReproductionBlob: Bool
+
+  /// Policy for collecting multiple distinct bugs in one run.
+  public var multipleBugReporting: MultipleBugReporting
+
+  /// Primitive generation backend selected for this property.
+  public var backend: PropertyBackend
 
   /// Ordered execution phases used by detailed runners.
   public var phases: [PropertyPhase]
@@ -67,7 +136,14 @@ public struct PropertyConfig: Sendable {
     localDatabaseDirectory: URL? = nil,
     committedCorpusDirectory: URL? = nil,
     traceExportDirectory: URL? = nil,
+    jsonlOutputURL: URL? = nil,
     timeoutSeconds: Double? = nil,
+    perExampleDeadlineSeconds: Double? = nil,
+    verbosity: PropertyVerbosity = .normal,
+    derandomize: Bool = false,
+    printReproductionBlob: Bool = false,
+    multipleBugReporting: MultipleBugReporting = .first,
+    backend: PropertyBackend = .premise,
     phases: [PropertyPhase] = .premiseDefault,
     healthChecks: [HealthCheck] = HealthCheck.allCases
   ) {
@@ -79,7 +155,14 @@ public struct PropertyConfig: Sendable {
     self.localDatabaseDirectory = localDatabaseDirectory
     self.committedCorpusDirectory = committedCorpusDirectory
     self.traceExportDirectory = traceExportDirectory
+    self.jsonlOutputURL = jsonlOutputURL
     self.timeoutSeconds = timeoutSeconds
+    self.perExampleDeadlineSeconds = perExampleDeadlineSeconds
+    self.verbosity = verbosity
+    self.derandomize = derandomize
+    self.printReproductionBlob = printReproductionBlob
+    self.multipleBugReporting = multipleBugReporting
+    self.backend = backend
     self.phases = phases
     self.healthChecks = healthChecks
   }
@@ -108,7 +191,9 @@ public struct PropertyConfig: Sendable {
     maxRuns: 500,
     maxShrinkIterations: 1_000,
     maxDrawsPerRun: 10_000,
-    timeoutSeconds: 60
+    timeoutSeconds: 60,
+    derandomize: true,
+    printReproductionBlob: true
   )
 
   // MARK: - Chainable builders
@@ -176,10 +261,59 @@ public struct PropertyConfig: Sendable {
     return copy
   }
 
+  /// Appends structured JSON Lines run events to the given file.
+  public func writingJSONLines(to fileURL: URL) -> Self {
+    var copy = self
+    copy.jsonlOutputURL = fileURL
+    return copy
+  }
+
   /// Sets a wall-clock timeout in seconds.
   public func timeout(seconds: Double) -> Self {
     var copy = self
     copy.timeoutSeconds = seconds
+    return copy
+  }
+
+  /// Sets the per-example execution deadline in seconds.
+  public func deadline(seconds: Double?) -> Self {
+    var copy = self
+    copy.perExampleDeadlineSeconds = seconds
+    return copy
+  }
+
+  /// Sets diagnostic verbosity.
+  public func verbosity(_ verbosity: PropertyVerbosity) -> Self {
+    var copy = self
+    copy.verbosity = verbosity
+    return copy
+  }
+
+  /// Enables or disables deterministic seed derivation from property identity.
+  public func derandomize(_ enabled: Bool = true) -> Self {
+    var copy = self
+    copy.derandomize = enabled
+    return copy
+  }
+
+  /// Enables or disables reproduction blob output when available.
+  public func printingReproductionBlob(_ enabled: Bool = true) -> Self {
+    var copy = self
+    copy.printReproductionBlob = enabled
+    return copy
+  }
+
+  /// Selects the multiple-bug reporting policy.
+  public func reportingMultipleBugs(_ policy: MultipleBugReporting) -> Self {
+    var copy = self
+    copy.multipleBugReporting = policy
+    return copy
+  }
+
+  /// Selects the primitive generation backend.
+  public func backend(_ backend: PropertyBackend) -> Self {
+    var copy = self
+    copy.backend = backend
     return copy
   }
 
@@ -194,6 +328,14 @@ public struct PropertyConfig: Sendable {
   public func healthChecks(_ checks: [HealthCheck]) -> Self {
     var copy = self
     copy.healthChecks = checks
+    return copy
+  }
+
+  /// Suppresses selected non-fatal health checks.
+  public func suppressingHealthChecks(_ checks: [HealthCheck]) -> Self {
+    var copy = self
+    let suppressed = Set(checks)
+    copy.healthChecks = copy.healthChecks.filter { !suppressed.contains($0) }
     return copy
   }
 }
