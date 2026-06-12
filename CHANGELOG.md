@@ -33,6 +33,14 @@
   libFuzzer/AFL-style byte-input harnesses with failure persistence.
 - Added `SQLiteConnection.withHandle(_:)` as a source-compatible serialized
   raw-handle access path.
+- Added Swift Testing convenience helpers: `expectForAll`, `expectRoundTrip`,
+  `expectModelAgreement`, and `withTemporaryFile`.
+- Added `PropertyConfig.bounded(runs:shrinks:drawBudget:replay:)` for explicit
+  bounded test budgets.
+- Added `Strategy<Data>.data`, identifier string strategies, and the optional
+  `PremiseInvariantCompatibility` migration target.
+- Added `StatefulCommand` and `checkStateMachine` for lightweight
+  model-vs-system command sequences with expected failures.
 
 ### Fixed
 

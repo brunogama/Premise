@@ -190,6 +190,8 @@ let config = PropertyConfig.ci
 try await forAll(Strategy<Int>.integers(in: 0...100), config: config) { value in
     #expect(value <= 100)
 }
+
+let bounded = PropertyConfig.bounded(runs: 40, shrinks: 160)
 ```
 
 Useful presets:
@@ -213,14 +215,27 @@ try await forAll(
 }
 ```
 
-Use data-aware properties when validity depends on the generated value:
+Use Boolean predicates when a property is naturally expressed as `true` or
+`false`, and data-aware predicates when richer diagnostics help explain a
+failure:
 
 ```swift
-try await forAll(Strategy<Int>.integers(in: -100...100)) { value, data in
+try await expectForAll(
+    Strategy<String>.asciiIdentifiers(length: 1...24),
+    config: .bounded(runs: 40, shrinks: 160)
+) { identifier in
+    identifier.first?.isNumber == false
+}
+
+try await expectForAll(Strategy<Int>.integers(in: -100...100)) { value, data in
     try data.assume(value != 0, reason: "division by zero")
-    #expect(100 / value <= 100)
+    data.note("value", value: value)
+    return 100 / value <= 100
 }
 ```
+
+Use `forAll` directly when the property body contains multiple `#expect`
+assertions or needs custom throwing control flow.
 
 ## Replay and trace tooling
 
@@ -296,7 +311,8 @@ bundles, consuming bundle values, multiple outputs, invariant init control,
 minimal failing programs, and persisted replay traces.
 
 For simpler model-based tests, generate an explicit operation list with
-`checkOperationSequence`.
+`checkOperationSequence`, or use `checkStateMachine` with `StatefulCommand`
+when commands have lifecycle preconditions and expected failures.
 
 ## Ghostwriter and fuzzing
 
@@ -367,6 +383,7 @@ func lengthDoesNotReduceNumber(n: Int, text: String) {
 | `PremiseStrategies` | Built-in strategies, combinators, derivation helpers |
 | `PremiseDatabase` | File-backed, SQLite, and composite failure persistence |
 | `PremiseTesting` | swift-testing adapter and stateful testing APIs |
+| `PremiseInvariantCompatibility` | Deprecated migration aliases for InvariantTesting-style APIs |
 | `PremiseXCTest` | XCTest adapter |
 | `PremiseFuzzing` | Byte-input fuzzing bridge |
 | `PremiseGhostwriter` | Property-test skeleton generation |
