@@ -100,6 +100,7 @@ let package = Package(
     .library(name: "PremiseFuzzing", targets: ["PremiseFuzzing"]),
     .library(name: "PremiseGhostwriter", targets: ["PremiseGhostwriter"]),
     .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
+    .library(name: "PremiseInvariantCompatibility", targets: ["PremiseInvariantCompatibility"]),
     .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
     .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
     .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
@@ -160,6 +161,14 @@ let package = Package(
         "PremiseCore",
         "PremiseStrategies",
         "PremiseDatabase",
+      ]
+    ),
+    .target(
+      name: "PremiseInvariantCompatibility",
+      dependencies: [
+        "PremiseCore",
+        "PremiseStrategies",
+        "PremiseTesting",
       ]
     ),
 
@@ -256,6 +265,10 @@ let package = Package(
     .testTarget(
       name: "PremiseXCTestIntegrationTests",
       dependencies: ["PremiseXCTest"]
+    ),
+    .testTarget(
+      name: "PremiseInvariantCompatibilityTests",
+      dependencies: ["PremiseInvariantCompatibility"]
     ),
     .testTarget(
       name: "PremiseAdapterContractTests",
