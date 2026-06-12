@@ -383,7 +383,6 @@ func lengthDoesNotReduceNumber(n: Int, text: String) {
 | `PremiseStrategies` | Built-in strategies, combinators, derivation helpers |
 | `PremiseDatabase` | File-backed, SQLite, and composite failure persistence |
 | `PremiseTesting` | swift-testing adapter and stateful testing APIs |
-| `PremiseInvariantCompatibility` | Deprecated migration aliases for InvariantTesting-style APIs |
 | `PremiseXCTest` | XCTest adapter |
 | `PremiseFuzzing` | Byte-input fuzzing bridge |
 | `PremiseGhostwriter` | Property-test skeleton generation |

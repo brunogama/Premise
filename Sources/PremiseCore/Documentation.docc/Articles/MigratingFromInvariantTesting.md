@@ -16,22 +16,6 @@ replays persisted examples before fresh generation.
 | Regression examples | committed replay corpus and local `.premise/examples` |
 | Custom domain generator | `Strategy(label:draw:shrink:)` |
 | Custom shrink behavior | `strategy.shrinking { ... }` |
-| Temporary migration aliases | `PremiseInvariantCompatibility` |
-
-## Compatibility Target
-
-For incremental migrations, add the optional `PremiseInvariantCompatibility`
-product. It re-exports the native Premise modules and provides deprecated aliases
-such as `Gen`, `Generator`, `AnyGenerator`, `PropertyRunner`, `Seed`, `Size`,
-`Shrink`, and `Zip2Generator`/`Zip3Generator` while you move call sites to
-`Strategy`, `Runner`, and native Premise helpers.
-
-```swift
-.product(name: "PremiseInvariantCompatibility", package: "SwiftPremise")
-```
-
-Treat this as a bridge, not a permanent API: new tests should prefer
-`PremiseTesting`, `PremiseStrategies`, and `PremiseCore` directly.
 
 ## Typical Migration
 

@@ -37,8 +37,7 @@
   `expectModelAgreement`, and `withTemporaryFile`.
 - Added `PropertyConfig.bounded(runs:shrinks:drawBudget:replay:)` for explicit
   bounded test budgets.
-- Added `Strategy<Data>.data`, identifier string strategies, and the optional
-  `PremiseInvariantCompatibility` migration target.
+- Added `Strategy<Data>.data` and identifier string strategies.
 - Added `StatefulCommand` and `checkStateMachine` for lightweight
   model-vs-system command sequences with expected failures.
 
