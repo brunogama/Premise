@@ -153,6 +153,49 @@ public extension Strategy where Value == String {
     )
   }
 
+  /// Generates identifier-shaped strings from caller-supplied character sets.
+  static func identifiers(
+    first: [Character],
+    rest: [Character],
+    length: ClosedRange<Int>
+  ) -> Strategy<String> {
+    precondition(!first.isEmpty, "identifiers(first:rest:length:) requires first characters")
+    precondition(!rest.isEmpty, "identifiers(first:rest:length:) requires rest characters")
+    precondition(length.lowerBound >= 1, "identifier length must include at least one character")
+    return Strategy<String>(
+      label: "identifiers(length: \(length))",
+      draw: { data in
+        let count = drawEdgeBiasedInteger(in: length, using: &data)
+        var characters: [Character] = []
+        characters.reserveCapacity(count)
+        characters.append(first[data.drawInteger(in: 0...(first.count - 1))])
+        for _ in 1..<count {
+          characters.append(rest[data.drawInteger(in: 0...(rest.count - 1))])
+        }
+        return String(characters)
+      },
+      shrink: { value in
+        guard !value.isEmpty else { return [] }
+        var candidates: [String] = []
+        let minimal = String(first[0])
+        if value != minimal, length.contains(1) {
+          candidates.append(minimal)
+        }
+        if value.count > length.lowerBound {
+          candidates.append(String(value.dropLast()))
+        }
+        return uniqueStringCandidates(candidates.filter { length.contains($0.count) })
+      }
+    )
+  }
+
+  /// Generates C/Swift/SQL-safe ASCII identifier-shaped strings.
+  static func asciiIdentifiers(length: ClosedRange<Int>) -> Strategy<String> {
+    let first = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+    let rest = first + Array("0123456789")
+    return identifiers(first: first, rest: rest, length: length)
+  }
+
   /// Generates DNS-ish domain names.
   static func domainNames(
     labels: ClosedRange<Int> = 2...4,
@@ -761,6 +804,11 @@ private func asciiRange(from start: Character, through end: Character) -> [Chara
     return [start, end]
   }
   return (first...last).compactMap { UnicodeScalar($0).map(Character.init) }
+}
+
+private func uniqueStringCandidates(_ candidates: [String]) -> [String] {
+  var seen: Set<String> = []
+  return candidates.filter { seen.insert($0).inserted }
 }
 
 private func drawDomainLabel(length: ClosedRange<Int>, using data: inout PremiseData) -> String {

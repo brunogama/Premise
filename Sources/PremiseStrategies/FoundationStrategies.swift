@@ -106,6 +106,42 @@ public extension Strategy where Value == String {
   }
 }
 
+// MARK: - Data strategy
+
+public extension Strategy where Value == Data {
+  /// Generates binary data with exactly `length` bytes.
+  static func data(length: Int) -> Strategy<Data> {
+    precondition(length >= 0, "data length must be non-negative")
+    return Strategy<Data>(
+      label: "data(length: \(length))",
+      draw: { premiseData in
+        Data(premiseData.drawBytes(count: length))
+      },
+      shrink: { value in
+        let zero = Data(repeating: 0, count: length)
+        guard value.count == length, value != zero else { return [] }
+        return [zero]
+      }
+    )
+  }
+
+  /// Generates binary data whose byte count is selected from `length`.
+  static func data(length: ClosedRange<Int>) -> Strategy<Data> {
+    precondition(length.lowerBound >= 0, "data length must be non-negative")
+    return Strategy<Data>(
+      label: "data(length: \(length))",
+      draw: { premiseData in
+        let count = drawEdgeBiasedInteger(in: length, using: &premiseData)
+        return Data(premiseData.drawBytes(count: count))
+      },
+      shrink: { value in
+        guard !value.isEmpty else { return [] }
+        return [Data(value.dropLast()), Data()].filter { length.contains($0.count) }
+      }
+    )
+  }
+}
+
 // MARK: - Date strategy
 
 public extension Strategy where Value == Date {
