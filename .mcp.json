@@ -7,6 +7,10 @@
         "env": {
           "MEMORY_SCOPE": "project"
         }
+      },
+      "swift-rag": {
+        "command": "/Applications/SwiftRag.app/Contents/MacOS/SwiftRagMCPServer",
+        "args": ["--root", "/Users/bruno/Developer/Premise/"]
       }
     }
   }
