@@ -1,10 +1,14 @@
 import Foundation
 
 /// Writes `contents` to a temporary file, passes its URL to `body`, then removes it.
+///
+/// The URL is valid only while `body` is running. Cleanup runs after `body`
+/// returns, throws, or is cancelled, so callers must not use the URL from
+/// detached work after `body` returns.
 public func withTemporaryFile<T>(
   contents: Data,
   extension pathExtension: String? = nil,
-  _ body: @escaping @Sendable (URL) async throws -> T
+  _ body: @Sendable (URL) async throws -> T
 ) async throws -> T {
   let directory = FileManager.default.temporaryDirectory
     .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -20,6 +24,10 @@ public func withTemporaryFile<T>(
 }
 
 /// Writes `contents` to a temporary file, passes its URL to `body`, then removes it.
+///
+/// The URL is valid only while `body` is running. Cleanup runs after `body`
+/// returns, throws, or is cancelled, so callers must not use the URL from
+/// detached work after `body` returns.
 public func withTemporaryFile<T>(
   contents: Data,
   extension pathExtension: String? = nil,

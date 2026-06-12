@@ -108,7 +108,9 @@ static func ipv6Addresses() -> Strategy<String>
 `regex` supports a practical generation subset: literals, `.`, character
 classes, escaped literals, and `?`, `*`, `+`, `{n}`, and `{m,n}` quantifiers.
 Generated candidates are still checked against `NSRegularExpression` before
-being returned.
+being returned. `identifiers(first:rest:length:)` requires `first` characters;
+`rest` characters are only required when generated identifiers can exceed one
+character.
 
 ```swift
 .regex("[a-z]{3}[0-9]{2}")

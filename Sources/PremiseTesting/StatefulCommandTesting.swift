@@ -22,6 +22,9 @@ public protocol StatefulCommand: Sendable {
   func canApply(to model: Model) -> Bool
 
   /// Applies the expected successful transition to the lightweight model.
+  ///
+  /// `Model` should be value-semantic. Implementations should only mutate this
+  /// model argument and leave external state unchanged.
   func apply(to model: inout Model) throws
 
   /// Runs the command against the system under test.
@@ -35,10 +38,16 @@ public extension StatefulCommand {
 
 /// Error thrown when a stateful command violates its declared expectation.
 public struct StatefulCommandExpectationError: Error, Sendable, CustomStringConvertible {
+  /// Label for the command that violated its expectation.
   public let commandLabel: String
+
+  /// Expected outcome that was violated.
   public let expectation: CommandExpectation
+
+  /// Optional description of the error thrown by the command.
   public let underlyingDescription: String?
 
+  /// Creates an expectation-violation error for a stateful command.
   public init(
     commandLabel: String,
     expectation: CommandExpectation,
@@ -49,6 +58,7 @@ public struct StatefulCommandExpectationError: Error, Sendable, CustomStringConv
     self.underlyingDescription = underlyingDescription
   }
 
+  /// Human-readable diagnostic for the expectation violation.
   public var description: String {
     switch expectation {
     case .succeeds:
@@ -74,7 +84,8 @@ public func checkStateMachine<Command: StatefulCommand>(
   for command in commands where command.canApply(to: model) {
     switch command.expectation {
     case .succeeds:
-      try command.apply(to: &model)
+      var nextModel = model
+      try command.apply(to: &nextModel)
       do {
         try await command.run(on: system)
       } catch {
@@ -84,6 +95,7 @@ public func checkStateMachine<Command: StatefulCommand>(
           underlyingDescription: String(describing: error)
         )
       }
+      model = nextModel
       try await assertEquivalent(model, system)
 
     case .fails:

@@ -5,9 +5,13 @@ import PremiseCore
 
 /// A reduced rational-number value used by Premise's numeric strategies.
 public struct PremiseRational: Sendable, Codable, Equatable, Hashable, CustomStringConvertible {
+  /// Reduced signed numerator.
   public let numerator: Int
+
+  /// Positive reduced denominator.
   public let denominator: Int
 
+  /// Creates a reduced rational value from a numerator and non-zero denominator.
   public init(numerator: Int, denominator: Int) {
     precondition(denominator != 0, "PremiseRational denominator must be non-zero")
     let sign = denominator < 0 ? -1 : 1
@@ -16,32 +20,43 @@ public struct PremiseRational: Sendable, Codable, Equatable, Hashable, CustomStr
     self.denominator = absClamped(denominator) / divisor
   }
 
+  /// Textual `numerator/denominator` representation.
   public var description: String { "\(numerator)/\(denominator)" }
 }
 
 /// A simple complex-number value used by Premise's numeric strategies.
 public struct PremiseComplex: Sendable, Codable, Equatable, CustomStringConvertible {
+  /// Real component.
   public let real: Double
+
+  /// Imaginary component.
   public let imaginary: Double
 
+  /// Creates a complex number from real and imaginary components.
   public init(real: Double, imaginary: Double) {
     self.real = real
     self.imaginary = imaginary
   }
 
+  /// Textual `real+imaginaryi` representation.
   public var description: String { "\(real)+\(imaginary)i" }
 }
 
 /// A deterministic generated function backed by a finite input/output table.
 public struct GeneratedFunction<Input: Hashable & Sendable, Output: Sendable>: Sendable {
+  /// Output returned for inputs that are absent from ``cases``.
   public let defaultOutput: Output
+
+  /// Explicit input/output cases for this generated function.
   public let cases: [Input: Output]
 
+  /// Creates a generated function from a default output and explicit cases.
   public init(defaultOutput: Output, cases: [Input: Output]) {
     self.defaultOutput = defaultOutput
     self.cases = cases
   }
 
+  /// Returns the mapped output for `input`, or ``defaultOutput`` if absent.
   public func callAsFunction(_ input: Input) -> Output {
     cases[input] ?? defaultOutput
   }
@@ -160,8 +175,11 @@ public extension Strategy where Value == String {
     length: ClosedRange<Int>
   ) -> Strategy<String> {
     precondition(!first.isEmpty, "identifiers(first:rest:length:) requires first characters")
-    precondition(!rest.isEmpty, "identifiers(first:rest:length:) requires rest characters")
     precondition(length.lowerBound >= 1, "identifier length must include at least one character")
+    precondition(
+      length.upperBound == 1 || !rest.isEmpty,
+      "identifiers(first:rest:length:) requires rest characters when length can exceed one"
+    )
     return Strategy<String>(
       label: "identifiers(length: \(length))",
       draw: { data in

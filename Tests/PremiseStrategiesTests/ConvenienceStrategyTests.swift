@@ -39,3 +39,15 @@ func customIdentifierStrategyUsesSuppliedCharacterSets() throws {
   #expect(identifier.first == "$")
   #expect(identifier.dropFirst().allSatisfy { $0 == "a" || $0 == "b" })
 }
+
+@Test("Custom identifier strategy permits single characters without rest")
+func customIdentifierStrategyPermitsSingleCharactersWithoutRest() throws {
+  var data = PremiseData(provider: PseudoRandomProvider(seed: 64, maxDraws: 64))
+  let identifier = try Strategy<String>.identifiers(
+    first: ["A"],
+    rest: [],
+    length: 1...1
+  ).draw(&data)
+
+  #expect(identifier == "A")
+}

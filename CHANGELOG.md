@@ -43,6 +43,8 @@
 
 ### Fixed
 
+- Hardened latest helper APIs for Swift 6 strict concurrency and fixed custom
+  identifiers so `rest` is only required for multi-character lengths.
 - Hardened Swift 6 concurrency seams for JSONL appends, state-machine bundle
   storage, Z3 context confinement, and internal `PremiseData` provider-box
   invariants.
