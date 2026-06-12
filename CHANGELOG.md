@@ -31,6 +31,25 @@
   binary-operation law test skeletons.
 - Added `PremiseFuzzing` with `FuzzInputProvider` and `fuzzOneInput` for
   libFuzzer/AFL-style byte-input harnesses with failure persistence.
+- Added `SQLiteConnection.withHandle(_:)` as a source-compatible serialized
+  raw-handle access path.
+- Added Swift Testing convenience helpers: `expectForAll`, `expectRoundTrip`,
+  `expectModelAgreement`, and `withTemporaryFile`.
+- Added `PropertyConfig.bounded(runs:shrinks:drawBudget:replay:)` for explicit
+  bounded test budgets.
+- Added `Strategy<Data>.data` and identifier string strategies.
+- Added `StatefulCommand` and `checkStateMachine` for lightweight
+  model-vs-system command sequences with expected failures.
+
+### Fixed
+
+- Hardened latest helper APIs for Swift 6 strict concurrency and fixed custom
+  identifiers so `rest` is only required for multi-character lengths.
+- Hardened Swift 6 concurrency seams for JSONL appends, state-machine bundle
+  storage, Z3 context confinement, and internal `PremiseData` provider-box
+  invariants.
+- Updated concurrency docs and snippets to avoid unsynchronized shared mutable
+  captures and unnecessary unchecked sendability.
 
 ## v1.0.0 - 2026-06-04
 

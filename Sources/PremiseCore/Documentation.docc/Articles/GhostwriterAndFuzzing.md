@@ -96,24 +96,44 @@ to `Data`, then runs your async fuzz body from a task or a small synchronous
 adapter appropriate for your harness:
 
 ```swift
+import Foundation
+
+final class FuzzerResultBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var failureMessage: String?
+
+    func record(_ error: any Error) {
+        let message = String(describing: error)
+        lock.lock()
+        defer { lock.unlock() }
+        failureMessage = message
+    }
+
+    func recordedFailureMessage() -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return failureMessage
+    }
+}
+
 @_cdecl("LLVMFuzzerTestOneInput")
 public func LLVMFuzzerTestOneInput(_ bytes: UnsafePointer<UInt8>, _ count: Int) -> Int32 {
     let data = Data(bytes: bytes, count: count)
     let semaphore = DispatchSemaphore(value: 0)
-    var failure: Error?
+    let result = FuzzerResultBox()
 
     Task {
         do {
             try await fuzzPayload(data)
         } catch {
-            failure = error
+            result.record(error)
         }
         semaphore.signal()
     }
 
     semaphore.wait()
-    if let failure {
-        fatalError(String(describing: failure))
+    if let failureMessage = result.recordedFailureMessage() {
+        fatalError(failureMessage)
     }
     return 0
 }

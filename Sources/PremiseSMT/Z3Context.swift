@@ -4,14 +4,10 @@ import CZ3
 /// RAII-style wrapper around a Z3 context and solver pair.
 ///
 /// Each `Z3Context` owns an isolated Z3 context and solver with
-/// explicit reference counting. Contexts are not shared across
-/// tasks — create one per worker or per property check.
-///
-/// - Important: `Z3Context` is `@unchecked Sendable` because the
-///   underlying Z3 context is not thread-safe. Callers must ensure
-///   single-threaded access per instance (e.g., actor isolation or
-///   task-local ownership).
-public final class Z3Context: @unchecked Sendable {
+/// explicit reference counting. Contexts are non-Sendable because the
+/// underlying Z3 context is not thread-safe; keep each instance confined
+/// to one actor or task, or add explicit synchronization before sharing.
+public final class Z3Context {
   private let context: Z3_context
   private let solver: Z3_solver
 

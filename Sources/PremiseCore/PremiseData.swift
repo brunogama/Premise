@@ -291,6 +291,9 @@ private struct PrimitiveProviderState: Sendable {
   }
 }
 
+// The unchecked Sendable boxes below are private CoW implementation details.
+// Each box stores a Sendable PrimitiveProvider; mutation is guarded by
+// PrimitiveProviderState.ensureUniqueBox() plus inout PremiseData ownership.
 // swiftlint:disable unavailable_function
 private class PrimitiveProviderBoxBase: @unchecked Sendable {
   var isExhausted: Bool { fatalError("abstract") }

@@ -14,8 +14,13 @@ private enum PhaseTestError: Error, CustomStringConvertible {
   }
 }
 
-private final class FlakySwitch: @unchecked Sendable {
-  var shouldFail = true
+private actor FlakySwitch {
+  private var shouldFail = true
+
+  func failOnce() -> Bool {
+    defer { shouldFail = false }
+    return shouldFail
+  }
 }
 
 @Test("Explicit examples run before generated examples")
@@ -222,6 +227,57 @@ func jsonlRunOutputWritesStructuredRunEvents() async throws {
   #expect(event.runCount == 1)
 }
 
+@Test("Concurrent JSONL appends write complete decodable lines")
+func concurrentJSONLAppendsWriteCompleteLines() async throws {
+  let directory = FileManager.default.temporaryDirectory
+    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+  let outputURL = directory.appendingPathComponent("premise-runs.jsonl")
+  let eventCount = 64
+
+  try await withThrowingTaskGroup(of: Void.self) { group in
+    for index in 0..<eventCount {
+      let propertyID = PropertyIdentity(
+        fileID: "PhaseAndReportTests.swift",
+        line: UInt(400 + index),
+        strategyLabel: "just(\(index))",
+        functionName: "concurrentJSONLAppendsWriteCompleteLines-\(index)"
+      )
+      let report = RunReport(
+        runCount: 1,
+        phaseCounts: [.generate: 1]
+      )
+      let event = RunJSONLEvent(
+        propertyID: propertyID,
+        result: DetailedRunResult<Int>.passed(report)
+      )
+
+      group.addTask {
+        try RunJSONLWriter.append(event, to: outputURL)
+      }
+    }
+
+    try await group.waitForAll()
+  }
+
+  let output = try String(contentsOf: outputURL, encoding: .utf8)
+  let lines = output.split(separator: "\n")
+  #expect(lines.count == eventCount)
+
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  var functionNames: Set<String> = []
+  for line in lines {
+    let event = try decoder.decode(RunJSONLEvent.self, from: Data(line.utf8))
+    #expect(event.event == "premise.run")
+    #expect(event.outcome == .passed)
+    #expect(event.runCount == 1)
+    if let functionName = event.propertyID.functionName {
+      functionNames.insert(functionName)
+    }
+  }
+  #expect(functionNames.count == eventCount)
+}
+
 @Test("Target phase records targeted examples and target scores")
 func targetPhaseRecordsTargetScores() async {
   let runner = Runner(
@@ -273,8 +329,7 @@ func flakyFailureIsReportedWhenReplayDoesNotReproduce() async {
   )
 
   let result = await runner.runDetailed { _ in
-    if state.shouldFail {
-      state.shouldFail = false
+    if await state.failOnce() {
       throw PhaseTestError.failed("first run only")
     }
   }

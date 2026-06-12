@@ -61,16 +61,19 @@ Generates a `Double` within the given range. Also edge-biased: tries `lowerBound
 ```swift
 static func bytes(length: Int) -> Strategy<[UInt8]>
 static func bytes(length: ClosedRange<Int>) -> Strategy<[UInt8]>
+static func data(length: Int) -> Strategy<Data>
+static func data(length: ClosedRange<Int>) -> Strategy<Data>
 ```
 
-Generates a `[UInt8]` of a fixed or variable length. Useful for testing parsers, hashing functions, and any system that processes opaque binary data.
+Generates `[UInt8]` or `Data` of a fixed or variable length. Useful for testing parsers, hashing functions, codecs, compression, and any system that processes opaque binary data.
 
 ```swift
 .bytes(length: 16)          // always 16 bytes
 .bytes(length: 1...512)     // variable length, edge-biased count
+Strategy<Data>.data(length: 0...4096)
 ```
 
-**Shrinking:** Drops the last byte. Empty arrays don't shrink.
+**Shrinking:** Variable-length bytes/data drop the last byte and can shrink to empty. Fixed-length `Data` shrinks toward all-zero bytes.
 
 ### Strings
 
@@ -94,6 +97,8 @@ let digits    = Array("0123456789")
 
 ```swift
 static func regex(_ pattern: String, length: ClosedRange<Int> = 0...128) -> Strategy<String>
+static func identifiers(first: [Character], rest: [Character], length: ClosedRange<Int>) -> Strategy<String>
+static func asciiIdentifiers(length: ClosedRange<Int>) -> Strategy<String>
 static func domainNames() -> Strategy<String>
 static func emailAddresses() -> Strategy<String>
 static func ipv4Addresses() -> Strategy<String>
@@ -103,10 +108,14 @@ static func ipv6Addresses() -> Strategy<String>
 `regex` supports a practical generation subset: literals, `.`, character
 classes, escaped literals, and `?`, `*`, `+`, `{n}`, and `{m,n}` quantifiers.
 Generated candidates are still checked against `NSRegularExpression` before
-being returned.
+being returned. `identifiers(first:rest:length:)` requires `first` characters;
+`rest` characters are only required when generated identifiers can exceed one
+character.
 
 ```swift
 .regex("[a-z]{3}[0-9]{2}")
+.asciiIdentifiers(length: 1...24)
+.identifiers(first: Array("_$"), rest: Array("abcdefghijklmnopqrstuvwxyz0123456789_"), length: 1...16)
 .domainNames(labels: 2...4)
 .emailAddresses()
 .ipv4Addresses()

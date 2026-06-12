@@ -5,9 +5,13 @@ import PremiseCore
 
 /// A reduced rational-number value used by Premise's numeric strategies.
 public struct PremiseRational: Sendable, Codable, Equatable, Hashable, CustomStringConvertible {
+  /// Reduced signed numerator.
   public let numerator: Int
+
+  /// Positive reduced denominator.
   public let denominator: Int
 
+  /// Creates a reduced rational value from a numerator and non-zero denominator.
   public init(numerator: Int, denominator: Int) {
     precondition(denominator != 0, "PremiseRational denominator must be non-zero")
     let sign = denominator < 0 ? -1 : 1
@@ -16,32 +20,43 @@ public struct PremiseRational: Sendable, Codable, Equatable, Hashable, CustomStr
     self.denominator = absClamped(denominator) / divisor
   }
 
+  /// Textual `numerator/denominator` representation.
   public var description: String { "\(numerator)/\(denominator)" }
 }
 
 /// A simple complex-number value used by Premise's numeric strategies.
 public struct PremiseComplex: Sendable, Codable, Equatable, CustomStringConvertible {
+  /// Real component.
   public let real: Double
+
+  /// Imaginary component.
   public let imaginary: Double
 
+  /// Creates a complex number from real and imaginary components.
   public init(real: Double, imaginary: Double) {
     self.real = real
     self.imaginary = imaginary
   }
 
+  /// Textual `real+imaginaryi` representation.
   public var description: String { "\(real)+\(imaginary)i" }
 }
 
 /// A deterministic generated function backed by a finite input/output table.
 public struct GeneratedFunction<Input: Hashable & Sendable, Output: Sendable>: Sendable {
+  /// Output returned for inputs that are absent from ``cases``.
   public let defaultOutput: Output
+
+  /// Explicit input/output cases for this generated function.
   public let cases: [Input: Output]
 
+  /// Creates a generated function from a default output and explicit cases.
   public init(defaultOutput: Output, cases: [Input: Output]) {
     self.defaultOutput = defaultOutput
     self.cases = cases
   }
 
+  /// Returns the mapped output for `input`, or ``defaultOutput`` if absent.
   public func callAsFunction(_ input: Input) -> Output {
     cases[input] ?? defaultOutput
   }
@@ -151,6 +166,52 @@ public extension Strategy where Value == String {
         return [String(value.dropLast())].filter { length.contains($0.count) }
       }
     )
+  }
+
+  /// Generates identifier-shaped strings from caller-supplied character sets.
+  static func identifiers(
+    first: [Character],
+    rest: [Character],
+    length: ClosedRange<Int>
+  ) -> Strategy<String> {
+    precondition(!first.isEmpty, "identifiers(first:rest:length:) requires first characters")
+    precondition(length.lowerBound >= 1, "identifier length must include at least one character")
+    precondition(
+      length.upperBound == 1 || !rest.isEmpty,
+      "identifiers(first:rest:length:) requires rest characters when length can exceed one"
+    )
+    return Strategy<String>(
+      label: "identifiers(length: \(length))",
+      draw: { data in
+        let count = drawEdgeBiasedInteger(in: length, using: &data)
+        var characters: [Character] = []
+        characters.reserveCapacity(count)
+        characters.append(first[data.drawInteger(in: 0...(first.count - 1))])
+        for _ in 1..<count {
+          characters.append(rest[data.drawInteger(in: 0...(rest.count - 1))])
+        }
+        return String(characters)
+      },
+      shrink: { value in
+        guard !value.isEmpty else { return [] }
+        var candidates: [String] = []
+        let minimal = String(first[0])
+        if value != minimal, length.contains(1) {
+          candidates.append(minimal)
+        }
+        if value.count > length.lowerBound {
+          candidates.append(String(value.dropLast()))
+        }
+        return uniqueStringCandidates(candidates.filter { length.contains($0.count) })
+      }
+    )
+  }
+
+  /// Generates C/Swift/SQL-safe ASCII identifier-shaped strings.
+  static func asciiIdentifiers(length: ClosedRange<Int>) -> Strategy<String> {
+    let first = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+    let rest = first + Array("0123456789")
+    return identifiers(first: first, rest: rest, length: length)
   }
 
   /// Generates DNS-ish domain names.
@@ -761,6 +822,11 @@ private func asciiRange(from start: Character, through end: Character) -> [Chara
     return [start, end]
   }
   return (first...last).compactMap { UnicodeScalar($0).map(Character.init) }
+}
+
+private func uniqueStringCandidates(_ candidates: [String]) -> [String] {
+  var seen: Set<String> = []
+  return candidates.filter { seen.insert($0).inserted }
 }
 
 private func drawDomainLabel(length: ClosedRange<Int>, using data: inout PremiseData) -> String {

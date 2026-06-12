@@ -196,6 +196,27 @@ public struct PropertyConfig: Sendable {
     printReproductionBlob: true
   )
 
+  /// Bounded test configuration with explicit run and shrink budgets.
+  public static func bounded(
+    runs: Int,
+    shrinks: Int = 100,
+    drawBudget: Int? = nil,
+    replay: Bool = true
+  ) -> Self {
+    precondition(runs >= 0, "bounded(runs:) requires a non-negative run count")
+    precondition(shrinks >= 0, "bounded(shrinks:) requires a non-negative shrink count")
+    if let drawBudget {
+      precondition(drawBudget >= 0, "bounded(drawBudget:) requires a non-negative draw budget")
+    }
+
+    return Self(
+      maxRuns: runs,
+      maxShrinkIterations: shrinks,
+      maxDrawsPerRun: drawBudget ?? Self.default.maxDrawsPerRun,
+      replayEnabled: replay
+    )
+  }
+
   // MARK: - Chainable builders
 
   /// Sets the number of property runs.

@@ -1,9 +1,10 @@
+#if canImport(Testing) && canImport(PremiseTesting) && canImport(PremiseStrategies)
 import Testing
 import PremiseTesting
 import PremiseStrategies
 
 // Fixed: only increment insertionCount for new keys.
-final class BuggyCache: @unchecked Sendable {
+final class BuggyCache {
   private var store: [String: Int] = [:]
   private var insertionCount = 0
 
@@ -32,3 +33,4 @@ let valueStrategy = Strategy<Int>.integers(in: 0...100)
     }
   }
 }
+#endif
