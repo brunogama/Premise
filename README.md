@@ -52,22 +52,22 @@ repeatably in future runs.
 
 ### Install with SwiftPM
 
-Premise is versioned for Swift Package Manager. The current release is `1.0.0`; add it as your minimum compatible version in `Package.swift`:
+Premise is versioned for Swift Package Manager. The current release is `1.0.1`; add it as your minimum compatible version in `Package.swift`:
 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/brunogama/Premise.git", from: "1.0.0"),
+    .package(url: "https://github.com/brunogama/Premise.git", from: "1.0.1"),
 ]
 ```
 
-If you want to pin exactly to the `1.0.0` tag for package tracking, use `exact` instead:
+If you want to pin exactly to the `1.0.1` tag for package tracking, use `exact` instead:
 
 ```swift
-.package(url: "https://github.com/brunogama/Premise.git", exact: "1.0.0")
+.package(url: "https://github.com/brunogama/Premise.git", exact: "1.0.1")
 ```
 
-In Xcode, use **File > Add Package Dependencies…**, enter `https://github.com/brunogama/Premise.git`, choose **Up to Next Major Version**, and set the version to `1.0.0`.
+In Xcode, use **File > Add Package Dependencies…**, enter `https://github.com/brunogama/Premise.git`, choose **Up to Next Major Version**, and set the version to `1.0.1`.
 
 Then add the products you need to your test target:
 
