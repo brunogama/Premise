@@ -31,6 +31,16 @@
   binary-operation law test skeletons.
 - Added `PremiseFuzzing` with `FuzzInputProvider` and `fuzzOneInput` for
   libFuzzer/AFL-style byte-input harnesses with failure persistence.
+- Added `SQLiteConnection.withHandle(_:)` as a source-compatible serialized
+  raw-handle access path.
+
+### Fixed
+
+- Hardened Swift 6 concurrency seams for JSONL appends, state-machine bundle
+  storage, Z3 context confinement, and internal `PremiseData` provider-box
+  invariants.
+- Updated concurrency docs and snippets to avoid unsynchronized shared mutable
+  captures and unnecessary unchecked sendability.
 
 ## v1.0.0 - 2026-06-04
 

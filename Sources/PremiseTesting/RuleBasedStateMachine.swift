@@ -281,16 +281,16 @@ public struct StateMachineBundle<Element: Sendable>: Sendable {
           throw StrategyError.assumptionFailed(label: label, maxAttempts: 1)
         }
 
-        let values: [Element] = context.values(for: key)
-        guard !values.isEmpty else {
+        guard
+          let value: Element = context.selectValue(
+            for: key,
+            consuming: consuming,
+            using: &data
+          )
+        else {
           throw StrategyError.assumptionFailed(label: label, maxAttempts: 1)
         }
-
-        let index = data.drawInteger(in: 0...(values.count - 1))
-        if consuming {
-          return context.removeValue(at: index, for: key) ?? values[index]
-        }
-        return values[index]
+        return value
       }
     )
   }
@@ -427,7 +427,12 @@ public func checkRuleBasedStateMachine<State: Sendable>(
   for (index, trace) in replayTraces.enumerated() {
     let metadata = StateMachineRunMetadata(baseSeed: baseSeed, exampleIndex: -1 - index)
     do {
-      try await runOnce(machine, config: config, provider: ReplayProvider(trace: trace), metadata: metadata)
+      try await runOnce(
+        machine,
+        config: config,
+        provider: ReplayProvider(trace: trace),
+        metadata: metadata
+      )
     } catch let failure as StateMachineFailure {
       try await persist(failure: failure, config: config, database: database)
       throw failure
@@ -743,9 +748,12 @@ private func makeRule<State: Sendable, Argument: Sendable>(
     isEnabled: precondition,
     run: { state, context, data in
       guard
-        let drawnArgument = try data.withSpan(name, { spanData in
-          try draw(argument, using: &spanData, context: context)
-        })
+        let drawnArgument = try data.withSpan(
+          name,
+          { spanData in
+            try draw(argument, using: &spanData, context: context)
+          }
+        )
       else {
         return nil
       }
@@ -771,9 +779,12 @@ private func makeRule<State: Sendable, Argument: Sendable, Element: Sendable>(
     isEnabled: precondition,
     run: { state, context, data in
       guard
-        let drawnArgument = try data.withSpan(name, { spanData in
-          try draw(argument, using: &spanData, context: context)
-        })
+        let drawnArgument = try data.withSpan(
+          name,
+          { spanData in
+            try draw(argument, using: &spanData, context: context)
+          }
+        )
       else {
         return nil
       }
@@ -801,9 +812,12 @@ private func makeRule<State: Sendable, Argument: Sendable, First: Sendable, Seco
     isEnabled: precondition,
     run: { state, context, data in
       guard
-        let drawnArgument = try data.withSpan(name, { spanData in
-          try draw(argument, using: &spanData, context: context)
-        })
+        let drawnArgument = try data.withSpan(
+          name,
+          { spanData in
+            try draw(argument, using: &spanData, context: context)
+          }
+        )
       else {
         return nil
       }
@@ -834,7 +848,12 @@ private func shrinkFailure<State: Sendable>(
 
   func tryTrace(_ candidate: ChoiceTrace) async -> Bool {
     do {
-      try await runOnce(machine, config: config, provider: ReplayProvider(trace: candidate), metadata: metadata)
+      try await runOnce(
+        machine,
+        config: config,
+        provider: ReplayProvider(trace: candidate),
+        metadata: metadata
+      )
       return false
     } catch let candidateFailure as StateMachineFailure {
       guard candidateFailure.matches(failure) else {
@@ -937,7 +956,11 @@ private func persist(
     runCount: max(0, failure.exampleIndex + 1),
     shrinkCount: failure.shrinkCount,
     seed: failure.baseSeed,
-    statistics: RunStatistics(notes: [RunNote(label: "program", value: failure.program.description)], events: [], targetScore: nil)
+    statistics: RunStatistics(
+      notes: [RunNote(label: "program", value: failure.program.description)],
+      events: [],
+      targetScore: nil
+    )
   )
   if let database {
     try await database.save(record)
@@ -1006,30 +1029,45 @@ private func stateMachineFailure(
 }
 
 private final class StateMachineRunContext: @unchecked Sendable {
+  // TaskLocal values must be Sendable and rule closures are @Sendable.
+  // The unchecked conformance is private and valid only because every access
+  // to mutable bundle storage is serialized by this lock.
+  private let lock = NSLock()
   private var storage: [StateMachineBundleKey: [any Sendable]] = [:]
 
-  func values<Element: Sendable>(for key: StateMachineBundleKey) -> [Element] {
-    guard let values = storage[key] else { return [] }
-    return values.compactMap { $0 as? Element }
+  func selectValue<Element: Sendable>(
+    for key: StateMachineBundleKey,
+    consuming: Bool,
+    using data: inout PremiseData
+  ) -> Element? {
+    lock.lock()
+    defer { lock.unlock() }
+
+    guard let values = storage[key] else { return nil }
+    let typedValues: [(offset: Int, value: Element)] = values.enumerated().compactMap {
+      offset,
+      value in
+      guard let element = value as? Element else { return nil }
+      return (offset, element)
+    }
+    guard !typedValues.isEmpty else { return nil }
+
+    let selectedIndex = data.drawInteger(in: 0...(typedValues.count - 1))
+    let selected = typedValues[selectedIndex]
+    if consuming {
+      storage[key]?.remove(at: selected.offset)
+    }
+    return selected.value
   }
 
   func append<Element: Sendable>(
     _ element: Element,
     to bundle: StateMachineBundle<Element>
   ) {
-    storage[bundle.key, default: []].append(element)
-  }
+    lock.lock()
+    defer { lock.unlock() }
 
-  func removeValue<Element: Sendable>(
-    at index: Int,
-    for key: StateMachineBundleKey
-  ) -> Element? {
-    guard var values = storage[key], values.indices.contains(index) else {
-      return nil
-    }
-    let removed = values.remove(at: index)
-    storage[key] = values
-    return removed as? Element
+    storage[bundle.key, default: []].append(element)
   }
 }
 

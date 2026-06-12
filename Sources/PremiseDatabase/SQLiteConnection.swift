@@ -1,12 +1,15 @@
+import Foundation
 import SQLite3
 
-/// Manages the lifecycle of a single SQLite database connection with
-/// WAL-mode pragmas and automatic schema creation.
+/// Source-compatible SQLite connection wrapper used by ``SQLiteBackedDatabase``
+/// to manage a single SQLite database connection with WAL-mode pragmas and
+/// automatic schema creation.
 ///
-/// `SQLiteConnection` is designed to be owned by an actor (such as the
-/// future `SQLiteBackedDatabase`). The owning actor serialises access,
-/// so this class uses `@unchecked Sendable` to satisfy the concurrency
-/// model without redundant internal locking.
+/// Premise owns this type through `SQLiteBackedDatabase`, whose actor mailbox
+/// serializes all package-internal handle access. The public raw ``handle`` is
+/// retained for 1.x source compatibility; external users that share a
+/// connection across tasks must serialize raw-handle access themselves or use
+/// ``withHandle(_:)``.
 ///
 /// On initialisation the connection:
 /// 1. Validates WAL runtime safety via ``SQLiteRuntimeGate``.
@@ -17,7 +20,12 @@ import SQLite3
 ///
 /// On deallocation the database handle is closed via `sqlite3_close_v2`.
 public final class SQLiteConnection: @unchecked Sendable {
+  private let handleLock = NSLock()
+
   /// The raw SQLite database handle.
+  ///
+  /// Prefer ``withHandle(_:)`` when sharing a connection across tasks. This
+  /// property remains public for 1.x source compatibility with low-level users.
   public let handle: OpaquePointer
 
   /// Opens a SQLite database at `path`, validates WAL safety, enables WAL,
@@ -55,6 +63,18 @@ public final class SQLiteConnection: @unchecked Sendable {
       sqlite3_close_v2(database)
       throw error
     }
+  }
+
+  /// Executes `body` while holding this connection's process-local handle lock.
+  ///
+  /// The lock coordinates callers that opt into this API. Direct uses of
+  /// ``handle`` remain the caller's responsibility for source compatibility.
+  public func withHandle<Result>(
+    _ body: (OpaquePointer) throws -> Result
+  ) rethrows -> Result {
+    handleLock.lock()
+    defer { handleLock.unlock() }
+    return try body(handle)
   }
 
   deinit {

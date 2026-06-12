@@ -104,10 +104,9 @@ The reasons:
 
 The adapters `PremiseTesting` (imports `Testing`) and `PremiseXCTest` (imports
 `XCTest`) are thin wrappers. They construct a ``Runner`` and wrap it in a
-``ReplayFirstExecutor``. Synchronous and data-aware `forAll` overloads call
-`executeDetailed` and translate the returned ``DetailedRunResult`` and
-``RunReport`` into the appropriate test framework failure API. Async property
-overloads call `execute` and translate the compact ``RunResult``.
+``ReplayFirstExecutor``. Synchronous, async, and data-aware `forAll` overloads
+call `executeDetailed` and translate the returned ``DetailedRunResult`` and
+``RunReport`` into the appropriate test framework failure API.
 
 ## PrimitiveProviderState: Copy-on-Write Inside PremiseData
 

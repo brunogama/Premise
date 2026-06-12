@@ -1,9 +1,10 @@
+#if canImport(Testing) && canImport(PremiseTesting) && canImport(PremiseStrategies)
 import Testing
 import PremiseTesting
 import PremiseStrategies
 
 // A cache with a bug: inserting the same key twice increments the count twice.
-final class BuggyCache: @unchecked Sendable {
+final class BuggyCache {
   private var store: [String: Int] = [:]
   private var insertionCount = 0
 
@@ -33,3 +34,4 @@ let valueStrategy = Strategy<Int>.integers(in: 0...100)
     }
   }
 }
+#endif
