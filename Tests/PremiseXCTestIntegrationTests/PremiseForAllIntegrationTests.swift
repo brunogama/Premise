@@ -28,7 +28,7 @@ final class PremiseForAllIntegrationTests: XCTestCase {
     let strategy = Strategy<Int>.integers(in: 1...10)
 
     XCTExpectFailure("premise_forAll should report a counterexample") {
-      $0.compactDescription.contains("Counterexample")
+      $0.compactDescription.contains("Minimal counterexample")
     }
 
     try await premise_forAll(strategy) { value in

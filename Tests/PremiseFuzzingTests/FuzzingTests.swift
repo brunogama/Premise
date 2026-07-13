@@ -84,7 +84,7 @@ func fuzzOneInputSavesFailuresToDatabase() async throws {
 
   do {
     try await fuzzOneInput(
-      Data([3]),
+      Data([7]),
       strategy: Strategy<Int>.integers(in: 0...10),
       config: config
     ) { _ in
@@ -92,7 +92,7 @@ func fuzzOneInputSavesFailuresToDatabase() async throws {
     }
     #expect(Bool(false))
   } catch let failure as FuzzFailure {
-    #expect(failure.input == [3])
+    #expect(failure.input == [7])
     #expect(failure.underlyingDescription.contains("property failed"))
   }
 

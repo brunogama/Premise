@@ -115,7 +115,10 @@ let package = Package(
   ],
   dependencies: macroDependencies,
   targets: [
-    .target(name: "PremiseCore"),
+    .target(
+      name: "PremiseCore",
+      resources: [.copy("Documentation.docc")]
+    ),
     .target(
       name: "PremiseStrategies",
       dependencies: ["PremiseCore"]

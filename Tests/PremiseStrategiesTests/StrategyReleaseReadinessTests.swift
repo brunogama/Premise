@@ -16,7 +16,7 @@ func suchThatFiltersGeneratedValues() throws {
 func sizedGenerationPassesBoundedSizeToBuilder() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 2, maxDraws: 32))
   let strategy = Strategy<[Int]>.sized(maxSize: 8) { size in
-    .arrays(of: .just(size), count: size)
+    Strategy<Int>.arrays(of: .just(size), count: size)
   }
   let value = try strategy.draw(&data)
   #expect(value.count <= 8)
@@ -40,8 +40,12 @@ func collectionGeneratorsSupportExactAndMinMaxSizes() throws {
 
   let exact = try Strategy<Int>.arrays(of: .just(1), count: 3).draw(&data)
   let ranged = try Strategy<Int>.arrays(of: .just(2), minCount: 2, maxCount: 4).draw(&data)
-  let set = try Strategy.sets(of: Strategy<Int>.integers(in: 0...10), minCount: 1, maxCount: 3)
-    .draw(&data)
+  let set = try Strategy<Never>.sets(
+    of: Strategy<Int>.integers(in: 0...10),
+    minCount: 1,
+    maxCount: 3
+  )
+  .draw(&data)
 
   #expect(exact.count == 3)
   #expect((2...4).contains(ranged.count))
@@ -52,12 +56,12 @@ func collectionGeneratorsSupportExactAndMinMaxSizes() throws {
 func setAndDictionaryGeneratorsRejectImpossibleUniqueCounts() {
   var setData = PremiseData(provider: PseudoRandomProvider(seed: 30, maxDraws: 128))
   #expect(throws: StrategyError.self) {
-    try Strategy.sets(of: Strategy<Int>.just(1), count: 2).draw(&setData)
+    try Strategy<Never>.sets(of: Strategy<Int>.just(1), count: 2).draw(&setData)
   }
 
   var dictionaryData = PremiseData(provider: PseudoRandomProvider(seed: 31, maxDraws: 128))
   #expect(throws: StrategyError.self) {
-    try Strategy.dictionaries(
+    try Strategy<Never>.dictionaries(
       keys: Strategy<String>.just("duplicate"),
       values: Strategy<Int>.integers(in: 0...10),
       count: 2
@@ -148,9 +152,11 @@ func catalogURLDateUUIDAndRangeStrategiesDrawValidValues() throws {
   let range = try Strategy<Range<Int>>.ranges(in: 0..<5).draw(&data)
   let closedRange = try Strategy<ClosedRange<Int>>.closedRanges(in: 0...5).draw(&data)
 
+  let utc = try #require(TimeZone(identifier: "UTC"))
+
   #expect(["http", "https"].contains(url.scheme))
   #expect(url.host != nil)
-  #expect(timeZone.identifier == "UTC")
+  #expect(timeZone == utc)
   #expect((2020...2021).contains(components.year ?? 0))
   #expect(duration >= .seconds(-2) && duration <= .seconds(2))
   #expect(nilUUID.uuidString == "00000000-0000-0000-0000-000000000000")
@@ -179,32 +185,41 @@ func catalogNumericStrategiesDrawDecimalRationalAndComplexValues() throws {
 func catalogCompositionHelpersWork() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 44, maxDraws: 512))
 
-  let fixed = try Strategy<[String: Int]>.record([
-    "a": .integers(in: 0...10),
-    "b": .integers(in: 0...10),
-  ]).draw(&data)
+  let fixed = try Strategy<[String: Int]>
+    .record([
+      "a": .integers(in: 0...10),
+      "b": .integers(in: 0...10),
+    ])
+    .draw(&data)
   let unique = try Strategy<[Int]>.uniqueArrays(of: .integers(in: 0...20), length: 3...3)
     .draw(&data)
-  let pair = try Strategy<(Int, Int)>.shared(.integers(in: 0...10)) { shared in
-    zip(shared, shared)
-  }.draw(&data)
+  let pair = try Strategy<(Int, Int)>
+    .shared(.integers(in: 0...10)) { shared in
+      zip(shared, shared)
+    }
+    .draw(&data)
   let deferred = try Strategy<Int>.deferred { .just(7) }.draw(&data)
   let enumCase = try Strategy<TinyCase>.cases.draw(&data)
-  let generated = try Strategy<GeneratedFunction<Int, String>>.generatedFunctions(
-    inputs: .integers(in: 0...3),
-    outputs: .elements(of: ["a", "b"]),
-    tableSize: 1...3
-  ).draw(&data)
-  let composite = try Strategy<Int>.composite { drawData in
-    drawData.drawInteger(in: 1...3)
-  }.draw(&data)
+  let generated = try Strategy<GeneratedFunction<Int, String>>
+    .generatedFunctions(
+      inputs: .integers(in: 0...3),
+      outputs: .elements(of: ["a", "b"]),
+      tableSize: 1...3
+    )
+    .draw(&data)
+  let composite = try Strategy<Int>
+    .composite { drawData in
+      drawData.drawInteger(in: 1...3)
+    }
+    .draw(&data)
+  let generatedValue = generated(1)
 
   #expect(Set(fixed.keys) == ["a", "b"])
   #expect(Set(unique).count == unique.count)
   #expect(pair.0 == pair.1)
   #expect(deferred == 7)
   #expect([TinyCase.first, .second].contains(enumCase))
-  #expect(generated(1) == generated(1))
+  #expect(generated(1) == generatedValue)
   #expect((1...3).contains(composite))
 }
 
@@ -223,18 +238,24 @@ func vectorAndIndexHelpersProduceShrinkableDomainValues() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 5, maxDraws: 128))
 
   let dimensions = try Strategy<Int>.dimensions(in: 2...8).draw(&data)
-  let vector = try Strategy<[Double]>.denseVector(
-    dimensions: 3,
-    elements: .edgeCaseFloats(in: -1.0...1.0)
-  ).draw(&data)
-  let sparse = try Strategy<SparseVector>.sparseVector(
-    dimensions: 5,
-    nonZeroCount: 1...3,
-    values: .edgeCaseFloats(in: -10.0...10.0)
-  ).draw(&data)
-  let quantized = try Strategy<QuantizedValue>.quantizedValues(raw: -10...10, scale: 0.25)
+  let vector = try Strategy<[Double]>
+    .denseVector(
+      dimensions: 3,
+      elements: .edgeCaseFloats(in: -1.0...1.0)
+    )
     .draw(&data)
-  let operation = try Strategy<IndexOperation>.indexOperations(indexRange: 0...4, value: -5...5)
+  let sparse = try Strategy<SparseVector>
+    .sparseVector(
+      dimensions: 5,
+      nonZeroCount: 1...3,
+      values: .edgeCaseFloats(in: -10.0...10.0)
+    )
+    .draw(&data)
+  let quantized = try Strategy<QuantizedValue>
+    .quantizedValues(raw: -10...10, scale: 0.25)
+    .draw(&data)
+  let operation = try Strategy<IndexOperation>
+    .indexOperations(indexRange: 0...4, value: -5...5)
     .draw(&data)
 
   #expect((2...8).contains(dimensions))
