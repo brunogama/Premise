@@ -8,7 +8,7 @@ struct PremiseReplayTool {
     do {
       let options = try ReplayOptions(arguments: Array(CommandLine.arguments.dropFirst()))
       if options.showHelp {
-        print(Self.helpText)
+        emit(Self.helpText)
         return
       }
 
@@ -18,15 +18,27 @@ struct PremiseReplayTool {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(summaries)
-        print(String(decoding: data, as: UTF8.self))
+        emit(String(bytes: data, encoding: .utf8) ?? "")
       } else {
-        print(formatText(summaries))
+        emit(formatText(summaries))
       }
     } catch {
-      fputs("premise-replay: \(error)\n", stderr)
-      fputs("Run `swift package premise-replay --help` for usage.\n", stderr)
+      logError("premise-replay: \(error)")
+      logError("Run `swift package premise-replay --help` for usage.")
       Foundation.exit(1)
     }
+  }
+
+  // Decoded summaries are the tool's product; write them through FileHandle so
+  // the tool never touches C stdio globals.
+  private static func emit(_ message: String) {
+    try? FileHandle.standardOutput.write(contentsOf: Data("\(message)\n".utf8))
+  }
+
+  // Writes through FileHandle rather than Glibc's `stderr`, which is a global
+  // `var` that Swift 6 strict concurrency rejects on Linux.
+  private static func logError(_ message: String) {
+    try? FileHandle.standardError.write(contentsOf: Data("\(message)\n".utf8))
   }
 
   private static let helpText = """
@@ -161,13 +173,16 @@ private struct ReplayOptions {
       switch argument {
       case "--help", "-h":
         showHelp = true
+
       case "--json":
         emitJSON = true
+
       case "--blob":
         guard let next = iterator.next() else {
           throw ReplayToolError.missingBlob
         }
         blob = next
+
       default:
         guard input == nil else {
           throw ReplayToolError.tooManyInputs
@@ -227,10 +242,13 @@ private enum ReplayToolError: Error, CustomStringConvertible {
     switch self {
     case .missingInput:
       return "missing trace path or reproduction blob"
+
     case .missingBlob:
       return "--blob requires a reproduction blob argument"
+
     case .tooManyInputs:
       return "expected at most one trace path or reproduction blob"
+
     case .unrecognizedTraceFile(let path):
       return "could not decode trace file at \(path)"
     }

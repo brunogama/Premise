@@ -1,4 +1,8 @@
+#if canImport(SQLite3)
 import SQLite3
+#else
+import CSQLite
+#endif
 
 /// Fail-fast runtime check ensuring the linked SQLite library supports
 /// WAL mode without the known corruption bugs fixed in 3.51.3.

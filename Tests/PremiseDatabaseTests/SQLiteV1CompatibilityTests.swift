@@ -1,7 +1,11 @@
 import PremiseCore
 import PremiseDatabase
 import Foundation
+#if canImport(SQLite3)
 import SQLite3
+#else
+import CSQLite
+#endif
 import Testing
 
 /// Backward compatibility tests verifying that v1 ``PersistedFailureRecordV1``

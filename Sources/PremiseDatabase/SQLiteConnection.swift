@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(SQLite3)
 import SQLite3
+#else
+import CSQLite
+#endif
 
 /// Source-compatible SQLite connection wrapper used by ``SQLiteBackedDatabase``
 /// to manage a single SQLite database connection with WAL-mode pragmas and

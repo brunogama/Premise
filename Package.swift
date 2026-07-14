@@ -125,7 +125,10 @@ let package = Package(
     ),
     .target(
       name: "PremiseDatabase",
-      dependencies: ["PremiseCore"]
+      dependencies: [
+        "PremiseCore",
+        .target(name: "CSQLite", condition: .when(platforms: [.linux])),
+      ]
     ),
     .target(
       name: "PremiseFuzzing",
@@ -218,6 +221,12 @@ let package = Package(
       pkgConfig: "z3",
       providers: [.brew(["z3"]), .apt(["z3"])]
     ),
+    // Darwin ships the SQLite3 module; Linux needs the system library shim.
+    .systemLibrary(
+      name: "CSQLite",
+      pkgConfig: "sqlite3",
+      providers: [.brew(["sqlite"]), .apt(["libsqlite3-dev"])]
+    ),
 
     // MARK: - v1 Test Targets
 
@@ -237,6 +246,7 @@ let package = Package(
       dependencies: [
         "PremiseCore",
         "PremiseDatabase",
+        .target(name: "CSQLite", condition: .when(platforms: [.linux])),
       ]
     ),
     .testTarget(

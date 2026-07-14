@@ -21,6 +21,10 @@ final class PremiseForAllIntegrationTests: XCTestCase {
     }
   }
 
+  // XCTExpectFailure exists only in Apple's XCTest; swift-corelibs-xctest on
+  // Linux has no failure-expectation API, so these three checks are
+  // Darwin-only.
+  #if canImport(Darwin)
   func testFailingPropertyReportsFailure() async throws {
     // The integers strategy returns lowerBound (1), so checking > 5 fails.
     // We verify the adapter produces a failure message by using
@@ -65,6 +69,7 @@ final class PremiseForAllIntegrationTests: XCTestCase {
       }
     }
   }
+  #endif
 
   func testAcceptsExpectedFailingExplicitExamples() async throws {
     try await premise_forAll(
