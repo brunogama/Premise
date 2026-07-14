@@ -46,8 +46,12 @@ if ! rg -U 'name: "PremiseStrategies",[[:space:]\n]+dependencies: \["PremiseCore
   fail 'Package.swift is missing the PremiseStrategies -> PremiseCore dependency edge'
 fi
 
-if ! rg -U 'name: "PremiseDatabase",[[:space:]\n]+dependencies: \[[[:space:]\n]*"PremiseCore",[[:space:]\n]*\.target\(name: "CSQLite", condition: \.when\(platforms: \[\.linux\]\)\),[[:space:]\n]*\]' Package.swift >/dev/null; then
-  fail 'PremiseDatabase must depend on exactly PremiseCore plus the Linux-only CSQLite shim'
+if ! rg -U 'name: "PremiseDatabase",[[:space:]\n]+dependencies: \["PremiseCore", "PremiseSQLite"\]' Package.swift >/dev/null; then
+  fail 'PremiseDatabase must depend on exactly PremiseCore plus the PremiseSQLite shim'
+fi
+
+if ! rg -U 'name: "PremiseSQLite",[[:space:]\n]+dependencies: \[[[:space:]\n]*\.target\(name: "CSQLite", condition: \.when\(platforms: \[\.linux\]\)\)[[:space:]\n]*\]' Package.swift >/dev/null; then
+  fail 'PremiseSQLite must depend on exactly the Linux-only CSQLite system library'
 fi
 
 if ! rg -U 'name: "PremiseTesting",[[:space:]\n]+dependencies: \[[^]]*"PremiseCore"[^]]*"PremiseStrategies"[^]]*"PremiseDatabase"' Package.swift >/dev/null; then

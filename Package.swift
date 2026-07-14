@@ -47,6 +47,14 @@ if buildMacroFromSource {
       name: "PremiseMacros",
       dependencies: ["PremiseMacrosPlugin"]
     ),
+    .testTarget(
+      name: "PremiseMacrosTests",
+      dependencies: [
+        "PremiseMacrosPlugin",
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ]
+    ),
   ]
   macroDependencies = [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0")
@@ -125,11 +133,19 @@ let package = Package(
     ),
     .target(
       name: "PremiseDatabase",
+      dependencies: ["PremiseCore", "PremiseSQLite"]
+    ),
+    // Re-exports Darwin's SQLite3 module or the Linux CSQLite shim so that
+    // sqlite-facing files need one unconditional import.
+    .target(
+      name: "PremiseSQLite",
       dependencies: [
-        "PremiseCore",
-        .target(name: "CSQLite", condition: .when(platforms: [.linux])),
+        .target(name: "CSQLite", condition: .when(platforms: [.linux]))
       ]
     ),
+    // Shared stdio for the command-line tools; avoids C stdio globals that
+    // Swift 6 strict concurrency rejects on Linux.
+    .target(name: "PremiseToolSupport"),
     .target(
       name: "PremiseFuzzing",
       dependencies: [
@@ -140,7 +156,7 @@ let package = Package(
     .target(name: "PremiseGhostwriter"),
     .executableTarget(
       name: "PremiseGhostwriterTool",
-      dependencies: ["PremiseGhostwriter"]
+      dependencies: ["PremiseGhostwriter", "PremiseToolSupport"]
     ),
     .plugin(
       name: "PremiseGhostwriterPlugin",
@@ -182,6 +198,7 @@ let package = Package(
       dependencies: [
         "PremiseCore",
         "PremiseDatabase",
+        "PremiseToolSupport",
       ]
     ),
     .plugin(
@@ -246,7 +263,7 @@ let package = Package(
       dependencies: [
         "PremiseCore",
         "PremiseDatabase",
-        .target(name: "CSQLite", condition: .when(platforms: [.linux])),
+        "PremiseSQLite",
       ]
     ),
     .testTarget(

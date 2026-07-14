@@ -1,6 +1,7 @@
 import Foundation
 import PremiseCore
 import PremiseDatabase
+import PremiseToolSupport
 
 @main
 struct PremiseReplayTool {
@@ -8,7 +9,7 @@ struct PremiseReplayTool {
     do {
       let options = try ReplayOptions(arguments: Array(CommandLine.arguments.dropFirst()))
       if options.showHelp {
-        emit(Self.helpText)
+        try ToolIO.emit(Self.helpText)
         return
       }
 
@@ -18,27 +19,15 @@ struct PremiseReplayTool {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(summaries)
-        emit(String(bytes: data, encoding: .utf8) ?? "")
+        try ToolIO.emit(String(bytes: data, encoding: .utf8) ?? "")
       } else {
-        emit(formatText(summaries))
+        try ToolIO.emit(formatText(summaries))
       }
     } catch {
-      logError("premise-replay: \(error)")
-      logError("Run `swift package premise-replay --help` for usage.")
+      ToolIO.logError("premise-replay: \(error)")
+      ToolIO.logError("Run `swift package premise-replay --help` for usage.")
       Foundation.exit(1)
     }
-  }
-
-  // Decoded summaries are the tool's product; write them through FileHandle so
-  // the tool never touches C stdio globals.
-  private static func emit(_ message: String) {
-    try? FileHandle.standardOutput.write(contentsOf: Data("\(message)\n".utf8))
-  }
-
-  // Writes through FileHandle rather than Glibc's `stderr`, which is a global
-  // `var` that Swift 6 strict concurrency rejects on Linux.
-  private static func logError(_ message: String) {
-    try? FileHandle.standardError.write(contentsOf: Data("\(message)\n".utf8))
   }
 
   private static let helpText = """

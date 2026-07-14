@@ -35,7 +35,7 @@ final class PremiseForAllIntegrationTests: XCTestCase {
       $0.compactDescription.contains("Minimal counterexample")
     }
 
-    try await premise_forAll(strategy) { value in
+    try await premise_forAll(strategy, config: isolatedFailureStorage()) { value in
       guard value > 5 else {
         throw PremiseTestError(message: "value \(value) is not > 5")
       }
@@ -49,7 +49,7 @@ final class PremiseForAllIntegrationTests: XCTestCase {
       $0.compactDescription.contains("Replay")
     }
 
-    try await premise_forAll(strategy) { _ in
+    try await premise_forAll(strategy, config: isolatedFailureStorage()) { _ in
       throw PremiseTestError(message: "always fails")
     }
   }
@@ -61,7 +61,7 @@ final class PremiseForAllIntegrationTests: XCTestCase {
 
     try await premise_forAll(
       Strategy<Int>.just(99),
-      config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit]),
+      config: isolatedFailureStorage(PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])),
       explicitExamples: [3]
     ) { value in
       if value == 3 {

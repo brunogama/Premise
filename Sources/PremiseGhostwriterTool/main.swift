@@ -1,5 +1,6 @@
 import Foundation
 import PremiseGhostwriter
+import PremiseToolSupport
 
 @main
 struct PremiseGhostwriterTool {
@@ -7,29 +8,17 @@ struct PremiseGhostwriterTool {
     do {
       let options = try GhostwriterOptions(arguments: Array(CommandLine.arguments.dropFirst()))
       if options.showHelp {
-        emit(helpText)
+        try ToolIO.emit(helpText)
         return
       }
 
       let source = try PremiseGhostwriter.render(options.request)
-      emit(source)
+      try ToolIO.emit(source)
     } catch {
-      logError("premise-ghostwriter: \(error)")
-      logError("Run `swift package premise-ghostwriter --help` for usage.")
+      ToolIO.logError("premise-ghostwriter: \(error)")
+      ToolIO.logError("Run `swift package premise-ghostwriter --help` for usage.")
       Foundation.exit(1)
     }
-  }
-
-  // Generated source is the tool's product; write it through FileHandle so the
-  // tool never touches C stdio globals.
-  private static func emit(_ message: String) {
-    try? FileHandle.standardOutput.write(contentsOf: Data("\(message)\n".utf8))
-  }
-
-  // Writes through FileHandle rather than Glibc's `stderr`, which is a global
-  // `var` that Swift 6 strict concurrency rejects on Linux.
-  private static func logError(_ message: String) {
-    try? FileHandle.standardError.write(contentsOf: Data("\(message)\n".utf8))
   }
 
   private static let helpText = """
@@ -72,29 +61,39 @@ private struct GhostwriterOptions {
   var showHelp = false
   var request: GhostwriterRequest
 
+  private enum Option: String {
+    case kind = "--kind"
+    case module = "--module"
+    case type = "--type"
+    case strategy = "--strategy"
+    case testName = "--test-name"
+    case subject = "--subject"
+    case alternate = "--alternate"
+    case encode = "--encode"
+    case decode = "--decode"
+    case operation = "--operation"
+    case identity = "--identity"
+    case equality = "--equality"
+  }
+
   init(arguments: [String]) throws {
-    var values: [String: String] = [:]
+    var values: [Option: String] = [:]
     var iterator = arguments.makeIterator()
     while let argument = iterator.next() {
       switch argument {
       case "--help", "-h":
         showHelp = true
 
-      case let option where Self.valueOptions.contains(option):
-        values[option] = try Self.nextValue(&iterator, after: option)
-
-      default:
-        throw GhostwriterCLIError.unknownArgument(argument)
+      case let raw:
+        guard let option = Option(rawValue: raw) else {
+          throw GhostwriterCLIError.unknownArgument(raw)
+        }
+        values[option] = try Self.nextValue(&iterator, after: raw)
       }
     }
 
     request = showHelp ? Self.makeHelpPlaceholderRequest() : try Self.makeRequest(from: values)
   }
-
-  private static let valueOptions: Set<String> = [
-    "--kind", "--module", "--type", "--strategy", "--test-name", "--subject",
-    "--alternate", "--encode", "--decode", "--operation", "--identity", "--equality",
-  ]
 
   // `--help` short-circuits rendering, but `request` is not optional; supply an
   // inert placeholder so the initializer stays total.
@@ -107,20 +106,20 @@ private struct GhostwriterOptions {
     )
   }
 
-  private static func makeRequest(from values: [String: String]) throws -> GhostwriterRequest {
+  private static func makeRequest(from values: [Option: String]) throws -> GhostwriterRequest {
     GhostwriterRequest(
-      kind: try parseKind(require(values["--kind"], "--kind")),
-      moduleName: try require(values["--module"], "--module"),
-      typeName: try require(values["--type"], "--type"),
-      strategyExpression: try require(values["--strategy"], "--strategy"),
-      testName: values["--test-name"],
-      subjectExpression: values["--subject"],
-      alternateExpression: values["--alternate"],
-      encodeExpression: values["--encode"],
-      decodeExpression: values["--decode"],
-      operationExpression: values["--operation"],
-      identityExpression: values["--identity"],
-      equalityExpression: values["--equality"] ?? "$0 == $1"
+      kind: try parseKind(require(values[.kind], .kind)),
+      moduleName: try require(values[.module], .module),
+      typeName: try require(values[.type], .type),
+      strategyExpression: try require(values[.strategy], .strategy),
+      testName: values[.testName],
+      subjectExpression: values[.subject],
+      alternateExpression: values[.alternate],
+      encodeExpression: values[.encode],
+      decodeExpression: values[.decode],
+      operationExpression: values[.operation],
+      identityExpression: values[.identity],
+      equalityExpression: values[.equality] ?? "$0 == $1"
     )
   }
 
@@ -142,9 +141,9 @@ private struct GhostwriterOptions {
     return value
   }
 
-  private static func require<Value>(_ value: Value?, _ option: String) throws -> Value {
+  private static func require(_ value: String?, _ option: Option) throws -> String {
     guard let value else {
-      throw GhostwriterCLIError.missingRequiredOption(option)
+      throw GhostwriterCLIError.missingRequiredOption(option.rawValue)
     }
     return value
   }

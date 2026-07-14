@@ -1,9 +1,5 @@
 import Foundation
-#if canImport(SQLite3)
-import SQLite3
-#else
-import CSQLite
-#endif
+import PremiseSQLite
 import Testing
 
 @testable import PremiseDatabase

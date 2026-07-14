@@ -1,10 +1,6 @@
 import PremiseCore
 import Foundation
-#if canImport(SQLite3)
-import SQLite3
-#else
-import CSQLite
-#endif
+import PremiseSQLite
 
 /// SQLite WAL-backed failure store implementing the ``ExampleDatabase`` contract.
 ///

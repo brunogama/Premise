@@ -19,7 +19,19 @@
 set -euo pipefail
 
 usage() {
-  sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+  cat >&2 <<'USAGE'
+Usage:
+  scripts/select-swift-toolchain.sh <major.minor>
+    Select an installed Xcode whose Swift matches. Exports DEVELOPER_DIR to
+    $GITHUB_ENV when running in GitHub Actions and prints an `export` line
+    for local use.
+
+  scripts/select-swift-toolchain.sh --assert-only <major.minor>
+    Assert that the active `swift` already reports the requested version.
+    Used on Linux containers and as a post-selection guard on macOS.
+
+Exit codes: 0 success, 1 version failure, 2 usage error.
+USAGE
   exit 2
 }
 

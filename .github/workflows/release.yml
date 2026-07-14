@@ -49,12 +49,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Select Swift toolchain
-        if: matrix.container == ''
-        run: bash scripts/select-swift-toolchain.sh "6.2"
-
-      - name: Assert active Swift version
-        run: bash scripts/select-swift-toolchain.sh --assert-only "6.2"
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: "6.2"
+          select: ${{ matrix.container == '' }}
 
       - name: Build macro plugin (release)
         run: |
@@ -116,11 +115,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Select Swift toolchain
-        run: bash scripts/select-swift-toolchain.sh "6.2"
-
-      - name: Assert active Swift version
-        run: bash scripts/select-swift-toolchain.sh --assert-only "6.2"
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: "6.2"
 
       - name: Download all platform artifacts
         uses: actions/download-artifact@v4

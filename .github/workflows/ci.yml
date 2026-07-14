@@ -40,11 +40,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Select Swift toolchain
-        run: bash scripts/select-swift-toolchain.sh "${{ matrix.swift }}"
-
-      - name: Assert active Swift version
-        run: bash scripts/select-swift-toolchain.sh --assert-only "${{ matrix.swift }}"
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
 
       - name: Run boundary validation
         run: bash scripts/validate-boundaries.sh
@@ -83,8 +82,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Assert active Swift version
-        run: bash scripts/select-swift-toolchain.sh --assert-only "${{ matrix.swift }}"
+      - name: Assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
+          select: "false"
 
       - name: Install system dependencies
         run: apt-get update && apt-get install -y libsqlite3-dev pkg-config
@@ -124,11 +126,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Select Swift toolchain
-        run: bash scripts/select-swift-toolchain.sh "${{ matrix.swift }}"
-
-      - name: Assert active Swift version
-        run: bash scripts/select-swift-toolchain.sh --assert-only "${{ matrix.swift }}"
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
 
       - name: Build for ${{ matrix.platform }}
         run: |
@@ -139,7 +140,8 @@ jobs:
             -derivedDataPath .build/xcodebuild
 
   # ---------------------------------------------------------------------------
-  # Macro smoke tests (default macro-free mode plus source macro opt-in)
+  # Macro checks (default macro-free mode plus source macro opt-in with its
+  # expansion test suite)
   # ---------------------------------------------------------------------------
   macro-binary-check:
     name: Macro manifest and source checks
@@ -148,11 +150,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Select Swift toolchain
-        run: bash scripts/select-swift-toolchain.sh "6.2"
-
-      - name: Assert active Swift version
-        run: bash scripts/select-swift-toolchain.sh --assert-only "6.2"
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: "6.2"
 
       - name: Verify default macro-free manifest
         run: |
@@ -165,5 +166,12 @@ jobs:
       - name: Build source macro opt-in
         run: |
           PREMISE_MACRO_SOURCE=1 swift build \
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
+
+      - name: Run macro expansion tests
+        run: |
+          PREMISE_MACRO_SOURCE=1 swift test \
+            --filter PremiseMacrosTests \
             -Xswiftc -warnings-as-errors \
             -Xswiftc -strict-concurrency=complete

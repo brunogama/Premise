@@ -1,8 +1,4 @@
-#if canImport(SQLite3)
-import SQLite3
-#else
-import CSQLite
-#endif
+import PremiseSQLite
 
 /// DDL definitions and schema management for the Premise failures database.
 ///

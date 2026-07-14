@@ -1,0 +1,21 @@
+name: Select Swift toolchain
+description: Deterministic Swift toolchain selection with failing version assertions
+inputs:
+  swift-version:
+    description: Required Swift MAJOR.MINOR (e.g. "6.2")
+    required: true
+  select:
+    description: Run macOS Xcode selection before asserting ("false" on Linux containers)
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Select Swift toolchain
+      if: inputs.select == 'true'
+      shell: bash
+      run: bash scripts/select-swift-toolchain.sh "${{ inputs.swift-version }}"
+
+    - name: Assert active Swift version
+      shell: bash
+      run: bash scripts/select-swift-toolchain.sh --assert-only "${{ inputs.swift-version }}"
