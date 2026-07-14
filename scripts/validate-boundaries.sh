@@ -10,23 +10,37 @@ fail() {
   exit 1
 }
 
+contains_test_framework_import() {
+  local file line
+  for file in "$@"; do
+    [[ -f "$file" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      case "$line" in
+        "import Testing" | "import XCTest") return 0 ;;
+      esac
+    done <"$file"
+  done
+  return 1
+}
+
 core_strategy_sources=(
   Sources/PremiseCore/*.swift
   Sources/PremiseStrategies/*.swift
 )
 
-if rg -n '^import (Testing|XCTest)$' "${core_strategy_sources[@]}" >/dev/null; then
+if contains_test_framework_import "${core_strategy_sources[@]}"; then
   fail "test framework imports are not allowed in Sources/PremiseCore or Sources/PremiseStrategies"
 fi
 
-# Macro targets must not import test frameworks either.
-if [[ -d Sources/PremiseMacrosPlugin ]] && rg -n '^import (Testing|XCTest)$' Sources/PremiseMacrosPlugin >/dev/null 2>&1; then
-  fail "test framework imports are not allowed in Sources/PremiseMacrosPlugin"
-fi
-if [[ -d Sources/PremiseMacros ]] && rg -n '^import (Testing|XCTest)$' Sources/PremiseMacros >/dev/null 2>&1; then
-  fail "test framework imports are not allowed in Sources/PremiseMacros"
+macro_sources=(
+  Sources/PremiseMacrosPlugin/*.swift
+  Sources/PremiseMacros/*.swift
+)
+if contains_test_framework_import "${macro_sources[@]}"; then
+  fail "test framework imports are not allowed in macro source targets"
 fi
 
+package_manifest="$(<Package.swift)"
 required_literals=(
   '.library(name: "PremiseCore", targets: ["PremiseCore"])'
   '.library(name: "PremiseStrategies", targets: ["PremiseStrategies"])'
@@ -37,29 +51,28 @@ required_literals=(
 )
 
 for literal in "${required_literals[@]}"; do
-  if ! rg -F "$literal" Package.swift >/dev/null; then
-    fail "Package.swift is missing required declaration: $literal"
-  fi
+  [[ "$package_manifest" == *"$literal"* ]] \
+    || fail "Package.swift is missing required declaration: $literal"
 done
 
-if ! rg -U 'name: "PremiseStrategies",[[:space:]\n]+dependencies: \["PremiseCore"\]' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the PremiseStrategies -> PremiseCore dependency edge'
-fi
+required_fragments=(
+  $'name: "PremiseStrategies",\n      dependencies: ["PremiseCore"]'
+  $'name: "PremiseDatabase",\n      dependencies: ["PremiseCore", "PremiseSQLite"]'
+  $'name: "PremiseSQLite",\n      dependencies: [\n        .target(name: "CSQLite", condition: .when(platforms: [.linux]))\n      ]'
+  $'name: "PremiseTesting",\n      dependencies: [\n        "PremiseCore",\n        "PremiseStrategies",\n        "PremiseDatabase",\n      ]'
+  $'name: "PremiseXCTest",\n      dependencies: [\n        "PremiseCore",\n        "PremiseStrategies",\n        "PremiseDatabase",\n      ]'
+)
+fragment_descriptions=(
+  "PremiseStrategies -> PremiseCore dependency edge"
+  "PremiseDatabase exact dependency set"
+  "PremiseSQLite exact dependency set"
+  "PremiseTesting dependency set"
+  "PremiseXCTest dependency set"
+)
 
-if ! rg -U 'name: "PremiseDatabase",[[:space:]\n]+dependencies: \["PremiseCore", "PremiseSQLite"\]' Package.swift >/dev/null; then
-  fail 'PremiseDatabase must depend on exactly PremiseCore plus the PremiseSQLite shim'
-fi
-
-if ! rg -U 'name: "PremiseSQLite",[[:space:]\n]+dependencies: \[[[:space:]\n]*\.target\(name: "CSQLite", condition: \.when\(platforms: \[\.linux\]\)\)[[:space:]\n]*\]' Package.swift >/dev/null; then
-  fail 'PremiseSQLite must depend on exactly the Linux-only CSQLite system library'
-fi
-
-if ! rg -U 'name: "PremiseTesting",[[:space:]\n]+dependencies: \[[^]]*"PremiseCore"[^]]*"PremiseStrategies"[^]]*"PremiseDatabase"' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the PremiseTesting dependency set'
-fi
-
-if ! rg -U 'name: "PremiseXCTest",[[:space:]\n]+dependencies: \[[^]]*"PremiseCore"[^]]*"PremiseStrategies"[^]]*"PremiseDatabase"' Package.swift >/dev/null; then
-  fail 'Package.swift is missing the PremiseXCTest dependency set'
-fi
+for index in "${!required_fragments[@]}"; do
+  [[ "$package_manifest" == *"${required_fragments[$index]}"* ]] \
+    || fail "Package.swift is missing ${fragment_descriptions[$index]}"
+done
 
 printf 'boundary validation passed\n'
