@@ -75,7 +75,7 @@ if buildMacroFromSource {
     .binaryTarget(
       name: "PremiseMacrosPlugin",
       url:
-        "https://github.com/brunogama/Premise/releases/download/v1.0.0/PremiseMacrosPlugin.artifactbundle.zip",
+        "https://github.com/brunogama/Premise/releases/download/v1.0.2/PremiseMacrosPlugin.artifactbundle.zip",
       checksum: checksum
     ),
     .target(
