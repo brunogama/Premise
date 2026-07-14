@@ -136,7 +136,7 @@ jobs:
           for dir in platforms/macro-*; do
             platform="$(basename "$dir" | sed 's/^macro-//')"
             mkdir -p "${BUNDLE}/${platform}/bin"
-            cp "${dir}/${platform}/bin/${ARTIFACT_NAME}" "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
+            cp "${dir}/bin/${ARTIFACT_NAME}" "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
             chmod +x "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
           done
 
