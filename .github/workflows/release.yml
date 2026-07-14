@@ -76,13 +76,13 @@ jobs:
             "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}-tool" \
             ".build/release/${ARTIFACT_NAME}" \
             ".build/release/${ARTIFACT_NAME}-tool"; do
-            if [[ -f "$candidate" ]]; then
+            if [ -f "$candidate" ]; then
               BIN_PATH="$candidate"
               break
             fi
           done
 
-          if [[ -z "$BIN_PATH" ]]; then
+          if [ -z "$BIN_PATH" ]; then
             echo "::error::Could not locate built binary for ${{ matrix.platform }}"
             find .build -name "${ARTIFACT_NAME}*" -type f 2>/dev/null || true
             exit 1
@@ -160,7 +160,7 @@ jobs:
           VARIANTS=""
           for p in "${PLATFORMS[@]}"; do
             triple="$(triple_for "$p")"
-            if [[ -n "$VARIANTS" ]]; then VARIANTS+=","; fi
+            if [ -n "$VARIANTS" ]; then VARIANTS+=","; fi
             VARIANTS+="
               {
                 \"path\": \"${p}/bin/${ARTIFACT_NAME}\",
