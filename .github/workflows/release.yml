@@ -134,6 +134,7 @@ jobs:
 
           # Copy each platform binary into the bundle.
           for dir in platforms/macro-*; do
+            [ -d "$dir" ] || continue
             platform="$(basename "$dir" | sed 's/^macro-//')"
             mkdir -p "${BUNDLE}/${platform}/bin"
             cp "${dir}/bin/${ARTIFACT_NAME}" "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
@@ -143,8 +144,14 @@ jobs:
           # Detect which platforms were built.
           PLATFORMS=()
           for dir in "${BUNDLE}"/*/; do
+            [ -d "$dir" ] || continue
             PLATFORMS+=("$(basename "$dir")")
           done
+
+          if [ "${#PLATFORMS[@]}" -eq 0 ]; then
+            echo "::error::No platform artifacts were assembled; aborting release bundle assembly."
+            exit 1
+          fi
 
           # Map platform keys to Swift triples.
           triple_for() {
@@ -160,6 +167,10 @@ jobs:
           VARIANTS=""
           for p in "${PLATFORMS[@]}"; do
             triple="$(triple_for "$p")"
+            if [ -z "$triple" ]; then
+              echo "::error::Unsupported platform key for artifact bundle: ${p}"
+              exit 1
+            fi
             if [ -n "$VARIANTS" ]; then VARIANTS+=","; fi
             VARIANTS+="
               {
