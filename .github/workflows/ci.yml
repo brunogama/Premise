@@ -131,13 +131,8 @@ jobs:
         with:
           swift-version: ${{ matrix.swift }}
 
-      - name: Build for ${{ matrix.platform }}
-        run: |
-          xcodebuild build \
-            -skipMacroValidation \
-            -scheme SwiftPremise-Package \
-            -destination "generic/platform=${{ matrix.platform }}" \
-            -derivedDataPath .build/xcodebuild
+      - name: Build and verify ${{ matrix.platform }} modules
+        run: bash scripts/validate-apple-destination.sh "${{ matrix.platform }}"
 
   # ---------------------------------------------------------------------------
   # Macro checks (default macro-free mode plus source macro opt-in with its
