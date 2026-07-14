@@ -1,6 +1,7 @@
 import Foundation
 import PremiseCore
 import PremiseDatabase
+import PremiseToolSupport
 
 @main
 struct PremiseReplayTool {
@@ -8,7 +9,7 @@ struct PremiseReplayTool {
     do {
       let options = try ReplayOptions(arguments: Array(CommandLine.arguments.dropFirst()))
       if options.showHelp {
-        print(Self.helpText)
+        try ToolIO.emit(Self.helpText)
         return
       }
 
@@ -18,13 +19,13 @@ struct PremiseReplayTool {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(summaries)
-        print(String(decoding: data, as: UTF8.self))
+        try ToolIO.emit(String(bytes: data, encoding: .utf8) ?? "")
       } else {
-        print(formatText(summaries))
+        try ToolIO.emit(formatText(summaries))
       }
     } catch {
-      fputs("premise-replay: \(error)\n", stderr)
-      fputs("Run `swift package premise-replay --help` for usage.\n", stderr)
+      _ = try? ToolIO.logError("premise-replay: \(error)")
+      _ = try? ToolIO.logError("Run `swift package premise-replay --help` for usage.")
       Foundation.exit(1)
     }
   }
@@ -161,13 +162,16 @@ private struct ReplayOptions {
       switch argument {
       case "--help", "-h":
         showHelp = true
+
       case "--json":
         emitJSON = true
+
       case "--blob":
         guard let next = iterator.next() else {
           throw ReplayToolError.missingBlob
         }
         blob = next
+
       default:
         guard input == nil else {
           throw ReplayToolError.tooManyInputs
@@ -227,10 +231,13 @@ private enum ReplayToolError: Error, CustomStringConvertible {
     switch self {
     case .missingInput:
       return "missing trace path or reproduction blob"
+
     case .missingBlob:
       return "--blob requires a reproduction blob argument"
+
     case .tooManyInputs:
       return "expected at most one trace path or reproduction blob"
+
     case .unrecognizedTraceFile(let path):
       return "could not decode trace file at \(path)"
     }

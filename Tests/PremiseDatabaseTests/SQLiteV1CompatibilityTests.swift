@@ -1,7 +1,7 @@
 import PremiseCore
 import PremiseDatabase
 import Foundation
-import SQLite3
+import PremiseSQLite
 import Testing
 
 /// Backward compatibility tests verifying that v1 ``PersistedFailureRecordV1``

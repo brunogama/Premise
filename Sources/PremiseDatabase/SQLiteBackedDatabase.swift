@@ -1,6 +1,6 @@
 import PremiseCore
 import Foundation
-import SQLite3
+import PremiseSQLite
 
 /// SQLite WAL-backed failure store implementing the ``ExampleDatabase`` contract.
 ///

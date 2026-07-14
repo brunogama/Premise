@@ -100,7 +100,7 @@ func expectForAllReportsFalsePredicates() async throws {
   await withKnownIssue {
     try await expectForAll(
       Strategy<Int>.just(1),
-      config: .bounded(runs: 1, replay: false)
+      config: isolatedFailureStorage(.bounded(runs: 1, replay: false))
     ) { value in
       value == 2
     }
@@ -193,7 +193,7 @@ func modelAgreementHelperComparesModelAndImplementation() async throws {
 func statefulCommandCheckerHandlesExpectedFailures() async throws {
   try await checkStateMachine(
     commands: [
-      .insert(1),
+      CounterCommand.insert(1),
       .duplicateInsert(1),
       .insert(2),
       .remove(1),

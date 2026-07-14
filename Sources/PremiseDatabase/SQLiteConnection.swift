@@ -1,5 +1,5 @@
 import Foundation
-import SQLite3
+import PremiseSQLite
 
 /// Source-compatible SQLite connection wrapper used by ``SQLiteBackedDatabase``
 /// to manage a single SQLite database connection with WAL-mode pragmas and

@@ -49,6 +49,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: "6.2"
+          select: ${{ matrix.container == '' }}
+
       - name: Build macro plugin (release)
         run: |
           swift build \
@@ -70,13 +76,13 @@ jobs:
             "$(swift build --product "$ARTIFACT_NAME" --configuration release --show-bin-path 2>/dev/null)/${ARTIFACT_NAME}-tool" \
             ".build/release/${ARTIFACT_NAME}" \
             ".build/release/${ARTIFACT_NAME}-tool"; do
-            if [[ -f "$candidate" ]]; then
+            if [ -f "$candidate" ]; then
               BIN_PATH="$candidate"
               break
             fi
           done
 
-          if [[ -z "$BIN_PATH" ]]; then
+          if [ -z "$BIN_PATH" ]; then
             echo "::error::Could not locate built binary for ${{ matrix.platform }}"
             find .build -name "${ARTIFACT_NAME}*" -type f 2>/dev/null || true
             exit 1
@@ -109,6 +115,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: "6.2"
+
       - name: Download all platform artifacts
         uses: actions/download-artifact@v4
         with:
@@ -123,17 +134,24 @@ jobs:
 
           # Copy each platform binary into the bundle.
           for dir in platforms/macro-*; do
+            [ -d "$dir" ] || continue
             platform="$(basename "$dir" | sed 's/^macro-//')"
             mkdir -p "${BUNDLE}/${platform}/bin"
-            cp "${dir}/${platform}/bin/${ARTIFACT_NAME}" "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
+            cp "${dir}/bin/${ARTIFACT_NAME}" "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
             chmod +x "${BUNDLE}/${platform}/bin/${ARTIFACT_NAME}"
           done
 
           # Detect which platforms were built.
           PLATFORMS=()
           for dir in "${BUNDLE}"/*/; do
+            [ -d "$dir" ] || continue
             PLATFORMS+=("$(basename "$dir")")
           done
+
+          if [ "${#PLATFORMS[@]}" -eq 0 ]; then
+            echo "::error::No platform artifacts were assembled; aborting release bundle assembly."
+            exit 1
+          fi
 
           # Map platform keys to Swift triples.
           triple_for() {
@@ -149,7 +167,11 @@ jobs:
           VARIANTS=""
           for p in "${PLATFORMS[@]}"; do
             triple="$(triple_for "$p")"
-            if [[ -n "$VARIANTS" ]]; then VARIANTS+=","; fi
+            if [ -z "$triple" ]; then
+              echo "::error::Unsupported platform key for artifact bundle: ${p}"
+              exit 1
+            fi
+            if [ -n "$VARIANTS" ]; then VARIANTS+=","; fi
             VARIANTS+="
               {
                 \"path\": \"${p}/bin/${ARTIFACT_NAME}\",
@@ -181,20 +203,24 @@ jobs:
           CHECKSUM="$(swift package compute-checksum "${ARTIFACT_NAME}.artifactbundle.zip")"
           echo "$CHECKSUM" > checksum.txt
 
-          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
-          echo "zip=${ARTIFACT_NAME}.artifactbundle.zip" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          {
+            echo "checksum=$CHECKSUM"
+            echo "zip=${ARTIFACT_NAME}.artifactbundle.zip"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
 
-          echo "### Artifact Bundle" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Platforms**: ${PLATFORMS[*]}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Checksum**: \`$CHECKSUM\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Size**: $(du -h "${ARTIFACT_NAME}.artifactbundle.zip" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Update \`Package.swift\` checksum:" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "checksum: \"$CHECKSUM\"" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Artifact Bundle"
+            echo ""
+            echo "- **Platforms**: ${PLATFORMS[*]}"
+            echo "- **Checksum**: \`$CHECKSUM\`"
+            echo "- **Size**: $(du -h "${ARTIFACT_NAME}.artifactbundle.zip" | cut -f1)"
+            echo ""
+            echo "Update \`Package.swift\` checksum:"
+            echo '```'
+            echo "checksum: \"$CHECKSUM\""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload bundle to release
         env:

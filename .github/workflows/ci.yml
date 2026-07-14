@@ -13,36 +13,37 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # macOS (primary — builds + tests everything including macro)
+  # macOS (primary — builds + tests everything)
+  #
+  # Toolchains are selected by probing installed Xcodes for the Swift version
+  # they actually ship (scripts/select-swift-toolchain.sh). The job fails when
+  # the requested Swift version is unavailable or the selected toolchain does
+  # not report it — no silent fallback to the runner default.
   # ---------------------------------------------------------------------------
   macos:
-    name: macOS (Swift ${{ matrix.swift }})
+    name: macOS (Swift ${{ matrix.swift }}, ${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Supported floor: Swift 6.2 (Xcode 26) on both hosted macOS images.
+          - swift: "6.2"
+            runner: macos-26
           - swift: "6.2"
             runner: macos-15
+          # Current stable Swift.
           - swift: "6.3"
-            runner: macos-15
-          - swift: "6.2"
-            runner: macos-14
+            runner: macos-26
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Select Swift toolchain
-        run: |
-          if [[ "${{ matrix.swift }}" == "6.3" ]]; then
-            sudo xcode-select -s /Applications/Xcode_26.0.app || true
-          elif [[ "${{ matrix.swift }}" == "6.2" ]]; then
-            sudo xcode-select -s /Applications/Xcode_16.4.app || true
-          elif [[ "${{ matrix.swift }}" == "6.1" ]]; then
-            sudo xcode-select -s /Applications/Xcode_16.3.app || true
-          fi
-          swift --version
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
 
       - name: Run boundary validation
         run: bash scripts/validate-boundaries.sh
@@ -62,7 +63,7 @@ jobs:
             -Xswiftc -strict-concurrency=complete
 
   # ---------------------------------------------------------------------------
-  # Linux (verify cross-platform compilation)
+  # Linux (verify cross-platform compilation and tests)
   # ---------------------------------------------------------------------------
   linux:
     name: Linux (Swift ${{ matrix.swift }})
@@ -72,12 +73,23 @@ jobs:
       fail-fast: false
       matrix:
         swift:
+          # Supported floor.
           - "6.2"
+          # Current stable Swift.
           - "6.3"
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
+          select: "false"
+
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y libsqlite3-dev pkg-config
 
       - name: Build (all targets)
         run: |
@@ -94,14 +106,49 @@ jobs:
             -Xswiftc -strict-concurrency=complete
 
   # ---------------------------------------------------------------------------
-  # Macro smoke tests (default macro-free mode plus source macro opt-in)
+  # Apple destination compile checks (products must compile for the platforms
+  # the package declares; simulators cover device SDK compilation)
   # ---------------------------------------------------------------------------
-  macro-binary-check:
-    name: Macro manifest and source checks
-    runs-on: macos-15
+  apple-destinations:
+    name: ${{ matrix.platform }} compile (Swift ${{ matrix.swift }})
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.2"]
+        platform:
+          - "iOS Simulator"
+          - "watchOS Simulator"
+          - "tvOS Simulator"
+          - "visionOS Simulator"
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
+
+      - name: Build and verify ${{ matrix.platform }} modules
+        run: bash scripts/validate-apple-destination.sh "${{ matrix.platform }}"
+
+  # ---------------------------------------------------------------------------
+  # Macro checks (default macro-free mode plus source macro opt-in with its
+  # expansion test suite)
+  # ---------------------------------------------------------------------------
+  macro-binary-check:
+    name: Macro manifest and source checks
+    runs-on: macos-26
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: "6.2"
 
       - name: Verify default macro-free manifest
         run: |
@@ -114,5 +161,12 @@ jobs:
       - name: Build source macro opt-in
         run: |
           PREMISE_MACRO_SOURCE=1 swift build \
+            -Xswiftc -warnings-as-errors \
+            -Xswiftc -strict-concurrency=complete
+
+      - name: Run macro expansion tests
+        run: |
+          PREMISE_MACRO_SOURCE=1 swift test \
+            --filter PremiseMacrosTests \
             -Xswiftc -warnings-as-errors \
             -Xswiftc -strict-concurrency=complete

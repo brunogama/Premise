@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import PremiseCore
@@ -26,6 +27,12 @@ struct AdapterExecutionParityTests {
       strategyLabel: strategy.label
     )
     return Runner(strategy: strategy, config: config, propertyID: pid)
+  }
+
+  private static func makeDatabase() -> FileBackedDatabase {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    return FileBackedDatabase(rootDirectory: directory)
   }
 
   @Test("Runner returns .passed for a trivially true property")
@@ -89,7 +96,7 @@ struct AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor passes through Runner result for passing property")
   func executorPassingProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10))
-    let database = FileBackedDatabase()
+    let database = Self.makeDatabase()
     let executor = ReplayFirstExecutor(runner: runner, database: database)
 
     let result = try await executor.execute({ _ in })
@@ -104,7 +111,7 @@ struct AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor passes through Runner result for failing property")
   func executorFailingProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10))
-    let database = FileBackedDatabase()
+    let database = Self.makeDatabase()
     let executor = ReplayFirstExecutor(runner: runner, database: database)
 
     let result = try await executor.execute({ _ in
@@ -121,7 +128,7 @@ struct AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor returns detailed reports for async properties")
   func executorAsyncDetailedProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10, seed: 3))
-    let database = FileBackedDatabase()
+    let database = Self.makeDatabase()
     let executor = ReplayFirstExecutor(runner: runner, database: database)
     let property: @Sendable (Int) async throws -> Void = { _ in
       throw ContractTestError(message: "async detailed fail")

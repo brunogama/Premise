@@ -33,7 +33,8 @@ func runnerReplaysStoredFailures() async {
   }
 
   #expect(value == 0)
-  #expect(runner.replay(record.trace, property: property))
+  let replay: (ChoiceTrace, @Sendable (Int) throws -> Void) -> Bool = runner.replay
+  #expect(replay(record.trace, property))
 
   let replayResult = await runner.run(property, replayTraces: [record.trace])
   guard case .failure(let replayRecord, let replayValue) = replayResult else {
