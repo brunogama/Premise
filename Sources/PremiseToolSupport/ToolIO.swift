@@ -14,9 +14,16 @@ package enum ToolIO {
     try FileHandle.standardOutput.write(contentsOf: Data("\(message)\n".utf8))
   }
 
-  /// Best-effort diagnostic output; a failing stderr while the tool is
-  /// already reporting an error leaves nothing sensible to do.
-  package static func logError(_ message: String) {
-    try? FileHandle.standardError.write(contentsOf: Data("\(message)\n".utf8))
+  /// Writes diagnostic output to standard error.
+  ///
+  /// If writing to `stderr` fails, a best-effort fallback writes to `stdout`
+  /// before propagating the failure to the caller.
+  package static func logError(_ message: String) throws {
+    do {
+      try FileHandle.standardError.write(contentsOf: Data("\(message)\n".utf8))
+    } catch {
+      _ = try? FileHandle.standardOutput.write(contentsOf: Data("\(message)\n".utf8))
+      throw error
+    }
   }
 }

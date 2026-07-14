@@ -24,8 +24,8 @@ struct PremiseReplayTool {
         try ToolIO.emit(formatText(summaries))
       }
     } catch {
-      ToolIO.logError("premise-replay: \(error)")
-      ToolIO.logError("Run `swift package premise-replay --help` for usage.")
+      _ = try? ToolIO.logError("premise-replay: \(error)")
+      _ = try? ToolIO.logError("Run `swift package premise-replay --help` for usage.")
       Foundation.exit(1)
     }
   }

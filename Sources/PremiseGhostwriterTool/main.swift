@@ -15,8 +15,8 @@ struct PremiseGhostwriterTool {
       let source = try PremiseGhostwriter.render(options.request)
       try ToolIO.emit(source)
     } catch {
-      ToolIO.logError("premise-ghostwriter: \(error)")
-      ToolIO.logError("Run `swift package premise-ghostwriter --help` for usage.")
+      _ = try? ToolIO.logError("premise-ghostwriter: \(error)")
+      _ = try? ToolIO.logError("Run `swift package premise-ghostwriter --help` for usage.")
       Foundation.exit(1)
     }
   }
