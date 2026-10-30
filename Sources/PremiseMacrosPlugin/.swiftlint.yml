@@ -1,0 +1,10 @@
+parent_config: ../../.swiftlint.yml
+
+# SwiftSyntax node construction follows the repository formatter's width.
+line_length:
+  warning: 100
+  error: 100
+  ignores_urls: true
+  ignores_function_declarations: false
+  ignores_comments: true
+  ignores_interpolated_strings: true

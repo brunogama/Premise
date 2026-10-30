@@ -1,0 +1,7 @@
+parent_config: ../../.swiftlint.yml
+
+# The fixture must exercise four-strategy macro expansion.
+function_parameter_count:
+  warning: 4
+  error: 4
+  ignores_default_parameters: false
