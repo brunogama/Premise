@@ -10,10 +10,12 @@
 /// await relay.emit(.runStarted(propertyID: id, runIndex: 0))
 /// ```
 public actor TelemetryRelay {
-  private var sinks: [any TelemetrySink] = []
+  private var sinks: [any TelemetrySink]
 
   /// Creates a new relay with no registered sinks.
-  public init() {}
+  public init() {
+    sinks = []
+  }
 
   /// Registers a sink to receive future events.
   ///

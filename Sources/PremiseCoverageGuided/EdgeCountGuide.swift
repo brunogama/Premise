@@ -8,7 +8,9 @@ import PremiseCore
 /// ``CoverageTracker``).
 public struct EdgeCountGuide: CoverageGuide {
   /// Creates an edge-count guide.
-  public init() {}
+  public init() {
+    // This guide keeps no state between scores.
+  }
 
   /// Scores a coverage snapshot by counting edges present in `snapshot`
   /// but absent from `baseline`.
