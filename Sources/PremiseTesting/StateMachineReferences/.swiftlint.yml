@@ -1,0 +1,12 @@
+parent_config: ../.swiftlint.yml
+
+custom_rules:
+  prefer_struct:
+    name: "Prefer Value Semantics"
+    regex: >-
+      (?mx)^\s*(?:\w+\s+)*class\b
+      (?!\h+(?:StateMachineRunContext|StateMachineBundleToken)\b)
+    message: >-
+      Prefer a struct unless identity, inheritance, Objective-C interop, or
+      shared reference semantics are required.
+    severity: warning

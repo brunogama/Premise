@@ -91,7 +91,10 @@ public struct FailureRecord: Sendable, Codable, Equatable {
   /// the initial persistence format.
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    propertyID = try container.decode(PropertyIdentity.self, forKey: .propertyID)
+    propertyID = try container.decode(
+      PropertyIdentity.self,
+      forKey: .propertyID
+    )
     trace = try container.decode(ChoiceTrace.self, forKey: .trace)
     errorMessage = try container.decode(String.self, forKey: .errorMessage)
     runCount = try container.decode(Int.self, forKey: .runCount)

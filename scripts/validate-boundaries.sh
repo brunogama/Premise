@@ -10,12 +10,9 @@ fail() {
   exit 1
 }
 
-core_strategy_sources=(
-  Sources/PremiseCore/*.swift
-  Sources/PremiseStrategies/*.swift
-)
+core_strategy_sources=(Sources/PremiseCore Sources/PremiseStrategies)
 
-if rg -n '^import (Testing|XCTest)$' "${core_strategy_sources[@]}" >/dev/null; then
+if rg -n --glob '*.swift' '^import (Testing|XCTest)$' "${core_strategy_sources[@]}" >/dev/null; then
   fail "test framework imports are not allowed in Sources/PremiseCore or Sources/PremiseStrategies"
 fi
 
@@ -27,21 +24,18 @@ if [[ -d Sources/PremiseMacros ]] && rg -n '^import (Testing|XCTest)$' Sources/P
   fail "test framework imports are not allowed in Sources/PremiseMacros"
 fi
 
-required_literals=(
-  '.library(name: "PremiseCore", targets: ["PremiseCore"])'
-  '.library(name: "PremiseStrategies", targets: ["PremiseStrategies"])'
-  '.library(name: "PremiseDatabase", targets: ["PremiseDatabase"])'
-  '.library(name: "PremiseTesting", targets: ["PremiseTesting"])'
-  '.library(name: "PremiseXCTest", targets: ["PremiseXCTest"])'
-  '.library(name: "PremiseMacros", targets: ["PremiseMacros"])'
-)
+# Inspect the resolved package graph rather than the manifest's source spelling.
+swift package dump-package | python3 -c '
+import json
+import sys
 
-for literal in "${required_literals[@]}"; do
-  if ! rg -F "$literal" Package.swift >/dev/null; then
-    fail "Package.swift is missing required declaration: $literal"
-  fi
-done
-
+package = json.load(sys.stdin)
+products = {product["name"]: product for product in package["products"]}
+for name in ("PremiseCore", "PremiseStrategies", "PremiseDatabase", "PremiseTesting", "PremiseXCTest"):
+    product = products.get(name)
+    if product is None or "library" not in product["type"] or product["targets"] != [name]:
+        sys.exit(f"boundary validation failed: missing required library product {name}")
+'
 if ! rg -U 'name: "PremiseStrategies",[[:space:]\n]+dependencies: \["PremiseCore"\]' Package.swift >/dev/null; then
   fail 'Package.swift is missing the PremiseStrategies -> PremiseCore dependency edge'
 fi

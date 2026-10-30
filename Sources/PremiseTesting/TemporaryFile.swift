@@ -46,13 +46,21 @@ public func withTemporaryFile<T>(
   return try body(fileURL)
 }
 
-private func temporaryFileURL(in directory: URL, pathExtension: String?) -> URL {
-  let base = directory.appendingPathComponent("premise-fixture", isDirectory: false)
+private func temporaryFileURL(
+  in directory: URL,
+  pathExtension: String?
+) -> URL {
+  let base = directory.appendingPathComponent(
+    "premise-fixture",
+    isDirectory: false
+  )
   guard let pathExtension, !pathExtension.isEmpty else {
     return base
   }
 
-  let normalized = pathExtension.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+  let normalized = pathExtension.trimmingCharacters(
+    in: CharacterSet(charactersIn: ".")
+  )
   guard !normalized.isEmpty else {
     return base
   }

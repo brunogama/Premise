@@ -1,0 +1,5 @@
+parent_config: ../../../.swiftlint.yml
+# Preserve the existing five-parameter floating edge strategy.
+function_parameter_count:
+  warning: 5
+  error: 5

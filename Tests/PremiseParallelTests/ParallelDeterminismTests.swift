@@ -130,6 +130,9 @@ struct ParallelDeterminismTests {
     #expect(runs == 1)
   }
 
+}
+
+extension ParallelDeterminismTests {
   @Test("Parallel runner replays traces before generation")
   func replayBeforeGeneration() async throws {
     let seed: UInt64 = 55
@@ -205,7 +208,7 @@ struct ParallelDeterminismTests {
   func persistsFailuresToDatabase() async throws {
     let tmpDir = FileManager.default.temporaryDirectory
       .appendingPathComponent("parallel-persist-\(UUID().uuidString)")
-    let db = FileBackedDatabase(rootDirectory: tmpDir)
+    let database = FileBackedDatabase(rootDirectory: tmpDir)
 
     let pid = PropertyIdentity(fileID: "persist-test", line: 1, strategyLabel: "int")
     let config = PropertyConfig(maxRuns: 20, seed: 42)
@@ -214,7 +217,7 @@ struct ParallelDeterminismTests {
       config: config,
       parallelConfig: ParallelConfig(maxConcurrentRuns: 4),
       propertyID: pid,
-      database: db
+      database: database
     )
 
     let result = try await runner.run { value in
@@ -225,7 +228,7 @@ struct ParallelDeterminismTests {
 
     // If it failed, the failure should be persisted.
     if case .failure = result {
-      let traces = try await db.loadTraces(for: pid)
+      let traces = try await database.loadTraces(for: pid)
       #expect(!traces.isEmpty, "Failure should be persisted to the database")
     }
 

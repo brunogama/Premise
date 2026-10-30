@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # macOS (primary — builds + tests everything including macro)
+  # macOS (primary package build and tests)
   # ---------------------------------------------------------------------------
   macos:
     name: macOS (Swift ${{ matrix.swift }})
@@ -44,6 +44,9 @@ jobs:
           fi
           swift --version
 
+      - name: Install Z3
+        run: brew list --versions z3 >/dev/null || brew install z3
+
       - name: Run boundary validation
         run: bash scripts/validate-boundaries.sh
 
@@ -53,6 +56,9 @@ jobs:
             --explicit-target-dependency-import-check error \
             -Xswiftc -warnings-as-errors \
             -Xswiftc -strict-concurrency=complete
+
+      - name: Build documentation
+        run: bash scripts/build-documentation.sh
 
       - name: Test
         run: |
@@ -94,25 +100,12 @@ jobs:
             -Xswiftc -strict-concurrency=complete
 
   # ---------------------------------------------------------------------------
-  # Macro smoke tests (default macro-free mode plus source macro opt-in)
-  # ---------------------------------------------------------------------------
-  macro-binary-check:
-    name: Macro manifest and source checks
+  # Verify that legacy macro flags do not expose a macro product this release.
+  macro-exclusion-check:
+    name: Macro exclusion
     runs-on: macos-15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Verify default macro-free manifest
-        run: |
-          swift package dump-package > /dev/null
-
-      - name: Verify source macro opt-in manifest
-        run: |
-          PREMISE_MACRO_SOURCE=1 swift package dump-package > /dev/null
-
-      - name: Build source macro opt-in
-        run: |
-          PREMISE_MACRO_SOURCE=1 swift build \
-            -Xswiftc -warnings-as-errors \
-            -Xswiftc -strict-concurrency=complete
+      - name: Verify package manifest
+        run: bash scripts/test-macro-exclusion.sh

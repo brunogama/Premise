@@ -1,32 +1,3 @@
-/// A high-scoring trace retained for targeted mutation.
-struct TargetedTraceCandidate: Sendable, Equatable {
-  var trace: ChoiceTrace
-  var score: Double
-}
-
-/// Small deterministic corpus used by the `.target` phase.
-struct TargetedTraceCorpus: Sendable {
-  private(set) var best: TargetedTraceCandidate?
-
-  mutating func record(trace: ChoiceTrace, statistics: RunStatistics) {
-    guard let score = statistics.targetScore, score.isFinite else {
-      return
-    }
-    if let current = best, current.score >= score {
-      return
-    }
-    best = TargetedTraceCandidate(trace: trace, score: score)
-  }
-
-  func mutation(seed: UInt64, iteration: Int) -> ChoiceTrace? {
-    guard let best else { return nil }
-    return TargetedTraceMutator.mutate(
-      best.trace,
-      seed: seed &+ UInt64(iteration)
-    )
-  }
-}
-
 /// Deterministically mutates traces while preserving trace structure.
 enum TargetedTraceMutator {
   static func mutate(_ trace: ChoiceTrace, seed: UInt64) -> ChoiceTrace? {
@@ -45,15 +16,7 @@ enum TargetedTraceMutator {
   ) -> ChoiceTrace.Entry {
     switch entry {
     case .bits(let bitEntry):
-      guard bitEntry.count > 0 else { return entry }
-      let bit = UInt64(rng.next() % UInt64(min(bitEntry.count, UInt64.bitWidth)))
-      let mask =
-        bitEntry.count >= UInt64.bitWidth
-        ? UInt64.max
-        : (UInt64(1) << UInt64(bitEntry.count)) - 1
-      let value = (bitEntry.value ^ (UInt64(1) << bit)) & mask
-      return .bits(ChoiceTrace.BitEntry(count: bitEntry.count, value: value))
-
+      return mutateBits(bitEntry, rng: &rng)
     case .integer(let value):
       let delta = (rng.next() % 17) + 1
       if rng.next().isMultiple(of: 2) {
@@ -72,20 +35,18 @@ enum TargetedTraceMutator {
       return .bytes(updated)
     }
   }
-}
 
-struct TargetedMutationRNG: Sendable {
-  private var state: UInt64
-
-  init(seed: UInt64) {
-    self.state = seed == 0 ? 0x9e37_79b9_7f4a_7c15 : seed
-  }
-
-  mutating func next() -> UInt64 {
-    state &+= 0x9e37_79b9_7f4a_7c15
-    var z = state
-    z = (z ^ (z >> 30)) &* 0xbf58_476d_1ce4_e5b9
-    z = (z ^ (z >> 27)) &* 0x94d0_49bb_1331_11eb
-    return z ^ (z >> 31)
+  private static func mutateBits(
+    _ entry: ChoiceTrace.BitEntry,
+    rng: inout TargetedMutationRNG
+  ) -> ChoiceTrace.Entry {
+    guard entry.count >= 1 else { return .bits(entry) }
+    let bit = UInt64(rng.next() % UInt64(min(entry.count, UInt64.bitWidth)))
+    let mask =
+      entry.count >= UInt64.bitWidth
+      ? UInt64.max
+      : (UInt64(1) << UInt64(entry.count)) - 1
+    let value = (entry.value ^ (UInt64(1) << bit)) & mask
+    return .bits(ChoiceTrace.BitEntry(count: entry.count, value: value))
   }
 }

@@ -25,6 +25,7 @@ public actor FileBackedDatabase: ExampleDatabase {
 
   // MARK: - ExampleDatabase
 
+  /// Loads stored traces for a property.
   public func loadTraces(
     for id: PropertyIdentity
   ) async throws -> [ChoiceTrace] {
@@ -45,19 +46,14 @@ public actor FileBackedDatabase: ExampleDatabase {
     }
   }
 
+  /// Stores a failure record.
   public func save(_ record: FailureRecord) async throws {
     try ensureDirectoryExists()
 
     let fileURL = propertyFileURL(for: record.propertyID)
     var envelopes: [PersistedFailureRecordV1] = []
 
-    if FileManager.default.fileExists(atPath: fileURL.path) {
-      let existingData = try Data(contentsOf: fileURL)
-      envelopes = try JSONDecoder().decode(
-        [PersistedFailureRecordV1].self,
-        from: existingData
-      )
-    }
+    envelopes = try loadEnvelopes(at: fileURL)
 
     let encoded = PersistenceCodec.encode(record)
 
@@ -83,6 +79,7 @@ public actor FileBackedDatabase: ExampleDatabase {
     try data.write(to: fileURL, options: [.atomic])
   }
 
+  /// Removes stored failures for a property.
   public func clear(for id: PropertyIdentity) async throws {
     let fileURL = propertyFileURL(for: id)
     guard FileManager.default.fileExists(atPath: fileURL.path) else {
@@ -93,6 +90,16 @@ public actor FileBackedDatabase: ExampleDatabase {
 
   // MARK: - Private Helpers
 
+
+  private func loadEnvelopes(
+    at fileURL: URL
+  ) throws -> [PersistedFailureRecordV1] {
+    guard FileManager.default.fileExists(atPath: fileURL.path) else {
+      return []
+    }
+    let data = try Data(contentsOf: fileURL)
+    return try JSONDecoder().decode([PersistedFailureRecordV1].self, from: data)
+  }
   /// Builds the file URL for a given property identity.
   ///
   /// File names are the hex-encoded UTF-8 bytes of

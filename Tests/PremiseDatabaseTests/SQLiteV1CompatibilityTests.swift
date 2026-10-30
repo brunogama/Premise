@@ -50,10 +50,10 @@ struct SQLiteV1CompatibilityTests {
     )
   }
 
-  /// Manually inserts a row into the failures table using raw SQLite C API.
+  // Manually inserts a row into the failures table using raw SQLite C API.
   // swiftlint:disable:next function_parameter_count
   private func insertRawRow(
-    db: OpaquePointer,
+    database: OpaquePointer,
     propertyID: PropertyIdentity,
     traceFormatVersion: Int32,
     recordFormatVersion: Int32,
@@ -70,9 +70,9 @@ struct SQLiteV1CompatibilityTests {
       """
 
     var stmt: OpaquePointer?
-    let prepResult = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+    let prepResult = sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
     guard prepResult == SQLITE_OK, let statement = stmt else {
-      let msg = String(cString: sqlite3_errmsg(db))
+      let msg = String(cString: sqlite3_errmsg(database))
       throw SQLiteError.resultCode(prepResult, context: msg)
     }
     defer { sqlite3_finalize(statement) }
@@ -102,11 +102,14 @@ struct SQLiteV1CompatibilityTests {
 
     let stepResult = sqlite3_step(statement)
     guard stepResult == SQLITE_DONE else {
-      let msg = String(cString: sqlite3_errmsg(db))
+      let msg = String(cString: sqlite3_errmsg(database))
       throw SQLiteError.resultCode(stepResult, context: msg)
     }
   }
 
+}
+
+extension SQLiteV1CompatibilityTests {
   // MARK: - Tests
 
   @Test("v1 envelope imported through SQLite produces matching trace")
@@ -118,7 +121,7 @@ struct SQLiteV1CompatibilityTests {
     let envelope = PersistenceCodec.encode(record)
 
     // Create the database (which creates schema) then insert manually.
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
 
     // Open a raw connection for manual insertion.
     var rawDB: OpaquePointer?
@@ -134,7 +137,7 @@ struct SQLiteV1CompatibilityTests {
     let recordJSON = try JSONEncoder().encode(envelope)
 
     try insertRawRow(
-      db: rawDatabase,
+      database: rawDatabase,
       propertyID: record.propertyID,
       traceFormatVersion: Int32(envelope.traceFormatVersion),
       recordFormatVersion: Int32(envelope.recordFormatVersion),
@@ -143,7 +146,7 @@ struct SQLiteV1CompatibilityTests {
       createdAtMs: Int64(record.timestamp.timeIntervalSince1970 * 1000)
     )
 
-    let traces = try await db.loadTraces(for: record.propertyID)
+    let traces = try await database.loadTraces(for: record.propertyID)
     #expect(traces.count == 1)
     #expect(traces[0] == record.trace)
   }
@@ -155,7 +158,7 @@ struct SQLiteV1CompatibilityTests {
     defer { cleanup() }
 
     let record = sampleRecord()
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
 
     var rawDB: OpaquePointer?
     let openResult = sqlite3_open_v2(path, &rawDB, SQLITE_OPEN_READWRITE, nil)
@@ -171,7 +174,7 @@ struct SQLiteV1CompatibilityTests {
     let recordJSON = try JSONEncoder().encode(envelope)
 
     try insertRawRow(
-      db: rawDatabase,
+      database: rawDatabase,
       propertyID: record.propertyID,
       traceFormatVersion: 99,
       recordFormatVersion: 1,
@@ -186,7 +189,7 @@ struct SQLiteV1CompatibilityTests {
         supported: 1...1
       )
     ) {
-      _ = try await db.loadTraces(for: record.propertyID)
+      _ = try await database.loadTraces(for: record.propertyID)
     }
   }
 
@@ -197,7 +200,7 @@ struct SQLiteV1CompatibilityTests {
     defer { cleanup() }
 
     let record = sampleRecord()
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
 
     var rawDB: OpaquePointer?
     let openResult = sqlite3_open_v2(path, &rawDB, SQLITE_OPEN_READWRITE, nil)
@@ -213,7 +216,7 @@ struct SQLiteV1CompatibilityTests {
     let recordJSON = try JSONEncoder().encode(envelope)
 
     try insertRawRow(
-      db: rawDatabase,
+      database: rawDatabase,
       propertyID: record.propertyID,
       traceFormatVersion: 1,
       recordFormatVersion: 99,
@@ -228,7 +231,7 @@ struct SQLiteV1CompatibilityTests {
         supported: 1...1
       )
     ) {
-      _ = try await db.loadTraces(for: record.propertyID)
+      _ = try await database.loadTraces(for: record.propertyID)
     }
   }
 

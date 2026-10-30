@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360">
+  <rect width="720" height="360" fill="#f3f6fa"/>
+  <rect x="45" y="120" width="170" height="110" rx="16" fill="#245e85"/>
+  <rect x="275" y="120" width="170" height="110" rx="16" fill="#245e85"/>
+  <rect x="505" y="120" width="170" height="110" rx="16" fill="#245e85"/>
+  <path d="M215 175h50m180 0h50" stroke="#245e85" stroke-width="8"/>
+  <path d="m253 163 12 12-12 12m230-24 12 12-12 12" fill="none" stroke="#245e85" stroke-width="8"/>
+  <g fill="white" font-family="sans-serif" font-size="24" text-anchor="middle">
+    <text x="130" y="183">Generate</text><text x="360" y="183">Check</text><text x="590" y="183">Shrink</text>
+  </g>
+</svg>

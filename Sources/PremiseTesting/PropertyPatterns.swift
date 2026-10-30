@@ -1,5 +1,4 @@
 // Pattern helpers mirror `forAll` source-location and example plumbing.
-// swiftlint:disable function_parameter_count
 #if canImport(Testing)
 import PremiseCore
 
@@ -36,7 +35,11 @@ public func expectRoundTrip<Value: Sendable, Encoded: Sendable>(
 }
 
 /// Checks that a pure model and async implementation agree for generated inputs.
-public func expectModelAgreement<Input: Sendable, Model: Sendable, Actual: Sendable>(
+public func expectModelAgreement<
+  Input: Sendable,
+  Model: Sendable,
+  Actual: Sendable
+>(
   _ strategy: Strategy<Input>,
   config: PropertyConfig = .default,
   explicitExamples: [Input] = [],
@@ -67,4 +70,3 @@ public func expectModelAgreement<Input: Sendable, Model: Sendable, Actual: Senda
   }
 }
 #endif
-// swiftlint:enable function_parameter_count

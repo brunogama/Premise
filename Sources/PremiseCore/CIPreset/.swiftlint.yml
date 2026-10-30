@@ -1,0 +1,29 @@
+parent_config: ../.swiftlint.yml
+
+identifier_name:
+  excluded:
+    - id
+    - ID
+    - URL
+    - url
+    - to
+    - by
+    - at
+    - in
+    - "on"
+    - or
+    - as
+    - is
+    - of
+    - up
+    - i
+    - j
+    - k
+    - x
+    - y
+    - z
+    - r
+    - g
+    - b
+    - a
+    - ci

@@ -16,7 +16,7 @@ func suchThatFiltersGeneratedValues() throws {
 func sizedGenerationPassesBoundedSizeToBuilder() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 2, maxDraws: 32))
   let strategy = Strategy<[Int]>.sized(maxSize: 8) { size in
-    .arrays(of: .just(size), count: size)
+    Strategy<Int>.arrays(of: .just(size), count: size)
   }
   let value = try strategy.draw(&data)
   #expect(value.count <= 8)
@@ -40,8 +40,11 @@ func collectionGeneratorsSupportExactAndMinMaxSizes() throws {
 
   let exact = try Strategy<Int>.arrays(of: .just(1), count: 3).draw(&data)
   let ranged = try Strategy<Int>.arrays(of: .just(2), minCount: 2, maxCount: 4).draw(&data)
-  let set = try Strategy.sets(of: Strategy<Int>.integers(in: 0...10), minCount: 1, maxCount: 3)
-    .draw(&data)
+  let set = try Strategy<Set<Int>>.sets(
+    of: Strategy<Int>.integers(in: 0...10),
+    minCount: 1,
+    maxCount: 3
+  ).draw(&data)
 
   #expect(exact.count == 3)
   #expect((2...4).contains(ranged.count))
@@ -52,12 +55,12 @@ func collectionGeneratorsSupportExactAndMinMaxSizes() throws {
 func setAndDictionaryGeneratorsRejectImpossibleUniqueCounts() {
   var setData = PremiseData(provider: PseudoRandomProvider(seed: 30, maxDraws: 128))
   #expect(throws: StrategyError.self) {
-    try Strategy.sets(of: Strategy<Int>.just(1), count: 2).draw(&setData)
+    try Strategy<Set<Int>>.sets(of: Strategy<Int>.just(1), count: 2).draw(&setData)
   }
 
   var dictionaryData = PremiseData(provider: PseudoRandomProvider(seed: 31, maxDraws: 128))
   #expect(throws: StrategyError.self) {
-    try Strategy.dictionaries(
+    try Strategy<[String: Int]>.dictionaries(
       keys: Strategy<String>.just("duplicate"),
       values: Strategy<Int>.integers(in: 0...10),
       count: 2
@@ -150,7 +153,7 @@ func catalogURLDateUUIDAndRangeStrategiesDrawValidValues() throws {
 
   #expect(["http", "https"].contains(url.scheme))
   #expect(url.host != nil)
-  #expect(timeZone.identifier == "UTC")
+  #expect(timeZone == TimeZone(identifier: "UTC"))
   #expect((2020...2021).contains(components.year ?? 0))
   #expect(duration >= .seconds(-2) && duration <= .seconds(2))
   #expect(nilUUID.uuidString == "00000000-0000-0000-0000-000000000000")
@@ -204,7 +207,9 @@ func catalogCompositionHelpersWork() throws {
   #expect(pair.0 == pair.1)
   #expect(deferred == 7)
   #expect([TinyCase.first, .second].contains(enumCase))
-  #expect(generated(1) == generated(1))
+  let firstOutput = generated(1)
+  let secondOutput = generated(1)
+  #expect(firstOutput == secondOutput)
   #expect((1...3).contains(composite))
 }
 

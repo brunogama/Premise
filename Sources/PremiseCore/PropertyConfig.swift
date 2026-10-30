@@ -1,51 +1,5 @@
 import Foundation
 
-/// Verbosity level for property execution diagnostics.
-public enum PropertyVerbosity: String, Sendable, Codable, Hashable, CaseIterable {
-  case quiet
-  case normal
-  case verbose
-  case debug
-}
-
-/// Policy for reporting more than one distinct failure in a single property run.
-public enum MultipleBugReporting: String, Sendable, Codable, Hashable, CaseIterable {
-  /// Stop after the first failure.
-  case first
-
-  /// Collect all distinct failures when supported by the runner.
-  case all
-}
-
-/// Primitive generation backend selected for a property run.
-public enum PropertyBackend: String, Sendable, Codable, Hashable, CaseIterable {
-  /// The default deterministic Premise provider.
-  case premise
-
-  /// Solver-backed generation when the SMT extension is available.
-  case smt
-
-  /// Coverage-guided generation when instrumentation is available.
-  case coverageGuided
-}
-
-/// Error reported when an example exceeds its configured deadline.
-public struct PropertyDeadlineExceeded: Error, Sendable, Equatable, CustomStringConvertible {
-  /// Observed example runtime in seconds.
-  public let elapsedSeconds: Double
-
-  /// Configured deadline in seconds.
-  public let deadlineSeconds: Double
-
-  public init(elapsedSeconds: Double, deadlineSeconds: Double) {
-    self.elapsedSeconds = elapsedSeconds
-    self.deadlineSeconds = deadlineSeconds
-  }
-
-  public var description: String {
-    "Example exceeded deadline: elapsed=\(elapsedSeconds)s deadline=\(deadlineSeconds)s"
-  }
-}
 
 /// Per-property execution configuration.
 ///
@@ -167,6 +121,9 @@ public struct PropertyConfig: Sendable {
     self.healthChecks = healthChecks
   }
 
+}
+
+extension PropertyConfig {
   /// Default Premise execution configuration.
   public static let `default` = Self()
 
@@ -186,15 +143,6 @@ public struct PropertyConfig: Sendable {
     maxDrawsPerRun: 20_000
   )
 
-  /// Balanced for CI pipelines — 500 runs, 60-second timeout.
-  public static let ci = Self(
-    maxRuns: 500,
-    maxShrinkIterations: 1_000,
-    maxDrawsPerRun: 10_000,
-    timeoutSeconds: 60,
-    derandomize: true,
-    printReproductionBlob: true
-  )
 
   /// Bounded test configuration with explicit run and shrink budgets.
   public static func bounded(
@@ -204,9 +152,15 @@ public struct PropertyConfig: Sendable {
     replay: Bool = true
   ) -> Self {
     precondition(runs >= 0, "bounded(runs:) requires a non-negative run count")
-    precondition(shrinks >= 0, "bounded(shrinks:) requires a non-negative shrink count")
+    precondition(
+      shrinks >= 0,
+      "bounded(shrinks:) requires a non-negative shrink count"
+    )
     if let drawBudget {
-      precondition(drawBudget >= 0, "bounded(drawBudget:) requires a non-negative draw budget")
+      precondition(
+        drawBudget >= 0,
+        "bounded(drawBudget:) requires a non-negative draw budget"
+      )
     }
 
     return Self(
@@ -217,6 +171,9 @@ public struct PropertyConfig: Sendable {
     )
   }
 
+}
+
+extension PropertyConfig {
   // MARK: - Chainable builders
 
   /// Sets the number of property runs.

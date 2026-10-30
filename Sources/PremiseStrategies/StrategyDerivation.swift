@@ -1,10 +1,6 @@
 import Foundation
 import PremiseCore
 
-/// A type that can derive its default property-testing strategy from a registry.
-public protocol StrategyProviding: Sendable {
-  static func premiseStrategy(in registry: StrategyRegistry) -> Strategy<Self>
-}
 
 /// Immutable registry for deriving strategies by value type.
 public struct StrategyRegistry: Sendable {
@@ -20,7 +16,7 @@ public struct StrategyRegistry: Sendable {
   }
 
   /// Standard strategies for common Swift and Foundation value types.
-  public static let standard = StrategyRegistry()
+  public static let standard = Self()
     .register(Int.self, strategy: Strategy<Int>.integers(in: -100...100))
     .register(Bool.self, strategy: Strategy<Bool>.booleans)
     .register(String.self, strategy: Strategy<String>.ascii)
@@ -31,18 +27,18 @@ public struct StrategyRegistry: Sendable {
   public func register<Value: Sendable>(
     _ type: Value.Type,
     strategy: Strategy<Value>
-  ) -> StrategyRegistry {
+  ) -> Self {
     register(type) { _ in strategy }
   }
 
   /// Returns a copy of the registry with a scoped factory for `type`.
   public func register<Value: Sendable>(
     _ type: Value.Type,
-    _ makeStrategy: @escaping @Sendable (StrategyRegistry) -> Strategy<Value>
-  ) -> StrategyRegistry {
+    _ makeStrategy: @escaping @Sendable (Self) -> Strategy<Value>
+  ) -> Self {
     var entries = entries
     entries[ObjectIdentifier(type)] = AnyStrategyFactory(makeStrategy)
-    return StrategyRegistry(entries: entries)
+    return Self(entries: entries)
   }
 
   /// Resolves a registered strategy, or derives one from the value type.
@@ -66,22 +62,5 @@ public struct StrategyRegistry: Sendable {
     for type: Value.Type
   ) -> Strategy<Value>? {
     entries[ObjectIdentifier(type)]?.strategy(for: type, in: self)
-  }
-}
-
-private struct AnyStrategyFactory: Sendable {
-  private let make: @Sendable (StrategyRegistry) -> any Sendable
-
-  init<Value: Sendable>(
-    _ make: @escaping @Sendable (StrategyRegistry) -> Strategy<Value>
-  ) {
-    self.make = { registry in make(registry) }
-  }
-
-  func strategy<Value: Sendable>(
-    for _: Value.Type,
-    in registry: StrategyRegistry
-  ) -> Strategy<Value>? {
-    make(registry) as? Strategy<Value>
   }
 }

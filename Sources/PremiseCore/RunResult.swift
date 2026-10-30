@@ -1,3 +1,4 @@
+/// The outcome of running a property, including its minimized failure.
 public enum RunResult<Value: Sendable>: Sendable {
   case passed(runs: Int)
   case failure(FailureRecord, value: Value)
@@ -20,7 +21,7 @@ public extension RunResult {
 
   /// The minimized counterexample, or `nil` when all runs passed.
   var failureValue: Value? {
-    if case .failure(_, value: let v) = self { return v }
+    if case .failure(_, value: let value) = self { return value }
     return nil
   }
 

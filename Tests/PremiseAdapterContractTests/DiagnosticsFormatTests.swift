@@ -158,6 +158,9 @@ struct DiagnosticsFormatTests {
     #expect(output.contains("Target score: 2.0"))
   }
 
+}
+
+extension DiagnosticsFormatTests {
   // MARK: - Value Rendering
 
   @Test("String counterexample renders with quotes removed")
@@ -228,8 +231,7 @@ struct DiagnosticsFormatTests {
       )
       let xcOutput = XCTestFailureFormatter.format(
         value: value,
-        record: record,
-        propertyID: Self.testPropertyID
+        context: XCTestFailureContext(record: record, propertyID: Self.testPropertyID)
       )
       #expect(stOutput == xcOutput)
     }

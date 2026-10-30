@@ -68,12 +68,12 @@ struct SQLiteBackedDatabaseTests {
     let (path, cleanup) = try makeTempDBPath()
     defer { cleanup() }
 
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
     let id = makePropertyID()
     let record = makeRecord(propertyID: id)
 
-    try await db.save(record)
-    let traces = try await db.loadTraces(for: id)
+    try await database.save(record)
+    let traces = try await database.loadTraces(for: id)
 
     #expect(traces.count == 1)
     #expect(traces[0] == record.trace)
@@ -84,10 +84,10 @@ struct SQLiteBackedDatabaseTests {
     let (path, cleanup) = try makeTempDBPath()
     defer { cleanup() }
 
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
     let id = makePropertyID(fileID: "Unknown.swift", line: 999)
 
-    let traces = try await db.loadTraces(for: id)
+    let traces = try await database.loadTraces(for: id)
     #expect(traces.isEmpty)
   }
 
@@ -96,13 +96,13 @@ struct SQLiteBackedDatabaseTests {
     let (path, cleanup) = try makeTempDBPath()
     defer { cleanup() }
 
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
     let id = makePropertyID()
     let record = makeRecord(propertyID: id)
 
-    try await db.save(record)
-    try await db.clear(for: id)
-    let traces = try await db.loadTraces(for: id)
+    try await database.save(record)
+    try await database.clear(for: id)
+    let traces = try await database.loadTraces(for: id)
 
     #expect(traces.isEmpty)
   }
@@ -112,7 +112,7 @@ struct SQLiteBackedDatabaseTests {
     let (path, cleanup) = try makeTempDBPath()
     defer { cleanup() }
 
-    let db = try SQLiteBackedDatabase(path: path)
+    let database = try SQLiteBackedDatabase(path: path)
     let id = makePropertyID()
 
     let record1 = makeRecord(
@@ -126,10 +126,10 @@ struct SQLiteBackedDatabaseTests {
       timestamp: Date(timeIntervalSince1970: 2_000_000)
     )
 
-    try await db.save(record1)
-    try await db.save(record2)
+    try await database.save(record1)
+    try await database.save(record2)
 
-    let traces = try await db.loadTraces(for: id)
+    let traces = try await database.loadTraces(for: id)
     #expect(traces.count == 2)
     #expect(traces[0] == ChoiceTrace(entries: [.integer(1)]))
     #expect(traces[1] == ChoiceTrace(entries: [.integer(2)]))
@@ -144,25 +144,24 @@ struct SQLiteBackedDatabaseTests {
     let timestamp = Date(timeIntervalSince1970: 1_234_567)
     let record = makeRecord(propertyID: id, timestamp: timestamp)
 
-    let db = try SQLiteBackedDatabase(path: path)
-    try await db.save(record)
+    let storage = try SQLiteBackedDatabase(path: path)
+    try await storage.save(record)
 
     // Open a second raw connection to verify column values directly.
     var rawDB: OpaquePointer?
     let openResult = sqlite3_open_v2(path, &rawDB, SQLITE_OPEN_READONLY, nil)
-    guard openResult == SQLITE_OK, let database = rawDB else {
-      if let database = rawDB { sqlite3_close(database) }
+    guard openResult == SQLITE_OK, let handle = rawDB else {
+      if let handle = rawDB { sqlite3_close(handle) }
       Issue.record("Failed to open database for verification")
       return
     }
-    defer { sqlite3_close(database) }
+    defer { sqlite3_close(handle) }
 
     var stmt: OpaquePointer?
-    // swiftlint:disable:next line_length
     let sql =
-      "SELECT property_file_id, property_line, strategy_label, trace_format_version, record_format_version, created_at_unix_ms FROM failures LIMIT 1;"
-    let prepResult = sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
-    guard prepResult == SQLITE_OK, let statement = stmt else {
+      "SELECT property_file_id, property_line, strategy_label, "
+      + "trace_format_version, record_format_version, created_at_unix_ms FROM failures LIMIT 1;"
+    guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK, let statement = stmt else {
       Issue.record("Failed to prepare verification query")
       return
     }

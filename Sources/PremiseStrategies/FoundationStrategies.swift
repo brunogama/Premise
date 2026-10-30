@@ -10,10 +10,10 @@ public extension Strategy where Value == Character {
       label: "character.ascii",
       draw: { data in
         let code = data.drawInteger(in: 32...126)
-        return Character(UnicodeScalar(code)!)
+        return Character(UnicodeScalar(UInt8(code)))
       },
-      shrink: { ch in
-        guard ch != "a" else { return [] }
+      shrink: { character in
+        guard character != "a" else { return [] }
         return ["a"]
       }
     )
@@ -21,15 +21,16 @@ public extension Strategy where Value == Character {
 
   /// ASCII letters only (a-z, A-Z).
   static var letter: Strategy<Character> {
-    let letters: [Character] = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    let letters: [Character] =
+      Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
     return Strategy<Character>(
       label: "character.letter",
       draw: { data in
         let index = data.drawInteger(in: 0...(letters.count - 1))
         return letters[index]
       },
-      shrink: { ch in
-        guard ch != "a" else { return [] }
+      shrink: { character in
+        guard character != "a" else { return [] }
         return ["a"]
       }
     )
@@ -41,10 +42,10 @@ public extension Strategy where Value == Character {
       label: "character.digit",
       draw: { data in
         let code = data.drawInteger(in: 48...57)
-        return Character(UnicodeScalar(code)!)
+        return Character(UnicodeScalar(UInt8(code)))
       },
-      shrink: { ch in
-        guard ch != "0" else { return [] }
+      shrink: { character in
+        guard character != "0" else { return [] }
         return ["0"]
       }
     )
@@ -57,15 +58,10 @@ public extension Strategy where Value == Character {
       label: "character.unicode",
       draw: { data in
         // BMP: 0x0000–0xFFFF, excluding surrogates 0xD800–0xDFFF.
-        var scalar: UnicodeScalar?
-        while scalar == nil {
-          let raw = data.drawInteger(in: 0...0xFFFF)
-          scalar = UnicodeScalar(raw)
-        }
-        return Character(scalar!)
+        return drawUnicodeCharacter(using: &data)
       },
-      shrink: { ch in
-        guard ch != "a" else { return [] }
+      shrink: { character in
+        guard character != "a" else { return [] }
         return ["a"]
       }
     )
@@ -88,12 +84,7 @@ public extension Strategy where Value == String {
         let count = drawEdgeBiasedInteger(in: length, using: &data)
         return String(
           (0..<count).map { _ -> Character in
-            var scalar: UnicodeScalar?
-            while scalar == nil {
-              let raw = data.drawInteger(in: 0...0xFFFF)
-              scalar = UnicodeScalar(raw)
-            }
-            return Character(scalar!)
+            drawUnicodeCharacter(using: &data)
           }
         )
       },
@@ -136,7 +127,8 @@ public extension Strategy where Value == Data {
       },
       shrink: { value in
         guard !value.isEmpty else { return [] }
-        return [Data(value.dropLast()), Data()].filter { length.contains($0.count) }
+        return [Data(value.dropLast()), Data()]
+          .filter { length.contains($0.count) }
       }
     )
   }
@@ -157,8 +149,8 @@ public extension Strategy where Value == Date {
         let lowerTI = range.lowerBound.timeIntervalSince1970
         let upperTI = range.upperBound.timeIntervalSince1970
         let floatStrategy = Strategy<Double>.floats(in: lowerTI...upperTI)
-        let ti = try floatStrategy.draw(&data)
-        return Date(timeIntervalSince1970: ti)
+        let interval = try floatStrategy.draw(&data)
+        return Date(timeIntervalSince1970: interval)
       },
       shrink: { value in
         let epoch = Date(timeIntervalSince1970: 0)
@@ -195,7 +187,8 @@ public extension Strategy where Value == UUID {
         let third = String(hex.dropFirst(12).prefix(4))
         let fourth = String(hex.dropFirst(16).prefix(4))
         let fifth = String(hex.dropFirst(20))
-        let formatted = [first, second, third, fourth, fifth].joined(separator: "-")
+        let formatted = [first, second, third, fourth, fifth]
+          .joined(separator: "-")
         return UUID(uuidString: formatted) ?? UUID()
       },
       shrink: { _ in [] }
@@ -212,39 +205,69 @@ public extension Strategy where Value == URL {
       label: "url.http",
       draw: { data in
         let schemes = ["http", "https"]
-        let schemeIndex = data.drawInteger(in: 0...(schemes.count - 1))
-        let scheme = schemes[schemeIndex]
+        let scheme = schemes[data.drawInteger(in: 0...(schemes.count - 1))]
 
         let tlds = ["com", "org", "net", "io", "dev"]
         let tldIndex = data.drawInteger(in: 0...(tlds.count - 1))
         let tld = tlds[tldIndex]
 
         let hostChars: [Character] = Array("abcdefghijklmnopqrstuvwxyz")
-        let hostLen = data.drawInteger(in: 3...12)
-        let host = String(
-          (0..<hostLen).map { _ in
-            hostChars[data.drawInteger(in: 0...(hostChars.count - 1))]
-          }
-        )
+        let host = drawURLHost(using: &data, characters: hostChars)
 
-        let pathSegments = data.drawInteger(in: 0...3)
-        var path = ""
-        for _ in 0..<pathSegments {
-          let segLen = data.drawInteger(in: 1...8)
-          let segment = String(
-            (0..<segLen).map { _ in
-              hostChars[data.drawInteger(in: 0...(hostChars.count - 1))]
-            }
-          )
-          path += "/\(segment)"
+        let path = drawURLPath(using: &data, characters: hostChars)
+
+        guard
+          let url = URL(string: "\(scheme)://\(host).\(tld)\(path)")
+            ?? URL(string: "https://example.com")
+        else {
+          preconditionFailure("Invalid fallback URL")
         }
-
-        return URL(string: "\(scheme)://\(host).\(tld)\(path)")
-          ?? URL(string: "https://example.com")!
+        return url
       },
       shrink: { _ in
-        [URL(string: "https://a.com")!]
+        guard let url = URL(string: "https://a.com") else {
+          preconditionFailure("Invalid shrink URL")
+        }
+        return [url]
       }
     )
   }
+}
+
+private func drawUnicodeCharacter(using data: inout PremiseData) -> Character {
+  while true {
+    let raw = data.drawInteger(in: 0...0xFFFF)
+    if let scalar = UnicodeScalar(raw) {
+      return Character(scalar)
+    }
+  }
+}
+
+private func drawURLHost(
+  using data: inout PremiseData,
+  characters: [Character]
+) -> String {
+  let length = data.drawInteger(in: 3...12)
+  return String(
+    (0..<length).map { _ in
+      characters[data.drawInteger(in: 0...(characters.count - 1))]
+    }
+  )
+}
+private func drawURLPath(
+  using data: inout PremiseData,
+  characters: [Character]
+) -> String {
+  let pathSegments = data.drawInteger(in: 0...3)
+  var path = ""
+  for _ in 0..<pathSegments {
+    let segmentLength = data.drawInteger(in: 1...8)
+    let segment = String(
+      (0..<segmentLength).map { _ in
+        characters[data.drawInteger(in: 0...(characters.count - 1))]
+      }
+    )
+    path += "/\(segment)"
+  }
+  return path
 }

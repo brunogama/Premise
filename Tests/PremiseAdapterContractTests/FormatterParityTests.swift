@@ -24,16 +24,14 @@ struct FormatterParityTests {
   private static func makeRecord(
     propertyID: PropertyIdentity,
     errorMessage: String = "value 1 is not > 5",
-    runCount: Int = 100,
-    shrinkCount: Int = 3,
     statistics: RunStatistics = RunStatistics()
   ) -> FailureRecord {
     FailureRecord(
       propertyID: propertyID,
       trace: ChoiceTrace(entries: []),
       errorMessage: errorMessage,
-      runCount: runCount,
-      shrinkCount: shrinkCount,
+      runCount: 100,
+      shrinkCount: 3,
       statistics: statistics
     )
   }
@@ -73,8 +71,7 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: 1,
-      record: record,
-      propertyID: pid
+      context: XCTestFailureContext(record: record, propertyID: pid)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
@@ -95,8 +92,7 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: "abc",
-      record: record,
-      propertyID: pid
+      context: XCTestFailureContext(record: record, propertyID: pid)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
@@ -105,8 +101,10 @@ struct FormatterParityTests {
   @Test("Both formatters produce identical output with zero shrinks")
   func zeroShrinksParity() {
     let pid = Self.makePropertyID()
-    let record = Self.makeRecord(
+    let record = FailureRecord(
       propertyID: pid,
+      trace: ChoiceTrace(entries: []),
+      errorMessage: "value 1 is not > 5",
       runCount: 1,
       shrinkCount: 0
     )
@@ -118,8 +116,7 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: 99,
-      record: record,
-      propertyID: pid
+      context: XCTestFailureContext(record: record, propertyID: pid)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
@@ -144,8 +141,7 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: "invalid",
-      record: record,
-      propertyID: pid
+      context: XCTestFailureContext(record: record, propertyID: pid)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
@@ -166,8 +162,7 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: 1,
-      record: record,
-      propertyID: pid
+      context: XCTestFailureContext(record: record, propertyID: pid)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
@@ -176,6 +171,9 @@ struct FormatterParityTests {
     #expect(swiftTestingOutput.contains("Target score: 2.0"))
   }
 
+}
+
+extension FormatterParityTests {
   @Test("Both formatters produce identical reproduction blob output")
   func reproductionBlobParity() {
     let pid = Self.makePropertyID()
@@ -195,9 +193,11 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: 7,
-      record: record,
-      propertyID: pid,
-      includeReproductionBlob: true
+      context: XCTestFailureContext(
+        record: record,
+        propertyID: pid,
+        includeReproductionBlob: true
+      )
     )
 
     #expect(swiftTestingOutput == xcTestOutput)
@@ -219,9 +219,7 @@ struct FormatterParityTests {
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: 1,
-      record: record,
-      propertyID: pid,
-      report: report
+      context: XCTestFailureContext(record: record, propertyID: pid, report: report)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)

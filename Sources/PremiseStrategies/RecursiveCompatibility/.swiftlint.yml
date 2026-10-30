@@ -1,0 +1,5 @@
+parent_config: ../../../.swiftlint.yml
+# Preserve the existing recursive builder signature and defaults.
+disabled_rules:
+  - function_default_parameter_at_end
+  - function_parameter_count

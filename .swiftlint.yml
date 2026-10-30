@@ -1,254 +1,261 @@
-# SwiftLint Configuration - Fixed for compatibility with swift-format
-# Based on Google Swift Style Guide
-# https://google.github.io/swift/
+---
+# SwiftLint Configuration
+# Clean Code + enforceable Object Calisthenics subset.
+#
+# swift-format owns mechanical layout. SwiftLint owns correctness, naming,
+# complexity, declaration size, unsafe operations, and maintainability.
+#
+# Object Calisthenics rules that SwiftLint cannot validate reliably
+# are intentionally not approximated with regexes: no else, wrap primitives,
+# first-class collections, one dot per line, maximum two instance variables,
+# and no getters/setters.
+# Enforce those rules with a SwiftSyntax-based repository validator instead.
 
-# Paths to include
 included:
-- Sources
-- Benchmarks
-- Tests
+  - Package.swift
+  - Sources/
+  - Tests/
+  - scripts/
 
-# Paths to exclude
-excluded:
-- .build
-- .swiftpm
-- Package.swift
-- Tools
-- ${PWD}/.build
-
-# Enabled rules beyond default
 opt_in_rules:
-# Readability
-- attributes
-- closure_end_indentation
-- closure_spacing
-- collection_alignment
-- contains_over_filter_count
-- contains_over_filter_is_empty
-- contains_over_first_not_nil
-- contains_over_range_nil_comparison
-- empty_collection_literal
-- empty_count
-- empty_string
-- empty_xctest_method
-- explicit_init
-- fallthrough
-- fatal_error_message
-# - file_header  # Disabled for now
-- file_name_no_space
-- first_where
-- flatmap_over_map_reduce
-- identical_operands
-- implicit_return
-- joined_default_parameter
-- last_where
-- literal_expression_end_indentation
-- lower_acl_than_parent
-- modifier_order
-- multiline_arguments
-- multiline_function_chains
-- multiline_literal_brackets
-- multiline_parameters
-- multiline_parameters_brackets
-- operator_usage_whitespace
-- optional_enum_case_matching
-- overridden_super_call
-- prefer_self_type_over_type_of_self
-- prefer_zero_over_explicit_init
-- private_action
-- private_outlet
-- prohibited_super_call
-- redundant_nil_coalescing
-- redundant_type_annotation
-- single_test_class
-- sorted_first_last
-- static_operator
-- toggle_bool
-- unavailable_function
-- unneeded_parentheses_in_closure_argument
-- unowned_variable_capture
-- untyped_error_in_catch
-- vertical_parameter_alignment_on_call
-# REMOVED: vertical_whitespace_closing_braces - conflicts with swift-format
-# REMOVED: vertical_whitespace_opening_braces - conflicts with swift-format
-- yoda_condition
+  # Clean Code: small, focused units
+  - closure_body_length
+  - convenience_type
+  - function_default_parameter_at_end
+  - no_empty_block
+  - indentation_width
 
-# Performance
-- array_init
-- discouraged_object_literal
-- enum_case_associated_values_count
-- reduce_into
+  # Safety and explicit failure handling
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - fatal_error_message
+  - unowned_variable_capture
+  - untyped_error_in_catch
 
-# Style (Google-specific)
-- closure_parameter_position
-- implicit_getter
-# REMOVED: number_separator - conflicts with swift-format number formatting
-- object_literal
-- function_name_whitespace
-- prefer_self_in_static_references
-# - sorted_imports  # Disabled to prevent conflict with SwiftFormat
-# - trailing_comma  # Disabled to prevent conflict with SwiftFormat
-- type_contents_order
-- vertical_whitespace_between_cases
+  # Readability and intent
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - discouraged_optional_boolean
+  - discouraged_optional_collection
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - empty_xctest_method
+  - explicit_init
+  - fallthrough
+  - file_name_no_space
+  - first_where
+  - flatmap_over_map_reduce
+  - identical_operands
+  - joined_default_parameter
+  - last_where
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - operator_usage_whitespace
+  - optional_enum_case_matching
+  - overridden_super_call
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - single_test_class
+  - sorted_first_last
+  - static_operator
+  - toggle_bool
+  - unavailable_function
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - yoda_condition
 
-# Disabled rules (conflicts with Google style and SwiftFormat)
+  # Performance and first-class value modeling
+  - array_init
+  - discouraged_object_literal
+  - enum_case_associated_values_count
+  - reduce_into
+
+  # Non-layout style rules
+  - closure_end_indentation
+  - function_name_whitespace
+  - implicit_getter
+  - object_literal
+  - prefer_self_in_static_references
+
 disabled_rules:
-- trailing_whitespace # Google allows trailing whitespace in some cases
-- todo # TODOs are allowed
-- trailing_comma # Handled by SwiftFormat
-- sorted_imports # Handled by SwiftFormat
-- type_contents_order # Too strict for SwiftUI projects
-- multiline_parameters # Conflicts with SwiftUI ViewBuilder syntax
-- opening_brace # CRITICAL: Conflicts with swift-format brace placement
-- vertical_whitespace_opening_braces # CRITICAL: Conflicts with swift-format
-- vertical_whitespace_closing_braces # CRITICAL: Conflicts with swift-format
-- number_separator # CRITICAL: Conflicts with swift-format number formatting
-- orphaned_doc_comment # False positives from swiftlint:disable comments
+  # Mechanical formatting is owned by swift-format.
+  - attributes
+  - closure_parameter_position
+  - closure_spacing
+  - implicit_return
+  - multiline_arguments
+  - multiline_function_chains
+  - multiline_literal_brackets
+  - multiline_parameters
+  - multiline_parameters_brackets
+  - number_separator
+  - opening_brace
+  - statement_position
+  - trailing_comma
+  - trailing_whitespace
+  - vertical_whitespace
+  - vertical_whitespace_between_cases
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - void_return
 
-# Rule configurations
+  # Import ordering is intentionally unspecified by both tools.
+  - sorted_imports
+
+  # TODOs are permitted as workflow markers; issue tracking governs completion.
+  - todo
+
 analyzer_rules:
-- unused_declaration
-- unused_import
+  - unused_declaration
+  - unused_import
 
-# Custom configurations
+# Strict linting is the default for local checks and pre-commit hooks.
+strict: true
+
 line_length:
-  warning: 100
-  error: 100
+  warning: 80
+  error: 95
   ignores_urls: true
   ignores_function_declarations: false
   ignores_comments: true
   ignores_interpolated_strings: true
 
-# Identifier naming (Google style)
 identifier_name:
   min_length:
-    warning: 2
-    error: 1
+    warning: 3
+    error: 2
   max_length:
     warning: 40
     error: 50
   excluded:
-  - id
-  - ID
-  - URL
-  - url
-  - to
-  - by
-  - at
-  - in
-  - on
-  - or
-  - as
-  - is
-  - of
-  - up
-  - i
-  - j
-  - k
-  - x
-  - y
-  - z
-  - r
-  - g
-  - b
-  - a
-  - n  # numeric value
-  - f  # float/function
-  - d  # double/delta
-  - c  # character/count
-  - s  # string/sequence
-  - t  # time/type
-  - p  # position/point
-  - u  # value/unit
-  - e  # element/error
+    - id
+    - ID
+    - URL
+    - url
+    - to
+    - by
+    - at
+    - in
+    - "on"
+    - or
+    - as
+    - is
+    - of
+    - up
+    - i
+    - j
+    - k
+    - x
+    - y
+    - z
+    - r
+    - g
+    - b
+    - a
 
 type_name:
   min_length: 3
   max_length:
     warning: 40
     error: 50
-  allowed_symbols: [ "_" ]
+  allowed_symbols: ["_"]
   validates_start_with_lowercase:
     warning: false
 
+# Clean Code: prefer cohesive argument objects over long parameter lists.
 function_parameter_count:
-  warning: 4
-  error: 6
+  warning: 3
+  error: 3
+  ignores_default_parameters: false
 
-# File and type length limits (relaxed for existing code)
+# Clean Code: functions should express one operation at one abstraction level.
+function_body_length:
+  warning: 20
+  error: 20
+
+closure_body_length:
+  warning: 15
+  error: 25
+
+# Small classes/types are the practical SwiftLint approximation of the
+# Object Calisthenics "small entities" rule.
+type_body_length:
+  warning: 120
+  error: 200
+
 file_length:
-  warning: 400
-  error: 1000
+  warning: 250
+  error: 350
   ignore_comment_only_lines: true
 
-type_body_length:
-  warning: 300
-  error: 800
+# Prefer named types over anonymous data aggregates.
+large_tuple:
+  warning: 2
+  error: 3
 
-function_body_length:
-  warning: 60
-  error: 120
-
-# Cyclomatic complexity (Google recommendation)
+# Keep branching low enough that behavior remains locally understandable.
+# The explicit maximum complexity is six, including under strict lint.
 cyclomatic_complexity:
-  warning: 10
-  error: 15
+  warning: 6
+  error: 6
+  ignores_case_statements: false
 
-# Nesting (Google recommends shallow nesting)
+# Functions may nest no deeper than two levels; types remain one level deep.
 nesting:
-  type_level: 2
-  function_level: 3
+  type_level:
+    warning: 1
+  function_level:
+    warning: 2
+    error: 2
+  check_nesting_in_closures_and_statements: true
+  always_allow_one_type_in_functions: false
+  ignore_typealiases_and_associatedtypes: false
+  ignore_coding_keys: true
+# Unsafe operations must be explicit exceptions, never routine control flow.
+force_cast:
+  severity: error
 
-# Attributes (Google style)
-attributes:
-  always_on_same_line:
-  - "@IBAction"
-  - "@NSManaged"
-  - "@objc"
-  - "@nonobjc"
-  - "@IBOutlet"
-  - "@IBInspectable"
-  - "@GKInspectable"
-  always_on_line_above:
-  - "@available"
-  - "@discardableResult"
-  - "@UIApplicationMain"
-  - "@NSApplicationMain"
-  - "@main"
-  - "@MainActor"
-  - "@Sendable"
+force_try:
+  severity: error
 
-# Multiline arguments (Google style)
-multiline_arguments:
-  first_argument_location: next_line
-  only_enforce_after_first_closure_on_first_line: true
+force_unwrapping:
+  severity: error
 
-# Vertical whitespace - reduced to prevent conflicts
-vertical_whitespace:
-  max_empty_lines: 2
+implicitly_unwrapped_optional:
+  severity: error
+  mode: all_except_iboutlets
 
-# Empty count
 empty_count:
-  severity: warning
+  severity: error
 
-# Custom rules
+indentation_width:
+  severity: error
+  indentation_width: 2
+
 custom_rules:
-  # Prefer struct over class when possible
   prefer_struct:
-    name: "Prefer Struct"
-    regex: "^class\\s+\\w+[^\\{]*\\{"
-    message: "Consider using a struct instead of a class when possible"
+    name: "Prefer Value Semantics"
+    regex: "(?m)^\\s*(?:\\w+\\s+)*class\\b"
+    message: >-
+      Prefer a struct unless identity, inheritance, Objective-C interop, or
+      shared reference semantics are required.
     severity: warning
 
-  # No print statements in production code
+
   no_print:
     name: "No Print Statements"
-    regex: "\\bprint\\("
-    message: "Remove print statements from production code"
-    severity: warning
-    excluded:
-    - "Tests/*"
-    - "Benchmarks/*"
+    regex: "\\bprint\\s*\\("
+    message: "Remove print statements; use Logger or os_log instead."
+    severity: error
 
-# Reporter type
 reporter: "xcode"

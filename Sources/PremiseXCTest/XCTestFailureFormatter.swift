@@ -5,39 +5,42 @@ import PremiseCore
 /// and replay instructions.
 enum XCTestFailureFormatter {
   /// Builds a diagnostic message from a property failure.
-  ///
-  /// - Parameters:
-  ///   - value: The minimized counterexample that triggered the failure.
-  ///   - record: The failure record containing trace, counts, and metadata.
-  ///   - propertyID: The property identity for replay instructions.
-  ///   - report: Optional detailed run report for aggregated diagnostics.
-  /// - Returns: A multi-line diagnostic string.
   static func format<Value>(
     value: Value,
-    record: FailureRecord,
-    propertyID: PropertyIdentity,
-    report: RunReport? = nil,
-    includeReproductionBlob: Bool = false
+    context: XCTestFailureContext
   ) -> String {
-    var lines: [String] = []
-    let location: String
-    if let fn = propertyID.functionName {
-      location = "\(propertyID.fileID) \(fn)#\(propertyID.line)"
-    } else {
-      location = "\(propertyID.fileID)#\(propertyID.line)"
-    }
-    lines.append("Property failed: \(location)")
-    lines.append("Failure kind: \(record.discovery.rawValue)")
-    lines.append("Minimal counterexample: \(prettyPrint(value))")
-    lines.append("Error: \(record.errorMessage)")
-    lines.append("Runs: \(record.runCount), Shrinks: \(record.shrinkCount)")
-    lines.append("Trace entries: \(record.trace.entries.count)")
+    let record = context.record
+    let report = context.report
+    var lines = [
+      "Property failed: \(location(context.propertyID))",
+      "Failure kind: \(record.discovery.rawValue)",
+      "Minimal counterexample: \(prettyPrint(value))",
+      "Error: \(record.errorMessage)",
+      "Runs: \(record.runCount), Shrinks: \(record.shrinkCount)",
+      "Trace entries: \(record.trace.entries.count)",
+    ]
     appendStatistics(
       from: statistics(record: record, report: report),
       report: report,
       to: &lines
     )
     appendMultipleFailures(from: report, to: &lines)
+    appendReplay(context: context, to: &lines)
+    return lines.joined(separator: "\n")
+  }
+
+  private static func location(_ propertyID: PropertyIdentity) -> String {
+    guard let function = propertyID.functionName else {
+      return "\(propertyID.fileID)#\(propertyID.line)"
+    }
+    return "\(propertyID.fileID) \(function)#\(propertyID.line)"
+  }
+
+  private static func appendReplay(
+    context: XCTestFailureContext,
+    to lines: inout [String]
+  ) {
+    let record = context.record
     if let seed = record.seed {
       lines.append("Seed to reproduce: \(seed)")
       lines.append("Replay: config: PropertyConfig(seed: \(seed))")
@@ -47,32 +50,16 @@ enum XCTestFailureFormatter {
           + "or an exported JSON trace artifact."
       )
     }
-    if includeReproductionBlob, let blob = try? record.trace.reproductionBlob() {
+    if context.includeReproductionBlob,
+      let blob = try? record.trace.reproductionBlob()
+    {
       lines.append("Reproduction blob: \(blob)")
       lines.append(
         "Replay blob: try ChoiceTrace.decodeReproductionBlob(\"\(blob)\")"
       )
     }
-    return lines.joined(separator: "\n")
   }
 
-  static func prettyPrint(_ value: some Any) -> String {
-    let mirror = Mirror(reflecting: value)
-
-    if mirror.displayStyle == .struct || mirror.displayStyle == .class,
-      !mirror.children.isEmpty,
-      mirror.children.first?.label != nil
-    {
-      let fields = mirror.children.map { child in
-        let label = child.label ?? "_"
-        return "  \(label): \(child.value)"
-      }
-      let typeName = String(describing: type(of: value))
-      return "\(typeName)(\n\(fields.joined(separator: "\n"))\n)"
-    }
-
-    return String(describing: value)
-  }
 
   private static func statistics(
     record: FailureRecord,

@@ -53,7 +53,7 @@ struct ReplayOrderingIntegrationTests {
   @Test("Persisted trace replays before fresh generation when maxRuns is 0")
   func replayBeforeFreshWithZeroMaxRuns() async throws {
     let tempDir = try makeTempDirectory()
-    let db = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: tempDir)
     let propertyID = makePropertyID()
 
     // Build a trace that will draw the value 5 when replayed.
@@ -65,7 +65,7 @@ struct ReplayOrderingIntegrationTests {
       trace: failingTrace,
       errorMessage: "value was 5"
     )
-    try await db.save(seedRecord)
+    try await database.save(seedRecord)
 
     // Configure runner with maxRuns: 0 so no fresh generation occurs.
     // The only way a failure can surface is through replay.
@@ -81,7 +81,7 @@ struct ReplayOrderingIntegrationTests {
       propertyID: propertyID
     )
 
-    let executor = ReplayFirstExecutor(runner: runner, database: db)
+    let executor = ReplayFirstExecutor(runner: runner, database: database)
     let result = try await executor.execute { value in
       if value == 5 {
         throw PropertyFailure(message: "value was 5")
@@ -99,7 +99,7 @@ struct ReplayOrderingIntegrationTests {
   @Test("Failure results are persisted and visible in subsequent loadTraces")
   func failurePersistenceRoundTrip() async throws {
     let tempDir = try makeTempDirectory()
-    let db = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: tempDir)
     let propertyID = makePropertyID(
       fileID: "Persistence.swift",
       line: 20
@@ -119,7 +119,7 @@ struct ReplayOrderingIntegrationTests {
       propertyID: propertyID
     )
 
-    let executor = ReplayFirstExecutor(runner: runner, database: db)
+    let executor = ReplayFirstExecutor(runner: runner, database: database)
 
     // Property that always fails -- guarantees a failure record.
     let result = try await executor.execute { _ in
@@ -132,7 +132,7 @@ struct ReplayOrderingIntegrationTests {
     }
 
     // Verify the failure was persisted back to the database.
-    let traces = try await db.loadTraces(for: propertyID)
+    let traces = try await database.loadTraces(for: propertyID)
     #expect(traces.count == 1)
     #expect(traces[0].entries.isEmpty == false)
   }
@@ -140,7 +140,7 @@ struct ReplayOrderingIntegrationTests {
   @Test("Passing replay does not persist a new record")
   func passingReplayDoesNotPersist() async throws {
     let tempDir = try makeTempDirectory()
-    let db = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: tempDir)
     let propertyID = makePropertyID(
       fileID: "PassTest.swift",
       line: 30
@@ -153,7 +153,7 @@ struct ReplayOrderingIntegrationTests {
       trace: passingTrace,
       errorMessage: "prior failure"
     )
-    try await db.save(seedRecord)
+    try await database.save(seedRecord)
 
     let config = PropertyConfig(
       maxRuns: 0,
@@ -167,10 +167,12 @@ struct ReplayOrderingIntegrationTests {
       propertyID: propertyID
     )
 
-    let executor = ReplayFirstExecutor(runner: runner, database: db)
+    let executor = ReplayFirstExecutor(runner: runner, database: database)
 
     // Property that never fails -- replay should pass.
-    let result = try await executor.execute { _ in }
+    let result = try await executor.execute { _ in
+      return
+    }
 
     guard case .passed = result else {
       Issue.record("Expected passed but got failure")
@@ -178,7 +180,7 @@ struct ReplayOrderingIntegrationTests {
     }
 
     // The original record should still be there, but no new one added.
-    let traces = try await db.loadTraces(for: propertyID)
+    let traces = try await database.loadTraces(for: propertyID)
     #expect(traces.count == 1)
   }
 }

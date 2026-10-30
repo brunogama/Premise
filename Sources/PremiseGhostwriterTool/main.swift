@@ -1,35 +1,53 @@
 import Foundation
 import PremiseGhostwriter
 
-@main
-struct PremiseGhostwriterTool {
+enum PremiseGhostwriterTool {
   static func main() {
     do {
-      let options = try GhostwriterOptions(arguments: Array(CommandLine.arguments.dropFirst()))
+      let arguments = Array(CommandLine.arguments.dropFirst())
+      let options = try GhostwriterOptions(arguments: arguments)
       if options.showHelp {
-        print(helpText)
+        output(helpText)
         return
       }
 
       let source = try PremiseGhostwriter.render(options.request)
-      print(source)
+      output(source)
     } catch {
       fputs("premise-ghostwriter: \(error)\n", stderr)
-      fputs("Run `swift package premise-ghostwriter --help` for usage.\n", stderr)
+      let usage = "Run `swift package premise-ghostwriter --help` for usage.\n"
+      fputs(usage, stderr)
       Foundation.exit(1)
     }
   }
 
+  private static func output(_ text: String) {
+    FileHandle.standardOutput.write(Data((text + "\n").utf8))
+  }
+
   private static let helpText = """
     Usage:
-      swift package premise-ghostwriter --kind fuzz-no-crash --module MyApp --type Payload --strategy 'Strategy<Payload>.payloads()' --subject 'try parse($0)'
-      swift package premise-ghostwriter --kind roundtrip --module MyApp --type Payload --strategy 'Strategy<Payload>.payloads()' --encode 'try JSONEncoder().encode($0)' --decode 'try JSONDecoder().decode(Payload.self, from: $0)'
-      swift package premise-ghostwriter --kind equivalence --module MyApp --type Payload --strategy 'Strategy<Payload>.payloads()' --subject 'try newImpl($0)' --alternate 'try oldImpl($0)'
-      swift package premise-ghostwriter --kind idempotence --module MyApp --type Payload --strategy 'Strategy<Payload>.payloads()' --subject 'try normalize($0)'
-      swift package premise-ghostwriter --kind binary-operation-laws --module MyApp --type Value --strategy 'Strategy<Value>.values()' --operation 'combine($0, $1)' --identity 'Value.empty'
+      swift package premise-ghostwriter --kind fuzz-no-crash --module MyApp \
+    --type Payload --strategy 'Strategy<Payload>.payloads()' \
+    --subject 'try parse($0)'
+      swift package premise-ghostwriter --kind roundtrip --module MyApp \
+    --type Payload --strategy 'Strategy<Payload>.payloads()' \
+    --encode 'try JSONEncoder().encode($0)' \
+    --decode 'try JSONDecoder().decode(Payload.self, from: $0)'
+      swift package premise-ghostwriter --kind equivalence --module MyApp \
+    --type Payload --strategy 'Strategy<Payload>.payloads()' \
+    --subject 'try newImpl($0)' --alternate 'try oldImpl($0)'
+      swift package premise-ghostwriter --kind idempotence --module MyApp \
+    --type Payload --strategy 'Strategy<Payload>.payloads()' \
+    --subject 'try normalize($0)'
+      swift package premise-ghostwriter --kind binary-operation-laws \
+    --module MyApp \
+    --type Value --strategy 'Strategy<Value>.values()' \
+    --operation 'combine($0, $1)' --identity 'Value.empty'
 
     Options:
-      --kind        One of: fuzz-no-crash (or fuzz), roundtrip, equivalence, idempotence, binary-operation-laws
+      --kind        One of: fuzz-no-crash (or fuzz), roundtrip, equivalence, \
+    idempotence, binary-operation-laws
       --module      Module under test imported with @testable import
       --type        Value type under test
       --strategy    Swift expression returning Strategy<T>
@@ -49,82 +67,71 @@ private struct GhostwriterOptions {
   var request: GhostwriterRequest
 
   init(arguments: [String]) throws {
-    var kind: GhostwriterTemplateKind?
-    var moduleName: String?
-    var typeName: String?
-    var strategyExpression: String?
-    var testName: String?
-    var subjectExpression: String?
-    var alternateExpression: String?
-    var encodeExpression: String?
-    var decodeExpression: String?
-    var operationExpression: String?
-    var identityExpression: String?
-    var equalityExpression = "$0 == $1"
-    var showHelp = false
-
+    var values: [String: String] = [:]
     var iterator = arguments.makeIterator()
     while let argument = iterator.next() {
-      switch argument {
-      case "--help", "-h":
+      if argument == "--help" || argument == "-h" {
         showHelp = true
-      case "--kind":
-        kind = try Self.parseKind(Self.nextValue(&iterator, after: argument))
-      case "--module":
-        moduleName = try Self.nextValue(&iterator, after: argument)
-      case "--type":
-        typeName = try Self.nextValue(&iterator, after: argument)
-      case "--strategy":
-        strategyExpression = try Self.nextValue(&iterator, after: argument)
-      case "--test-name":
-        testName = try Self.nextValue(&iterator, after: argument)
-      case "--subject":
-        subjectExpression = try Self.nextValue(&iterator, after: argument)
-      case "--alternate":
-        alternateExpression = try Self.nextValue(&iterator, after: argument)
-      case "--encode":
-        encodeExpression = try Self.nextValue(&iterator, after: argument)
-      case "--decode":
-        decodeExpression = try Self.nextValue(&iterator, after: argument)
-      case "--operation":
-        operationExpression = try Self.nextValue(&iterator, after: argument)
-      case "--identity":
-        identityExpression = try Self.nextValue(&iterator, after: argument)
-      case "--equality":
-        equalityExpression = try Self.nextValue(&iterator, after: argument)
-      default:
-        throw GhostwriterCLIError.unknownArgument(argument)
+      } else {
+        try Self.parse(argument, iterator: &iterator, values: &values)
       }
     }
+    request = try Self.makeRequest(values: values, showHelp: showHelp)
+  }
 
-    self.showHelp = showHelp
-    if showHelp {
-      request = GhostwriterRequest(
-        kind: .fuzzNoCrash,
-        moduleName: "ModuleUnderTest",
-        typeName: "Value",
-        strategyExpression: "Strategy<Value>.values()"
-      )
-      return
+  private static let valueOptions: Set<String> = [
+    "--kind", "--module", "--type", "--strategy", "--test-name", "--subject",
+    "--alternate", "--encode", "--decode", "--operation", "--identity",
+    "--equality",
+  ]
+
+  private static func parse(
+    _ argument: String,
+    iterator: inout Array<String>.Iterator,
+    values: inout [String: String]
+  ) throws {
+    guard valueOptions.contains(argument) else {
+      throw GhostwriterCLIError.unknownArgument(argument)
     }
+    let value = try nextValue(&iterator, after: argument)
+    if argument == "--kind" {
+      _ = try parseKind(value)
+    }
+    values[argument] = value
+  }
 
-    request = GhostwriterRequest(
-      kind: try Self.require(kind, "--kind"),
-      moduleName: try Self.require(moduleName, "--module"),
-      typeName: try Self.require(typeName, "--type"),
-      strategyExpression: try Self.require(strategyExpression, "--strategy"),
-      testName: testName,
-      subjectExpression: subjectExpression,
-      alternateExpression: alternateExpression,
-      encodeExpression: encodeExpression,
-      decodeExpression: decodeExpression,
-      operationExpression: operationExpression,
-      identityExpression: identityExpression,
-      equalityExpression: equalityExpression
+  private static let helpRequest = GhostwriterRequest(
+    kind: .fuzzNoCrash,
+    moduleName: "ModuleUnderTest",
+    typeName: "Value",
+    strategyExpression: "Strategy<Value>.values()"
+  )
+  private static func makeRequest(
+    values: [String: String],
+    showHelp: Bool
+  ) throws -> GhostwriterRequest {
+    if showHelp {
+      return helpRequest
+    }
+    return GhostwriterRequest(
+      kind: try parseKind(require(values["--kind"], "--kind")),
+      moduleName: try require(values["--module"], "--module"),
+      typeName: try require(values["--type"], "--type"),
+      strategyExpression: try require(values["--strategy"], "--strategy"),
+      testName: values["--test-name"],
+      subjectExpression: values["--subject"],
+      alternateExpression: values["--alternate"],
+      encodeExpression: values["--encode"],
+      decodeExpression: values["--decode"],
+      operationExpression: values["--operation"],
+      identityExpression: values["--identity"],
+      equalityExpression: values["--equality"] ?? "$0 == $1"
     )
   }
 
-  private static func parseKind(_ rawValue: String) throws -> GhostwriterTemplateKind {
+  private static func parseKind(
+    _ rawValue: String
+  ) throws -> GhostwriterTemplateKind {
     if rawValue == "fuzz" { return .fuzzNoCrash }
     guard let kind = GhostwriterTemplateKind(rawValue: rawValue) else {
       throw GhostwriterCLIError.invalidKind(rawValue)
@@ -136,13 +143,18 @@ private struct GhostwriterOptions {
     _ iterator: inout Array<String>.Iterator,
     after option: String
   ) throws -> String {
-    guard let value = iterator.next() else {
+    guard let value = iterator.next(),
+      !value.hasPrefix("--"), value != "-h"
+    else {
       throw GhostwriterCLIError.missingValue(option)
     }
     return value
   }
 
-  private static func require<Value>(_ value: Value?, _ option: String) throws -> Value {
+  private static func require<Value>(
+    _ value: Value?,
+    _ option: String
+  ) throws -> Value {
     guard let value else {
       throw GhostwriterCLIError.missingRequiredOption(option)
     }
@@ -169,3 +181,5 @@ private enum GhostwriterCLIError: Error, CustomStringConvertible {
     }
   }
 }
+
+PremiseGhostwriterTool.main()

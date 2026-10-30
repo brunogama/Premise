@@ -79,8 +79,6 @@ struct PersistenceFormatCompatibilityTests {
   func oldEnvelopeWithoutStatisticsDefaultsToEmptyStatistics() throws {
     let original = sampleRecord(statistics: sampleStatistics())
     let envelope = PersistedFailureRecordV1(
-      recordFormatVersion: 1,
-      traceFormatVersion: 1,
       propertyID: original.propertyID,
       trace: original.trace,
       errorMessage: original.errorMessage,
@@ -90,8 +88,10 @@ struct PersistenceFormatCompatibilityTests {
       engineVersion: original.engineVersion
     )
     let data = try JSONEncoder().encode(envelope)
-    let json = String(decoding: data, as: UTF8.self)
+    let json = try #require(String(bytes: data, encoding: .utf8))
 
+    #expect(envelope.recordFormatVersion == 1)
+    #expect(envelope.traceFormatVersion == 1)
     #expect(!json.contains("statistics"))
 
     let decodedEnvelope = try JSONDecoder().decode(
@@ -118,15 +118,15 @@ struct PersistenceFormatCompatibilityTests {
   func unsupportedTraceVersionThrows() throws {
     let original = sampleRecord()
     let envelope = PersistedFailureRecordV1(
-      recordFormatVersion: 1,
-      traceFormatVersion: 2,
       propertyID: original.propertyID,
       trace: original.trace,
       errorMessage: original.errorMessage,
       runCount: original.runCount,
       shrinkCount: original.shrinkCount,
       timestamp: original.timestamp,
-      engineVersion: original.engineVersion
+      engineVersion: original.engineVersion,
+      recordFormatVersion: 1,
+      traceFormatVersion: 2
     )
 
     #expect(throws: PersistenceCompatibilityError.self) {
@@ -150,15 +150,15 @@ struct PersistenceFormatCompatibilityTests {
   func unsupportedRecordVersionThrows() throws {
     let original = sampleRecord()
     let envelope = PersistedFailureRecordV1(
-      recordFormatVersion: 2,
-      traceFormatVersion: 1,
       propertyID: original.propertyID,
       trace: original.trace,
       errorMessage: original.errorMessage,
       runCount: original.runCount,
       shrinkCount: original.shrinkCount,
       timestamp: original.timestamp,
-      engineVersion: original.engineVersion
+      engineVersion: original.engineVersion,
+      recordFormatVersion: 2,
+      traceFormatVersion: 1
     )
 
     #expect(throws: PersistenceCompatibilityError.self) {
