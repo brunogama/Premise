@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:0b3af7f2cea493fa1da3cf8ac92e22a709a800557bb4ca74efde0057ccadc27e",
+  "claims": [
+    {
+      "id": "claim_5fb7e83b86c646b6ab283ab006639b9c",
+      "statement": "The Swift 6.2 manifest defines the library products and two executables, with CoverageGuided, Telemetry, and SMT traits disabled by default.",
+      "evidence": [
+        {
+          "resource": "repo://Package.swift#L1-L42",
+          "version": "repo-lines-v1:sha256:41ee62f8253bbc9d86be9ce14f781e6e99f4581f927b7af3bc3ed5780805bc4e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzODdmNDIxNzM2YmJjNTNkM2VhYWUxNmM5OWNmM2UxMWNmNmM0NmJkZmIyYTE3OTBkNmRkZWE4MWNkZDU1NzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2NGQ4YzA3MzQyOTg5MzEwMTU3NmQ4OGQ5OTEyN2U4OWQ2ODkxZDNiMTdlODlkZjAyZWM5YWU3MDcwNWQ4YmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4YmI0ZTQ0MzRjZGU4ZjNmNDMxYTU4M2I4NzBhYTIyZDQ0ZDkzNjAzOTUzODgwMDA1MWZmNDYyMmEwOGI5YWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cacdc140c46b46458555d944704c6d6c",
+      "statement": "The Testing and XCTest adapters depend on Core, Strategies and Database.",
+      "evidence": [
+        {
+          "resource": "repo://Package.swift#L76-L93",
+          "version": "repo-lines-v1:sha256:4a7df0e939f63635eab72f7053a4d63be43da806f688e9c4be7e27ac063d4a8a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3MjNlMDI3MzFmNGE3ZTZkZDY0MGViOTQzNzQ5OWE2Nzc4ODQ4MGIyY2Q2ZmVkOWJmODc5ZjAyMWMyOGU5MzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjZWFiNjk0MzdlOTdlMTg4Yjk3YzJhNzQxMTBkODNiOWU5ZjcxNzE0NGZkZTc2MzFmNWQ3OTFhNGY4MzYxZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxZjFhMjNlMmYxZTNhMDA3MTBhMWM5NzIyMjE2NGUyNTc3MWQ1ZjIxZmUyODBjNDA2MGU0ZDJmNzM2MDI4NTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4a048dc30648485b8806b37cfdd215c5",
+      "statement": "The README documents build, test, boundary validation and macro exclusion checks for contributors.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L380-L391",
+          "version": "repo-lines-v1:sha256:ae88870eb0b82be14e26b0276f99bd60587a15390f6c1cc30dc88445860feb5a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2NjgzMTg0YTM3NDlhNzcxYTA2Y2NjZmViMzQ2NTlkNTNiMzYzYmQxZmJmNGIxZTRiNzdlZGVmNmIxODc2YTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlMGI5NmE3ODljZTQ4ZTgwYTNkZWVhZDVmYWY1YzM1OWI1YTJhZmJkYjMwMjhlY2FjM2JlZmRhOGVmNzYzMzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjYThkMGM2ZjYxNGYyOWE2NzA0Y2QzNTA4MzU3MWQ0MjY5NjFmYjY2NTJiZDcwNGNhOTkyOWRlY2U1YTc3NGEifQ"
+        },
+        {
+          "resource": "repo://README.md#L429-L430",
+          "version": "repo-lines-v1:sha256:d26476b6337bd85da73a91fb14b01d1e095b8c5f26e245ca9fbf82942dce5253:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZlMDQzM2E5YWU5YmUxZjVhNzEzZDk2NWIwMjAyNGExNjA5YzE1YTgxNjhkMzliMDgzYTFkZjE3ZDE1MzcyNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ZiZTIwMDJlZDIxMzc3MTRlOTliZTA1NmQxMTdiMjM0NmVhNjk4YWE0MTAyNjczY2ExZThhYzI0YWJkMTQwMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjg4NjFhNGYyMzY4YzI1NjEzZGViMmY0NjE0NjM0ZmJlMTRmYTExNzRiMTViZTllN2JiMWM4ZmM4MGI2M2VhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_7a1ff97936a14c5f90541e2b9b03f300",
+      "statement": "The ghostwriter command plugin generates property-test skeletons and replay tooling accepts trace artifacts or blobs.",
+      "evidence": [
+        {
+          "resource": "repo://Package.swift#L66-L75",
+          "version": "repo-lines-v1:sha256:cfea3da5463f459567e9a7a87f49c9b38e5762a0f3aeb0f187fc6f23979aa9d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjZDBjMjcxMzQ4OThiYjk1NmU4YTRhZWE3ZjhiZjA4YWRjNWFiZjdlYzkzNjdjNTg4MTI1Yjg2OGE1OGFlY2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNzI2MTI2ODhmOWI3MTMxOWFiYWI1N2MwYzYwMjQ3YmQ2YWVlMmVkOWQ1NmFmM2U1MmY2YTU0ZDhlZDM2ZjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwODZiMDIyMDU3MWYwNjRlNThhNmYyNTVhNTFhNjJhNmMwZWE1NjNjNDA0OWJkMWY4ODVmOTc0OGYwMzNlNzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzMThhNTkxNThjYWYwNDFhODcwZjAyODQ3Njg5NDAwYmY5M2Y5ZDg2N2RkYmFkNzUwOGNlMGM1NTQzOWRkN2YifQ"
+        },
+        {
+          "resource": "repo://README.md#L247-L254",
+          "version": "repo-lines-v1:sha256:f4bcf180b505d07ac1f719ee021c792ca0da452345383262e6b52ae14fb350b7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjEzNjFmMWEwZTE0NDQ1MWY5MDJjMmJiNDFlYzUyNGRlYWJiNDc4ZjhkNmQ4ZjY5ZWFiYmI0ODY4YTViYTMxNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTBmMjI0MTg2YzFmMTNhNjk4ZTNhNTRlY2RjZmY0ZjZmNTFjMDAwODk4NDQ0YjY5NjVlZWQ0MzU0YjRmN2JkYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhlNzA4ZTEzMDJlYjhmNWEwMTEwNWU3MjBiYzU3NDkyOGQxMGUwNDE5MDA2ZTkxYWUwY2UyZjRiMTQxMjA4ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDFhNmQ0ZTIzMjcxYjU4NjE3MzRjNTQyOTAwM2MxZDUxZDM1M2Q1MzAzOWZjNmFmMTdiZDRiMjc2ZWZlMDM0NyJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-01T12:35:26.822Z"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:c6b0c2113a3bd03a148f1ac16a4931c8ee3958793837b1a9b2223b3afffd5981",
+  "claims": [
+    {
+      "id": "claim_80b622b4d0024431876148e0a8df91c1",
+      "statement": "Triple zip draws its component strategies in order and constructs shrink candidates one component at a time.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseStrategies/Zip/StrategyTripleZip.swift#L3-L23",
+          "version": "repo-lines-v1:sha256:35ce73fd7d2cb0f826370607433e5fe300ba27e0531fa3e8eecb89b325dda44a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2NGQ4NWRjZjVjZmE1MDRmMDY4NmUwOTcwMzE2NzZmOTFhYTg2NjQ0MzRkYTM3M2RmMGRlYzA5OTcyMTVhYmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjY3OTM1ZmM2MzM0NjVkODQ4YjQwYTRlZDY5NjdlN2I3YTMyM2Y4MWNkNTNjMTEwYWUyMTAyOTY4N2FhMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1MGI5ODdlZDVlYjI4YWNjY2FhNjlmMTg5ZjgwMjliZjVkYjEyNDdlMDBmZTc1YTAxOWZhMWQ5NzlkMzJhNDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Tests/PremiseTestingIntegrationTests/TripleStrategyContractTests.swift#L7-L31",
+          "version": "repo-lines-v1:sha256:d1aa8566a201b30979f9b36c8870f2ba7ac7b5ed4326f64e7d738378f6df6765:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjMzc0ZGVmNDI5ZDZlZDhhY2RkNzUwM2MyYTNjNjEwNmIzYzY5YzVhMDY1NWNlNWViYTBjY2M0MmE4Y2RiMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzN2VkNGRkYmFiYWU5ZTA3YzljMmRiMTA5Y2U1N2QyM2U1ZjIxMzI5MTM3Y2M4ZDg3YmI2ZmZkOTg0NmJiOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiYTFiODZlZTkzNzAwMjVkZjg0MDQ3MTFhZDRjNmRhZDMwZGQyZGVmMWU2MTI5ZmE3MDg0NzYzZTJmOWUxOTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d4bcb603d72242ce9bd60e1861b994f0",
+      "statement": "The Swift Testing forAll adapter uses a runner and replay-first file-backed executor and reports failures as issues.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseTesting/ForAll.swift#L6-L48",
+          "version": "repo-lines-v1:sha256:13cc9af7fd2483419642506bfee32d4437d33dbe38a7f1d81b044697a16bbe99:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNjM3OTJhZmFiNThmNjRiMTExNzg2YWViNDNhYTM4MWE3ZTM3NjU2MmIzNDJmOTVhMzAyY2ZkNjM2MDFlY2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjY3OTM1ZmM2MzM0NjVkODQ4YjQwYTRlZDY5NjdlN2I3YTMyM2Y4MWNkNTNjMTEwYWUyMTAyOTY4N2FhMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwYmVkZmQ1NjllYWRmZDkxN2Y0ODA3OGNjOWVkMmY5ZmJlOWVjMjE3ZWFmNmYxNTQyZWVlYjQzYjRmZjljZmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiNGE0MzdlNjFkZmY3ZWU3ZDIxN2RkYWMwMThiNjA1NTk4ZDQ2MDliZjcxNGI5MWRhZjc4ZGVjYWM3MTA1OWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_76a7730c91c4440fab535f59e92f3eaa",
+      "statement": "The XCTest premise_forAll adapter reports failures at the caller's source location and is conditionally compiled when XCTest is available.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseXCTest/Compatibility/PremiseForAllCompatibility.swift#L1-L40",
+          "version": "repo-lines-v1:sha256:67f21ae3aa0485174efc2acc9dacfbd3cda27cb8ba2d068f574bef79f6190404:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkZjE4NTg3NTE5NGRlYjg1NTNhOWMzNGY5ODRiNmI2ZjVmNThlYWZjYzgwZDY1M2Y5MjY4MDQwMDQ5ODIyNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjY3OTM1ZmM2MzM0NjVkODQ4YjQwYTRlZDY5NjdlN2I3YTMyM2Y4MWNkNTNjMTEwYWUyMTAyOTY4N2FhMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5NjkxM2NlYzRlNTE3NTE0NTMzMGNjMDRlNjc1NGRlYTVkYTJiMDA5ZGFkMjRkZDQyNGZjMjNhMmYwNTkxM2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6d9eec4ec7304fa1af148d0ded56cbeb",
+      "statement": "The state-machine entry point constructs a runner with an optional file database and configured or random base seed.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseTesting/RuleBasedStateMachine.swift#L4-L20",
+          "version": "repo-lines-v1:sha256:5e7c4c535179e446e83e54d3fb9d05f1d0065bcbb1535d50dfd4f7430903e3c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmYzc0MjAzNzgwODRhM2JlZDYyMjQ5OWU2Yjc1MDBiMTFiZDRjMmQzY2VkYzk1NDJjNzE5ZDJhYzAxNzMxYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMTNiZTUwN2ZiYWYxZDA0YzVhYzMxMTNjNTRjOTVhZTlhYTRkNThmNWYwOGFiNGQxOGY0NjY1MGYxMmVlYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2YTJiOGVkZjI5OTFkYjA0NzE2NTQzMmEzZDhlOThiMzUzYjA0YmJhYjcxZDQ2MWEzNjRhYmE0ZjNkOWE1ODIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-01T12:35:26.822Z"
+  }
+}
