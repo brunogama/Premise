@@ -102,7 +102,7 @@ always_run = true
 [[repos.hooks]]
 id = "protect-essential-files"
 name = "🛡️ Protecting essential files from deletion..."
-entry = """bash -c 'PROTECTED_FILES=("AGENTS.md" "CLAUDE.md" "CODE_OF_CONDUCT.md" "CONTRIBUTING.md" "Dangerfile.swift" "LICENSE" "RELEASING.md" "RULES.md" "SECURITY.md" "WORKFLOW.md" "spi.yml" ".swiftlint.yml" ".swift-format" ".pre-commit-config.yaml" ".periphery.yml" ".mcp.json" ".gitmessage" ".gitignore" ".coderabbit.yaml" ".bead-config.yaml"); for file in "${PROTECTED_FILES[@]}"; do if git diff --cached --name-status | grep -q "^D.*$file$"; then echo "🛑 Essential file $file cannot be removed!"; echo "This file is protected and must remain in the repository."; exit 1; fi; done'"""
+entry = """bash -c 'PROTECTED_FILES=("AGENTS.md" "CLAUDE.md" "CODE_OF_CONDUCT.md" "CONTRIBUTING.md" "Dangerfile.swift" "LICENSE" "RELEASING.md" "RULES.md" "SECURITY.md" "WORKFLOW.md" "spi.yml" ".swiftlint.yml" ".swift-format" "prek.toml" ".periphery.yml" ".mcp.json" ".gitmessage" ".gitignore" ".coderabbit.yaml" ".bead-config.yaml"); for file in "${PROTECTED_FILES[@]}"; do if git diff --cached --name-status | grep -q "^D.*$file$"; then echo "🛑 Essential file $file cannot be removed!"; echo "This file is protected and must remain in the repository."; exit 1; fi; done'"""
 language = "system"
 pass_filenames = false
 always_run = true

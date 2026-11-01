@@ -1,0 +1,4 @@
+# Agent skill and reference material is not subject to SwiftLint.
+excluded:
+  - .
+allow_zero_lintable_files: true

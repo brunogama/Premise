@@ -1,0 +1,7 @@
+1 new-candidate
+2 existing-skill
+3 candidate-revision
+4 sop
+5 memory
+6 insufficient-evidence
+7 no-candidate
