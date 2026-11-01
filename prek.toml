@@ -59,7 +59,7 @@ repo = "local"
 [[repos.hooks]]
 id = "swift-beautifier"
 name = "✨ Formatting Swift code..."
-entry = "swift-format -i --configuration .swift-format"
+entry = "sh scripts/format_staged_files.sh"
 language = "system"
 files = '\.swift$'
 exclude = "^Tests/.*/Resources/"
