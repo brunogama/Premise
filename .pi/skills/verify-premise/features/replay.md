@@ -31,6 +31,5 @@ For a failure artifact, inspect the expected property identity when present. For
 
 ---
 ## Gotchas
-
-- No trace is seeded by Launch. This journey remains unverified until a real failure is supplied.
-- Trace contents may contain application data; check before sharing evidence.
+- Real failure artifacts are already tracked at `.premise/examples/*.json` (hex-encoded names decode to `fileID#line#strategyLabel`), written by `FileBackedDatabase.save` when a property run fails. Point `"$TRACE_FILE"` at one of these; the envelope-array path decodes it and prints a genuine reproduction blob that can feed the `--blob` journey. If none exist in a fresh checkout, run the consumer property with a deliberately failing property to seed one, or report the journey blocked.
+- Trace contents may contain application data; check before sharing evidence. The tracked examples are test-fixture records and low risk.
