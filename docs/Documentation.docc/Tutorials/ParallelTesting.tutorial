@@ -1,8 +1,8 @@
 @Tutorial(time: 20) {
    @Intro(title: "Running Properties in Parallel") {
       `PremiseParallel` distributes property runs across Swift structured
-      concurrency tasks. When individual runs are expensive — parsing a complex
-      format, running a simulation, calling into a heavy algorithm — parallel
+      concurrency tasks. When individual runs are expensive: parsing a complex
+      format, running a simulation, calling into a heavy algorithm: parallel
       execution can cut wall-clock time significantly.
    }
 

@@ -2,7 +2,7 @@
    @Intro(title: "Your First Property Test (swift-testing)") {
       Add Premise to a Swift package and write a property test that automatically
       generates hundreds of inputs, finds a failure, and shows you the simplest
-      case that reproduces it — all in under 15 minutes.
+      case that reproduces it: all in under 15 minutes.
    }
 
    @Section(title: "Add the Dependency") {
@@ -62,7 +62,7 @@
    @Section(title: "Introduce a Bug and Watch Premise Find It") {
       @ContentAndMedia {
          Now deliberately break the reverse function and see Premise catch
-         the failure — then automatically minimise it to the smallest possible
+         the failure: then automatically minimise it to the smallest possible
          counterexample.
       }
       @Steps {
@@ -81,7 +81,7 @@
          }
          @Step {
             Run `swift test`. Premise finds a failure, shrinks it, and
-            reports the minimal counterexample — a two-element array.
+            reports the minimal counterexample: a two-element array.
             Notice the replay instruction in the output.
 
             @Code(name: "Terminal", file: "t01-s08-failing-output.txt")

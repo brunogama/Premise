@@ -2,29 +2,29 @@
 
 > Scope: Correct class selection and attribute usage for all five `kSecClass` types, with emphasis on uniqueness rules, AutoFill behavior, and migration safety.
 
-The five `kSecClass` types — GenericPassword, InternetPassword, Key, Certificate, and Identity — each serve distinct roles with unique attribute requirements that AI code generators routinely get wrong. **Choosing the wrong class** causes silent AutoFill failures, query collisions, and subtle security degradation. This reference covers every class with its composite primary key, required and optional attributes, correct Swift patterns, and the specific mistakes to watch for.
+The five `kSecClass` types, GenericPassword, InternetPassword, Key, Certificate, and Identity, each serve distinct roles with unique attribute requirements that AI code generators routinely get wrong. **Choosing the wrong class** causes silent AutoFill failures, query collisions, and subtle security degradation. This reference covers every class with its composite primary key, required and optional attributes, correct Swift patterns, and the specific mistakes to watch for.
 
-The keychain is an encrypted SQLite database optimized for small secrets. Each item class defines a set of attributes forming a **composite primary key** — adding an item whose primary key matches an existing item returns `errSecDuplicateItem` (-25299). Understanding these primary keys is the single most important concept for correct keychain usage.
+The keychain is an encrypted SQLite database optimized for small secrets. Each item class defines a set of attributes forming a **composite primary key**: adding an item whose primary key matches an existing item returns `errSecDuplicateItem` (-25299). Understanding these primary keys is the single most important concept for correct keychain usage.
 
-**Sources:** Apple Keychain Services documentation, TN3137 ("On Mac keychain APIs and implementations"), Quinn "The Eskimo!" DTS posts ("SecItem: Fundamentals," "SecItem: Pitfalls and Best Practices"), Apple Platform Security Guide, WWDC 2022–2024 passkey sessions, OWASP MASVS/MASTG.
+**Sources:** Apple Keychain Services documentation, TN3137 ("On Mac keychain APIs and implementations"), Quinn "The Eskimo!" DTS posts ("SecItem: Fundamentals," "SecItem: Pitfalls and Best Practices"), Apple Platform Security Guide, WWDC 2022-2024 passkey sessions, OWASP MASVS/MASTG.
 
 ---
 
 ## Contents
 
 - [Composite Primary Keys by Class](#composite-primary-keys-by-class)
-- [kSecClassGenericPassword — App-Specific Secrets](#ksecclassgenericpassword-app-specific-secrets)
+- [kSecClassGenericPassword: App-Specific Secrets](#ksecclassgenericpassword-app-specific-secrets)
   - [The kSecAttrGeneric trap](#the-ksecattrgeneric-trap)
-- [kSecClassInternetPassword — AutoFill and Credential Sharing](#ksecclassinternetpassword-autofill-and-credential-sharing)
+- [kSecClassInternetPassword: AutoFill and Credential Sharing](#ksecclassinternetpassword-autofill-and-credential-sharing)
   - [How AutoFill Integration Works](#how-autofill-integration-works)
   - [Protocol and Authentication Constants](#protocol-and-authentication-constants)
   - [Credential Provider Extensions (iOS 12+)](#credential-provider-extensions-ios-12)
-- [kSecClassKey — Cryptographic Key Management](#ksecclasskey-cryptographic-key-management)
-  - [ApplicationTag vs ApplicationLabel — The Critical Distinction](#applicationtag-vs-applicationlabel-the-critical-distinction)
-  - [SecKeyCreateRandomKey — The Preferred API](#seckeycreaterandomkey-the-preferred-api)
+- [kSecClassKey: Cryptographic Key Management](#ksecclasskey-cryptographic-key-management)
+  - [ApplicationTag vs ApplicationLabel: The Critical Distinction](#applicationtag-vs-applicationlabel-the-critical-distinction)
+  - [SecKeyCreateRandomKey: The Preferred API](#seckeycreaterandomkey-the-preferred-api)
   - [CryptoKit Key Storage Mapping](#cryptokit-key-storage-mapping)
-- [kSecClassCertificate — DER-Encoded Certificate Storage](#ksecclasscertificate-der-encoded-certificate-storage)
-- [kSecClassIdentity — The Virtual Join](#ksecclassidentity-the-virtual-join)
+- [kSecClassCertificate: DER-Encoded Certificate Storage](#ksecclasscertificate-der-encoded-certificate-storage)
+- [kSecClassIdentity: The Virtual Join](#ksecclassidentity-the-virtual-join)
   - [Why SecItemAdd with kSecClassIdentity Fails](#why-secitemadd-with-ksecclassidentity-fails)
   - [Three Correct Approaches to Creating an Identity](#three-correct-approaches-to-creating-an-identity)
 - [Correctness Issues AI Generators Get Wrong](#correctness-issues-ai-generators-get-wrong)
@@ -61,21 +61,21 @@ Every `kSecClass` defines a specific attribute set forming its uniqueness constr
 | **Certificate**      | `kSecAttrCertificateType` + `kSecAttrIssuer` + `kSecAttrSerialNumber`                                                                                 | X.509 certificates                                |
 | **Identity**         | Same as Certificate (virtual join, not a stored item)                                                                                                 | TLS client auth, code signing                     |
 
-Omitting a primary key attribute does not cause an error — the system uses a nil/empty default. But a second add with the same defaults produces `errSecDuplicateItem`, which is a frequent source of confusion.
+Omitting a primary key attribute does not cause an error: the system uses a nil/empty default. But a second add with the same defaults produces `errSecDuplicateItem`, which is a frequent source of confusion.
 
 ---
 
-## kSecClassGenericPassword — App-Specific Secrets
+## kSecClassGenericPassword: App-Specific Secrets
 
 GenericPassword is the correct choice for API tokens, OAuth refresh tokens, encryption keys, and any secret that does not represent a web login credential. Its primary key is effectively **`kSecAttrService` + `kSecAttrAccount`**.
 
-**Required for meaningful usage** (not enforced by the API, but omitting them causes collisions): `kSecAttrService` (CFString — typically bundle ID or service identifier) and `kSecAttrAccount` (CFString — the account or key name). The actual secret goes in `kSecValueData` as `Data`.
+**Required for meaningful usage** (not enforced by the API, but omitting them causes collisions): `kSecAttrService` (CFString, typically bundle ID or service identifier) and `kSecAttrAccount` (CFString, the account or key name). The actual secret goes in `kSecValueData` as `Data`.
 
 **Optional metadata attributes:** `kSecAttrLabel` (human-readable name), `kSecAttrDescription` (item kind), `kSecAttrComment` (user-editable note), `kSecAttrCreator` and `kSecAttrType` (FourCharCode as CFNumber), `kSecAttrGeneric` (arbitrary CFData for custom metadata), `kSecAttrIsInvisible`/`kSecAttrIsNegative` (boolean flags). System-managed read-only: `kSecAttrCreationDate`, `kSecAttrModificationDate`.
 
 ### The kSecAttrGeneric trap
 
-`kSecAttrGeneric` is **NOT part of the primary key** despite its name suggesting otherwise. Two items with identical `kSecAttrService` + `kSecAttrAccount` but different `kSecAttrGeneric` values still collide — the second add fails with `errSecDuplicateItem`. Yet querying by `kSecAttrGeneric` that does not match returns `errSecItemNotFound` even though an item with that service+account exists. This inconsistency is a major source of bugs.
+`kSecAttrGeneric` is **NOT part of the primary key** despite its name suggesting otherwise. Two items with identical `kSecAttrService` + `kSecAttrAccount` but different `kSecAttrGeneric` values still collide: the second add fails with `errSecDuplicateItem`. Yet querying by `kSecAttrGeneric` that does not match returns `errSecItemNotFound` even though an item with that service+account exists. This inconsistency is a major source of bugs.
 
 ```swift
 // ✅ GenericPassword for an app-specific API token
@@ -90,17 +90,17 @@ let addQuery: [String: Any] = [
 let status = SecItemAdd(addQuery as CFDictionary, nil)
 ```
 
-**When to choose GenericPassword vs InternetPassword:** If the credential belongs to a web domain and you want AutoFill, use InternetPassword. GenericPassword's `kSecAttrService` is an opaque string with no semantic meaning to the system — it cannot trigger Password AutoFill.
+**When to choose GenericPassword vs InternetPassword:** If the credential belongs to a web domain and you want AutoFill, use InternetPassword. GenericPassword's `kSecAttrService` is an opaque string with no semantic meaning to the system: it cannot trigger Password AutoFill.
 
 ---
 
-## kSecClassInternetPassword — AutoFill and Credential Sharing
+## kSecClassInternetPassword: AutoFill and Credential Sharing
 
 InternetPassword exists specifically for credentials associated with network services. Its **7-attribute composite primary key** enables the system to match credentials to domains for Password AutoFill, Safari integration, and cross-device sync.
 
 Primary key attributes: `kSecAttrServer` (hostname), `kSecAttrProtocol` (e.g., `kSecAttrProtocolHTTPS`), `kSecAttrPort` (CFNumber), `kSecAttrPath` (URL path), `kSecAttrAccount` (username), `kSecAttrSecurityDomain` (HTTP realm), `kSecAttrAuthenticationType` (e.g., `kSecAttrAuthenticationTypeHTMLForm`).
 
-**Notable:** `kSecAttrGeneric` and `kSecAttrService` are **NOT available** for InternetPassword — the server/protocol/path attributes serve the equivalent purpose.
+**Notable:** `kSecAttrGeneric` and `kSecAttrService` are **NOT available** for InternetPassword: the server/protocol/path attributes serve the equivalent purpose.
 
 ### How AutoFill Integration Works
 
@@ -110,7 +110,7 @@ Password AutoFill matches credentials to apps and websites by comparing `kSecAtt
 2. **Configure Associated Domains** by adding `webcredentials:<domain>` to the app's entitlements
 3. **Host an apple-app-site-association file** at `https://<domain>/.well-known/apple-app-site-association` containing `{"webcredentials": {"apps": ["TEAMID.com.example.app"]}}`
 
-When all three are in place, the iOS QuickType bar automatically suggests matching credentials. Safari stores all web passwords as `kSecClassInternetPassword` — using GenericPassword for web credentials means the system can never suggest them for AutoFill.
+When all three are in place, the iOS QuickType bar automatically suggests matching credentials. Safari stores all web passwords as `kSecClassInternetPassword`: using GenericPassword for web credentials means the system can never suggest them for AutoFill.
 
 ```swift
 // ✅ InternetPassword enabling AutoFill
@@ -129,7 +129,7 @@ let status = SecItemAdd(addQuery as CFDictionary, nil)
 ```
 
 ```swift
-// ❌ GenericPassword for web credentials — AutoFill will never find these
+// ❌ GenericPassword for web credentials: AutoFill will never find these
 let badQuery: [String: Any] = [
     kSecClass as String: kSecClassGenericPassword,       // WRONG CLASS
     kSecAttrService as String: "example.com",             // Opaque to AutoFill
@@ -148,19 +148,19 @@ For third-party password managers, `ASCredentialProviderViewController` enables 
 
 ---
 
-## kSecClassKey — Cryptographic Key Management
+## kSecClassKey: Cryptographic Key Management
 
-Key items require **`kSecAttrKeyType`** and **`kSecAttrKeySizeInBits`** for generation — omitting either from `SecKeyCreateRandomKey` returns `errSecParam` (-50). The `kSecAttrKeyClass` attribute (`kSecAttrKeyClassPublic`, `kSecAttrKeyClassPrivate`, `kSecAttrKeyClassSymmetric`) is set automatically during generation but must be specified when querying.
+Key items require **`kSecAttrKeyType`** and **`kSecAttrKeySizeInBits`** for generation: omitting either from `SecKeyCreateRandomKey` returns `errSecParam` (-50). The `kSecAttrKeyClass` attribute (`kSecAttrKeyClassPublic`, `kSecAttrKeyClassPrivate`, `kSecAttrKeyClassSymmetric`) is set automatically during generation but must be specified when querying.
 
-### ApplicationTag vs ApplicationLabel — The Critical Distinction
+### ApplicationTag vs ApplicationLabel: The Critical Distinction
 
 This confusion is the single most common keychain mistake for cryptographic keys, and AI generators get it wrong constantly:
 
-- **`kSecAttrApplicationTag`** (CFData): **Developer-set** binary tag for finding and organizing keys. You choose its content — typically a reverse-DNS string encoded as Data. Part of the primary key. **Use this for lookup.**
-- **`kSecAttrApplicationLabel`** (CFData): **System-generated** SHA-1 hash of the public key bytes (the `subjectPublicKey` element per RFC 5280 §4.1). Part of the primary key. **Used internally for identity formation** — it must match a certificate's `kSecAttrPublicKeyHash` to synthesize a `SecIdentity`. Never set this manually for asymmetric keys.
+- **`kSecAttrApplicationTag`** (CFData): **Developer-set** binary tag for finding and organizing keys. You choose its content: typically a reverse-DNS string encoded as Data. Part of the primary key. **Use this for lookup.**
+- **`kSecAttrApplicationLabel`** (CFData): **System-generated** SHA-1 hash of the public key bytes (the `subjectPublicKey` element per RFC 5280 §4.1). Part of the primary key. **Used internally for identity formation**: it must match a certificate's `kSecAttrPublicKeyHash` to synthesize a `SecIdentity`. Never set this manually for asymmetric keys.
 - **`kSecAttrLabel`** (CFString): Human-readable display name. NOT part of the primary key. Shows in Keychain Access on macOS.
 
-### SecKeyCreateRandomKey — The Preferred API
+### SecKeyCreateRandomKey: The Preferred API
 
 `SecKeyCreateRandomKey` (iOS 10+, macOS 10.12+) generates keys atomically, returns a `SecKey` reference directly, auto-computes `kSecAttrApplicationLabel`, and supports Secure Enclave generation via `kSecAttrTokenID: kSecAttrTokenIDSecureEnclave`. Apple recommends storing **only the private key** and deriving the public key via `SecKeyCopyPublicKey()`.
 
@@ -209,15 +209,15 @@ guard let privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, &genErr
 }
 ```
 
-Direct `SecItemAdd` for keys is appropriate only when importing — Apple's "import, then add" pattern via `SecKeyCreateWithData`. Always create a `SecKey` object first; avoid adding raw key data directly.
+Direct `SecItemAdd` for keys is appropriate only when importing: Apple's "import, then add" pattern via `SecKeyCreateWithData`. Always create a `SecKey` object first; avoid adding raw key data directly.
 
 ### CryptoKit Key Storage Mapping
 
-CryptoKit's NIST keys (P256, P384, P521) map to `SecKey` via `SecKeyCreateWithData` with `kSecAttrKeyTypeECSECPrimeRandom`, stored as `kSecClassKey`. **Non-NIST keys** (Curve25519, SymmetricKey) have no `SecKey` equivalent and must be stored as **`kSecClassGenericPassword`** items with raw key data in `kSecValueData`. Secure Enclave keys (`SecureEnclave.P256.Signing.PrivateKey`) export an encrypted blob that only the originating SE can restore — this blob is also stored as a generic password, not a key item.
+CryptoKit's NIST keys (P256, P384, P521) map to `SecKey` via `SecKeyCreateWithData` with `kSecAttrKeyTypeECSECPrimeRandom`, stored as `kSecClassKey`. **Non-NIST keys** (Curve25519, SymmetricKey) have no `SecKey` equivalent and must be stored as **`kSecClassGenericPassword`** items with raw key data in `kSecValueData`. Secure Enclave keys (`SecureEnclave.P256.Signing.PrivateKey`) export an encrypted blob that only the originating SE can restore: this blob is also stored as a generic password, not a key item.
 
 ---
 
-## kSecClassCertificate — DER-Encoded Certificate Storage
+## kSecClassCertificate: DER-Encoded Certificate Storage
 
 Certificates are **not encrypted** by the keychain (they are public data). The primary key is `kSecAttrCertificateType` + `kSecAttrIssuer` + `kSecAttrSerialNumber`.
 
@@ -236,15 +236,15 @@ let addQuery: [String: Any] = [
 let status = SecItemAdd(addQuery as CFDictionary, nil)
 ```
 
-When you pass a `SecCertificate` via `kSecValueRef`, the system **automatically extracts** `kSecAttrIssuer`, `kSecAttrSerialNumber`, `kSecAttrSubject`, `kSecAttrPublicKeyHash`, `kSecAttrCertificateType`, and `kSecAttrCertificateEncoding` from the certificate data. The critical attribute for identity formation is **`kSecAttrPublicKeyHash`** — the hash of the certificate's public key that must match a private key's `kSecAttrApplicationLabel`.
+When you pass a `SecCertificate` via `kSecValueRef`, the system **automatically extracts** `kSecAttrIssuer`, `kSecAttrSerialNumber`, `kSecAttrSubject`, `kSecAttrPublicKeyHash`, `kSecAttrCertificateType`, and `kSecAttrCertificateEncoding` from the certificate data. The critical attribute for identity formation is **`kSecAttrPublicKeyHash`**: the hash of the certificate's public key that must match a private key's `kSecAttrApplicationLabel`.
 
 **Common pitfall (Apple DTS):** `kSecAttrApplicationTag` is **NOT a valid attribute for certificates** (only for keys). Using it with `kSecClassCertificate` causes `errSecParam` (-50) on the data protection keychain or mysterious silent failures on the file-based keychain.
 
 ---
 
-## kSecClassIdentity — The Virtual Join
+## kSecClassIdentity: The Virtual Join
 
-**The keychain does not store digital identities as discrete items.** An identity is a logical join of a certificate and its matching private key, synthesized at query time when `kSecAttrPublicKeyHash` of a certificate matches `kSecAttrApplicationLabel` of a private key — both values being the SHA-1 hash of the public key.
+**The keychain does not store digital identities as discrete items.** An identity is a logical join of a certificate and its matching private key, synthesized at query time when `kSecAttrPublicKeyHash` of a certificate matches `kSecAttrApplicationLabel` of a private key: both values being the SHA-1 hash of the public key.
 
 ### Why SecItemAdd with kSecClassIdentity Fails
 
@@ -258,7 +258,7 @@ Cascading implications:
 - The identity "set" changes without any explicit identity operations
 
 ```swift
-// ❌ Attempting to create an identity directly — fails with errSecParam (-50)
+// ❌ Attempting to create an identity directly: fails with errSecParam (-50)
 let attributes: [String: Any] = [
     kSecClass as String: kSecClassIdentity,
     kSecAttrLabel as String: "MyInvalidIdentity"
@@ -288,9 +288,9 @@ var privateKey: SecKey?
 SecIdentityCopyPrivateKey(identity, &privateKey)
 ```
 
-**Method 2: Add certificate and key separately** with matching public key hashes. Both items must be in the same keychain implementation — on macOS, both must use `kSecUseDataProtectionKeychain: true` or both must be in the file-based keychain.
+**Method 2: Add certificate and key separately** with matching public key hashes. Both items must be in the same keychain implementation: on macOS, both must use `kSecUseDataProtectionKeychain: true` or both must be in the file-based keychain.
 
-**Method 3: macOS-only** — `SecIdentityCreateWithCertificate` searches keychains for a matching private key given a certificate reference.
+**Method 3: macOS-only**: `SecIdentityCreateWithCertificate` searches keychains for a matching private key given a certificate reference.
 
 ---
 
@@ -340,7 +340,7 @@ The keychain is designed for small secrets. Storing large data degrades performa
 
 ### kSecUseDataProtectionKeychain Unifies Cross-Platform Behavior
 
-On **iOS/tvOS/watchOS**, the data protection keychain is the only implementation — this flag is ignored. On **macOS native apps**, `SecItem` defaults to the legacy file-based keychain. Setting `kSecUseDataProtectionKeychain: true` switches to the data protection keychain, giving iOS-identical behavior. On **Mac Catalyst** apps, data protection is the default.
+On **iOS/tvOS/watchOS**, the data protection keychain is the only implementation: this flag is ignored. On **macOS native apps**, `SecItem` defaults to the legacy file-based keychain. Setting `kSecUseDataProtectionKeychain: true` switches to the data protection keychain, giving iOS-identical behavior. On **Mac Catalyst** apps, data protection is the default.
 
 Apple explicitly recommends setting this flag to `true` for all keychain operations. The file-based keychain is on the path to deprecation (`SecKeychainCreate` deprecated in macOS 12).
 
@@ -348,15 +348,15 @@ Apple explicitly recommends setting this flag to `true` for all keychain operati
 
 TN3137 documents macOS's **three keychain APIs** (legacy Keychain, SecKeychain, and the recommended SecItem) and **two implementations** (file-based and data protection). Critical routing rule: only `SecItem` can target either implementation; `SecKeychain` always targets file-based. The data protection keychain requires code signing and a provisioning profile on macOS.
 
-Subtle behavioral difference: `SecItemDelete` defaults to `kSecMatchLimitAll` on the data protection keychain (deleting ALL matching items) but `kSecMatchLimitOne` on the file-based keychain — an inconsistency documented in Apple's bug tracker (r. 105800863).
+Subtle behavioral difference: `SecItemDelete` defaults to `kSecMatchLimitAll` on the data protection keychain (deleting ALL matching items) but `kSecMatchLimitOne` on the file-based keychain: an inconsistency documented in Apple's bug tracker (r. 105800863).
 
 ### iCloud Keychain Sync Restrictions
 
-`kSecAttrSynchronizable` must be explicitly set to `true` — items never sync by default. **All five classes** support sync on iOS 14+ / macOS 11+ / watchOS 7+; earlier versions only sync password classes.
+`kSecAttrSynchronizable` must be explicitly set to `true`: items never sync by default. **All five classes** support sync on iOS 14+ / macOS 11+ / watchOS 7+; earlier versions only sync password classes.
 
 Key restrictions:
 
-- Items with "ThisDeviceOnly" accessibility **cannot** sync — combining `kSecAttrSynchronizable: true` with any `ThisDeviceOnly` accessibility returns `errSecParam` (-50)
+- Items with "ThisDeviceOnly" accessibility **cannot** sync: combining `kSecAttrSynchronizable: true` with any `ThisDeviceOnly` accessibility returns `errSecParam` (-50)
 - Persistent references are unsupported for synchronizable items
 - tvOS accepts the attribute but never actually syncs
 - Updates and deletes propagate to all copies across devices
@@ -373,9 +373,9 @@ The keychain has a direct performance implication: **metadata is encrypted with 
 
 Query optimization rules:
 
-1. **Use full composite keys** — broad queries force `securityd` to perform slow database scans
-2. **Limit matches** — use `kSecMatchLimitOne` when expecting a single item to terminate search early
-3. **Fetch metadata first** — if you only need to check existence, do not request `kSecReturnData`
+1. **Use full composite keys**: broad queries force `securityd` to perform slow database scans
+2. **Limit matches**: use `kSecMatchLimitOne` when expecting a single item to terminate search early
+3. **Fetch metadata first**: if you only need to check existence, do not request `kSecReturnData`
 
 ### Envelope Encryption for Large Data
 
@@ -502,14 +502,14 @@ The keychain's five classes form a precise taxonomy: GenericPassword for app-loc
 
 ## Summary Checklist
 
-1. **Correct class selection** — Use `kSecClassInternetPassword` (not GenericPassword) for any credential associated with a web domain to enable AutoFill
-2. **Composite primary key completeness** — Include all primary key attributes for the chosen class to avoid `errSecDuplicateItem` collisions and query misses
-3. **kSecAttrGeneric is NOT a primary key** — Do not rely on it for uniqueness in GenericPassword items; it causes asymmetric add/query behavior
-4. **ApplicationTag vs ApplicationLabel** — Use `kSecAttrApplicationTag` (developer-set, CFData) for key lookup; never manually set `kSecAttrApplicationLabel` (system-generated hash for identity formation)
-5. **Identity creation via import** — Never `SecItemAdd` with `kSecClassIdentity`; use `SecPKCS12Import` or add matching certificate + key pairs separately
-6. **Key type and size required** — Always specify `kSecAttrKeyType` and `kSecAttrKeySizeInBits` when creating or querying `kSecClassKey` items
-7. **kSecUseDataProtectionKeychain on macOS** — Set to `true` for all operations to get iOS-identical behavior and avoid silent legacy keychain fallback
-8. **Sync and accessibility agreement** — Never combine `kSecAttrSynchronizable: true` with "ThisDeviceOnly" accessibility values
-9. **Small secrets only** — Use envelope encryption (DEK in keychain, ciphertext in `NSFileProtection`-guarded file) for data beyond a few KB
-10. **Certificate attributes** — Never use `kSecAttrApplicationTag` with `kSecClassCertificate`; let the system extract metadata via `kSecValueRef`
-11. **Duplicate handling** — Always handle `errSecDuplicateItem` with add-or-update; reserve delete/re-add for explicit immutable-attribute migrations
+1. **Correct class selection**: Use `kSecClassInternetPassword` (not GenericPassword) for any credential associated with a web domain to enable AutoFill
+2. **Composite primary key completeness**: Include all primary key attributes for the chosen class to avoid `errSecDuplicateItem` collisions and query misses
+3. **kSecAttrGeneric is NOT a primary key**: Do not rely on it for uniqueness in GenericPassword items; it causes asymmetric add/query behavior
+4. **ApplicationTag vs ApplicationLabel**: Use `kSecAttrApplicationTag` (developer-set, CFData) for key lookup; never manually set `kSecAttrApplicationLabel` (system-generated hash for identity formation)
+5. **Identity creation via import**: Never `SecItemAdd` with `kSecClassIdentity`; use `SecPKCS12Import` or add matching certificate + key pairs separately
+6. **Key type and size required**: Always specify `kSecAttrKeyType` and `kSecAttrKeySizeInBits` when creating or querying `kSecClassKey` items
+7. **kSecUseDataProtectionKeychain on macOS**: Set to `true` for all operations to get iOS-identical behavior and avoid silent legacy keychain fallback
+8. **Sync and accessibility agreement**: Never combine `kSecAttrSynchronizable: true` with "ThisDeviceOnly" accessibility values
+9. **Small secrets only**: Use envelope encryption (DEK in keychain, ciphertext in `NSFileProtection`-guarded file) for data beyond a few KB
+10. **Certificate attributes**: Never use `kSecAttrApplicationTag` with `kSecClassCertificate`; let the system extract metadata via `kSecValueRef`
+11. **Duplicate handling**: Always handle `errSecDuplicateItem` with add-or-update; reserve delete/re-add for explicit immutable-attribute migrations

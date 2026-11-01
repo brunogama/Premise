@@ -15,5 +15,5 @@ Premise found a counterexample after 1 run and 3 shrink steps.
     .premise/examples/43616368652e73776966742334322...json
 
   Replay instruction:
-    Set PropertyConfig(replayEnabled: true) — the stored trace will be
+    Set PropertyConfig(replayEnabled: true): the stored trace will be
     replayed automatically on the next run.

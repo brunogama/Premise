@@ -31,7 +31,7 @@ let contactStrategy: Strategy<Contact> = Strategy<String>
   }
 }
 
-/// Same strategy, different codec — no extra strategy code needed.
+/// Same strategy, different codec: no extra strategy code needed.
 @Test func contactRoundTripsPlist() async throws {
   let encoder = PropertyListEncoder()
   let decoder = PropertyListDecoder()

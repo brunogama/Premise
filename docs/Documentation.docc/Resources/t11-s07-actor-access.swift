@@ -16,7 +16,7 @@ let runner = ParallelRunner(
 )
 
 let result = try await runner.run { value in
-  await metrics.increment()  // actor access — safe under Swift 6
+  await metrics.increment()  // actor access: safe under Swift 6
   guard isValid(value) else { throw ValidationError() }
 }
 

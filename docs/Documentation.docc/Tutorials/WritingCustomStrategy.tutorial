@@ -25,7 +25,7 @@
    @Section(title: "The Draw Closure") {
       @ContentAndMedia {
          The draw closure uses ``PremiseData``'s primitive draw methods to
-         produce each field. Draw fields in a stable order — the order is part
+         produce each field. Draw fields in a stable order: the order is part
          of the trace, and changing it will make stored traces incompatible.
       }
       @Steps {
@@ -37,7 +37,7 @@
          }
          @Step {
             Wrap the whole draw in a `withSpan` call. This gives the
-            ``ShrinkMachine`` a group boundary to delete during shrinking —
+            ``ShrinkMachine`` a group boundary to delete during shrinking:
             when multiple products are generated in an array, it can drop
             entire products at once.
 

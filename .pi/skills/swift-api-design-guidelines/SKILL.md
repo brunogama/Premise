@@ -146,17 +146,17 @@ Clarity at the point of use is the most important goal. Every design decision se
 // GOOD
 employees.remove(at: position)
 
-// BAD — ambiguous: remove the element? remove at position?
+// BAD: ambiguous: remove the element? remove at position?
 employees.remove(position)
 ```
 
 **Include words needed to avoid ambiguity.** If omitting a word makes the call site unclear, keep it.
 
 ```swift
-// GOOD — "at" clarifies the argument's role
+// GOOD: "at" clarifies the argument's role
 friends.remove(at: index)
 
-// BAD — is "index" the element to remove or the position?
+// BAD: is "index" the element to remove or the position?
 friends.remove(index)
 ```
 
@@ -166,18 +166,18 @@ friends.remove(index)
 // GOOD
 allViews.remove(cancelButton)
 
-// BAD — "Element" repeats the type
+// BAD: "Element" repeats the type
 allViews.removeElement(cancelButton)
 ```
 
 **Name variables and parameters by role, not type.** Use the entity's role in the current context, not its type name.
 
 ```swift
-// GOOD — describes the role
+// GOOD: describes the role
 var greeting: String
 func add(_ observer: NSObject, for keyPath: String)
 
-// BAD — names the type
+// BAD: names the type
 var string: String
 func add(_ object: NSObject, for string: String)
 ```
@@ -185,10 +185,10 @@ func add(_ object: NSObject, for string: String)
 **Compensate for weak type information.** When a parameter type is `Any`, `AnyObject`, or a fundamental type like `Int` or `String`, add role-clarifying words to the name.
 
 ```swift
-// GOOD — role is clear despite weak types
+// GOOD: role is clear despite weak types
 func addObserver(_ observer: NSObject, forKeyPath path: String)
 
-// BAD — what does "string" mean here?
+// BAD: what does "string" mean here?
 func add(_ object: NSObject, for string: String)
 ```
 
@@ -199,12 +199,12 @@ For extended naming examples and patterns, see [references/naming-and-clarity.md
 **Call sites read as grammatical English.** Prefer names that form grammatical phrases at the point of use.
 
 ```swift
-// GOOD — reads fluently
+// GOOD: reads fluently
 x.insert(y, at: z)          // "x, insert y at z"
 x.subviews.remove(at: i)    // "x's subviews, remove at i"
 x.makeIterator()             // "x, make iterator"
 
-// BAD — ungrammatical
+// BAD: ungrammatical
 x.insert(y, position: z)
 x.subviews.remove(i)
 ```
@@ -215,7 +215,7 @@ x.subviews.remove(i)
 // GOOD
 let foreground = Color(red: 32, green: 64, blue: 128)
 
-// BAD — "Color with red" reads awkwardly
+// BAD: "Color with red" reads awkwardly
 let foreground = Color(havingRGBValuesRed: 32, green: 64, blue: 128)
 ```
 
@@ -237,17 +237,17 @@ var userSMTPServer: SMTPServer
 ```
 
 **Methods and properties over free functions.** Prefer methods and properties. Use free functions only when:
-1. There is no obvious `self` — `min(x, y)`
-2. The function is an unconstrained generic — `print(value)`
-3. The function syntax is established domain notation — `sin(x)`
+1. There is no obvious `self`: `min(x, y)`
+2. The function is an unconstrained generic: `print(value)`
+3. The function syntax is established domain notation: `sin(x)`
 
-**Default arguments over method families.** Prefer a single method with default parameters over a family of methods that differ only in which parameters they accept. Place defaulted parameters at the end. Parameters with default values should always have argument labels — defaulted parameters are usually omitted at call sites, so their labels must be clear when they do appear.
+**Default arguments over method families.** Prefer a single method with default parameters over a family of methods that differ only in which parameters they accept. Place defaulted parameters at the end. Parameters with default values should always have argument labels: defaulted parameters are usually omitted at call sites, so their labels must be clear when they do appear.
 
 ```swift
-// GOOD — labeled with defaults
+// GOOD: labeled with defaults
 func decode(_ data: Data, encoding: String.Encoding = .utf8) -> String?
 
-// BAD — method family
+// BAD: method family
 func decode(_ data: Data) -> String?
 func decode(_ data: Data, encoding: String.Encoding) -> String?
 ```

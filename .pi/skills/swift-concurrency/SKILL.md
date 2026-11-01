@@ -69,7 +69,7 @@ Prefer edits that preserve existing behavior while satisfying data-race safety.
 
 ## Swift 6.2 Language Changes
 
-Swift 6.2 introduces "approachable concurrency" -- a set of language changes
+Swift 6.2 introduces "approachable concurrency": a set of language changes
 that make concurrent code safer by default while reducing annotation burden.
 In Xcode, Approachable Concurrency and Default Actor Isolation are separate
 build settings: use Approachable Concurrency for the bundled upcoming-feature
@@ -89,7 +89,7 @@ global/static state without writing `@MainActor` everywhere.
 ```swift
 // With default MainActor isolation enabled, these are implicitly @MainActor:
 final class StickerLibrary {
-    static let shared = StickerLibrary()  // safe -- on MainActor
+    static let shared = StickerLibrary()  // safe: on MainActor
     var stickers: [Sticker] = []
 }
 
@@ -133,7 +133,7 @@ final class StickerModel {
         guard let data = try await item.loadTransferable(type: Data.self) else {
             return nil
         }
-        // No data race -- photoProcessor stays on MainActor
+        // No data race: photoProcessor stays on MainActor
         return await photoProcessor.extractSticker(data: data, with: item.itemIdentifier)
     }
 }
@@ -160,7 +160,7 @@ class PhotoProcessor {
 
     @concurrent
     static func extractSubject(from data: Data) async -> Sticker {
-        // Expensive image processing -- runs on background thread pool
+        // Expensive image processing: runs on background thread pool
         // ...
     }
 }
@@ -229,7 +229,7 @@ struct ImageExporter {
     var items: [any Exportable]
 
     mutating func add(_ item: StickerModel) {
-        items.append(item)  // OK -- ImageExporter is on MainActor
+        items.append(item)  // OK: ImageExporter is on MainActor
     }
 }
 ```
@@ -333,7 +333,7 @@ try await withThrowingTaskGroup(of: Item.self) { group in
 
 - Cancellation is cooperative. Check `Task.isCancelled` or call
   `try Task.checkCancellation()` in loops.
-- Use `.task` modifier in SwiftUI -- it handles cancellation on view disappear.
+- Use `.task` modifier in SwiftUI: it handles cancellation on view disappear.
 - Use `withTaskCancellationHandler` for cleanup.
 - Swift 6.4 / iOS 27+ beta: use `withTaskCancellationShield` only for short
   cleanup or rollback that must complete after cancellation. Inside the shield,
@@ -389,8 +389,8 @@ single-value callbacks. Resume exactly once.
 
 ## Synchronization Primitives
 
-When actors are not the right fit — synchronous access, performance-critical
-paths, or bridging C/ObjC — use low-level synchronization primitives:
+When actors are not the right fit: synchronous access, performance-critical
+paths, or bridging C/ObjC: use low-level synchronization primitives:
 
 - **Actors** remain the default for async shared state when callers can suspend;
   they give compiler-enforced isolation and structured-concurrency integration,
@@ -458,10 +458,10 @@ escape, and no lock is held across `await`.
 
 ## References
 
-- [references/concurrency-patterns.md](references/concurrency-patterns.md) — detailed concurrency patterns and migration examples
-- [references/approachable-concurrency.md](references/approachable-concurrency.md) — approachable concurrency mode quick-reference
-- [references/swiftui-concurrency.md](references/swiftui-concurrency.md) — SwiftUI-specific concurrency guidance
-- [references/synchronization-primitives.md](references/synchronization-primitives.md) — Mutex, OSAllocatedUnfairLock, locks vs actors
-- [references/bridging-interop.md](references/bridging-interop.md) — checked continuations, delegate bridging, GCD migration table
-- [references/diagnostics.md](references/diagnostics.md) — compiler diagnostic → fix reference, strict concurrency adoption
-- [references/async-algorithms.md](references/async-algorithms.md) — swift-async-algorithms: debounce, throttle, merge, combineLatest, chunks
+- [references/concurrency-patterns.md](references/concurrency-patterns.md): detailed concurrency patterns and migration examples
+- [references/approachable-concurrency.md](references/approachable-concurrency.md): approachable concurrency mode quick-reference
+- [references/swiftui-concurrency.md](references/swiftui-concurrency.md): SwiftUI-specific concurrency guidance
+- [references/synchronization-primitives.md](references/synchronization-primitives.md): Mutex, OSAllocatedUnfairLock, locks vs actors
+- [references/bridging-interop.md](references/bridging-interop.md): checked continuations, delegate bridging, GCD migration table
+- [references/diagnostics.md](references/diagnostics.md): compiler diagnostic → fix reference, strict concurrency adoption
+- [references/async-algorithms.md](references/async-algorithms.md): swift-async-algorithms: debounce, throttle, merge, combineLatest, chunks

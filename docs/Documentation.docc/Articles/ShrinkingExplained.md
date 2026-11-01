@@ -4,7 +4,7 @@ How Premise automatically minimises failing inputs to the simplest possible coun
 
 ## The Problem Without Shrinking
 
-Imagine a property test that exercises a parser. You ask the engine to generate strings up to 200 characters long. The engine finds a failure on input 157 — a messy, partially-valid 89-character string:
+Imagine a property test that exercises a parser. You ask the engine to generate strings up to 200 characters long. The engine finds a failure on input 157: a messy, partially-valid 89-character string:
 
 ```
 "user:alice\nrole:admin\nexpiry:2024-01-01\nbad_line\nmore_data=true\n..."
@@ -36,7 +36,7 @@ Premise operates on two levels simultaneously.
 
 ### Trace-level shrinking (the primary mechanism)
 
-The ``ShrinkMachine`` works on the ``ChoiceTrace`` — the sequence of raw choices that produced the value — rather than on the value itself. This is the key architectural insight.
+The ``ShrinkMachine`` works on the ``ChoiceTrace``, the sequence of raw choices that produced the value, rather than on the value itself. This is the key architectural insight.
 
 Because every generated value is deterministically reproduced from its trace, the machine can:
 
@@ -45,7 +45,7 @@ Because every generated value is deterministically reproduced from its trace, th
 3. Re-run the strategy with each candidate trace to see what value comes out
 4. Keep the candidate if the resulting value still fails the property
 
-This means the machine doesn't need to know the structure of your `Value` type. If your strategy generates a `User` struct by drawing an integer for the age and a string for the name, the machine can shrink the age by reducing the integer entry in the trace — automatically, with no extra code from you.
+This means the machine doesn't need to know the structure of your `Value` type. If your strategy generates a `User` struct by drawing an integer for the age and a string for the name, the machine can shrink the age by reducing the integer entry in the trace: automatically, with no extra code from you.
 
 ### Value-level shrinking (the supplement)
 
@@ -86,7 +86,7 @@ Try:    [count=3]                                  ← delete spanA
 
 The machine scans each integer entry in the trace. For each one it tries the candidates `0`, `value/2`, and `value - 1`. If a smaller integer still reproduces the failure, the trace is updated.
 
-This is how numeric values get minimised, and also how collection lengths get reduced — since `count` entries are integers too.
+This is how numeric values get minimised, and also how collection lengths get reduced: since `count` entries are integers too.
 
 ```
 Before: [count=7] [...]

@@ -1,6 +1,6 @@
 # Concurrency Patterns
 
-Approachable concurrency patterns introduced in Swift 6.2+ — a philosophy shift where
+Approachable concurrency patterns introduced in Swift 6.2+: a philosophy shift where
 code stays single-threaded by default until you choose to introduce concurrency.
 
 ## Contents
@@ -83,7 +83,7 @@ global-actor usability changes.
 library targets that should remain actor-agnostic.
 
 ```swift
-// With default MainActor isolation -- no @MainActor annotations needed:
+// With default MainActor isolation: no @MainActor annotations needed:
 final class StickerLibrary {
     static let shared = StickerLibrary()
 }
@@ -192,7 +192,7 @@ struct ImageExporter {
     var items: [any Exportable]
 
     mutating func add(_ item: StickerModel) {
-        items.append(item)  // OK -- on MainActor
+        items.append(item)  // OK: on MainActor
     }
 }
 

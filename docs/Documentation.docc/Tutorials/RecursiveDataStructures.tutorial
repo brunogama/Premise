@@ -2,7 +2,7 @@
    @Intro(title: "Generating Recursive Data Structures") {
       Trees, JSON, abstract syntax trees, and nested configurations are all
       recursive by nature. Premise's `recursive` combinator generates them
-      correctly — controlling depth, balancing leaves and branches, and
+      correctly: controlling depth, balancing leaves and branches, and
       keeping the engine from generating infinitely deep structures.
    }
 
@@ -39,7 +39,7 @@
       }
       @Steps {
          @Step {
-            Write the leaf strategy — a `Strategy<Expr>` that generates
+            Write the leaf strategy: a `Strategy<Expr>` that generates
             only `.num` values.
 
             @Code(name: "TreeTests.swift", file: "t09-s02-leaf.swift")

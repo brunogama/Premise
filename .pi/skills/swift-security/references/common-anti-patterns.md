@@ -1,24 +1,24 @@
 # Common Anti-Patterns
 
-> **Scope:** The 10 most dangerous security anti-patterns that AI coding assistants generate for iOS apps. Each entry includes the vulnerability explanation, realistic ❌ insecure code, ✅ correct replacement, detection heuristic, and OWASP risk mapping. This is the skill's backbone — the single most important file for correcting AI-generated security code.
+> **Scope:** The 10 most dangerous security anti-patterns that AI coding assistants generate for iOS apps. Each entry includes the vulnerability explanation, realistic ❌ insecure code, ✅ correct replacement, detection heuristic, and OWASP risk mapping. This is the skill's backbone: the single most important file for correcting AI-generated security code.
 >
-> **Cross-references:** `biometric-authentication.md` (anti-pattern #3 deep dive), `keychain-fundamentals.md` (anti-pattern #4 CRUD patterns), `keychain-access-control.md` (anti-pattern #5 protection classes), `cryptokit-symmetric.md` (anti-patterns #6–7), `credential-storage-patterns.md` (anti-patterns #1–2 token lifecycle), `migration-legacy-stores.md` (anti-pattern #9 first-launch cleanup), `compliance-owasp-mapping.md` (full OWASP/MASVS mapping).
+> **Cross-references:** `biometric-authentication.md` (anti-pattern #3 deep dive), `keychain-fundamentals.md` (anti-pattern #4 CRUD patterns), `keychain-access-control.md` (anti-pattern #5 protection classes), `cryptokit-symmetric.md` (anti-patterns #6-7), `credential-storage-patterns.md` (anti-patterns #1-2 token lifecycle), `migration-legacy-stores.md` (anti-pattern #9 first-launch cleanup), `compliance-owasp-mapping.md` (full OWASP/MASVS mapping).
 
 ---
 
 ## Contents
 
 - [Why AI Generates Insecure iOS Code](#why-ai-generates-insecure-ios-code)
-- [Anti-Pattern #1 — Storing Secrets in UserDefaults](#anti-pattern-1-storing-secrets-in-userdefaults)
-- [Anti-Pattern #2 — Hardcoded API Keys](#anti-pattern-2-hardcoded-api-keys)
-- [Anti-Pattern #3 — LAContext-Only Biometric Authentication](#anti-pattern-3-lacontext-only-biometric-authentication)
-- [Anti-Pattern #4 — Ignoring SecItem Error Codes](#anti-pattern-4-ignoring-secitem-error-codes)
-- [Anti-Pattern #5 — Wrong or Missing Data Protection Class](#anti-pattern-5-wrong-or-missing-data-protection-class)
-- [Anti-Pattern #6 — Nonce Reuse in AES-GCM](#anti-pattern-6-nonce-reuse-in-aes-gcm)
-- [Anti-Pattern #7 — MD5/SHA-1 for Security Purposes](#anti-pattern-7-md5sha-1-for-security-purposes)
-- [Anti-Pattern #8 — Logging Sensitive Data](#anti-pattern-8-logging-sensitive-data)
-- [Anti-Pattern #9 — Not Clearing Keychain on First Launch](#anti-pattern-9-not-clearing-keychain-on-first-launch)
-- [Anti-Pattern #10 — Non-Cryptographic RNG for Security Operations](#anti-pattern-10-non-cryptographic-rng-for-security-operations)
+- [Anti-Pattern #1: Storing Secrets in UserDefaults](#anti-pattern-1-storing-secrets-in-userdefaults)
+- [Anti-Pattern #2: Hardcoded API Keys](#anti-pattern-2-hardcoded-api-keys)
+- [Anti-Pattern #3: LAContext-Only Biometric Authentication](#anti-pattern-3-lacontext-only-biometric-authentication)
+- [Anti-Pattern #4: Ignoring SecItem Error Codes](#anti-pattern-4-ignoring-secitem-error-codes)
+- [Anti-Pattern #5: Wrong or Missing Data Protection Class](#anti-pattern-5-wrong-or-missing-data-protection-class)
+- [Anti-Pattern #6: Nonce Reuse in AES-GCM](#anti-pattern-6-nonce-reuse-in-aes-gcm)
+- [Anti-Pattern #7: MD5/SHA-1 for Security Purposes](#anti-pattern-7-md5sha-1-for-security-purposes)
+- [Anti-Pattern #8: Logging Sensitive Data](#anti-pattern-8-logging-sensitive-data)
+- [Anti-Pattern #9: Not Clearing Keychain on First Launch](#anti-pattern-9-not-clearing-keychain-on-first-launch)
+- [Anti-Pattern #10: Non-Cryptographic RNG for Security Operations](#anti-pattern-10-non-cryptographic-rng-for-security-operations)
 - [Quick Reference Matrix](#quick-reference-matrix)
 - [CI/CD Detection Strategy](#cicd-detection-strategy)
 - [iOS 26 / WWDC 2025 Implications](#ios-26-wwdc-2025-implications)
@@ -26,7 +26,7 @@
 
 ## Why AI Generates Insecure iOS Code
 
-AI assistants optimize for functional correctness, not security — reproducing the most common patterns from training data, which are overwhelmingly insecure-by-default. Veracode's 2025 analysis: 45% of AI-generated code fails security tests. Cybernews: 815,000+ hardcoded secrets across 156,000 iOS apps (71% leaking ≥1 credential). Stanford: developers using AI write less secure code yet feel more confident.
+AI assistants optimize for functional correctness, not security: reproducing the most common patterns from training data, which are overwhelmingly insecure-by-default. Veracode's 2025 analysis: 45% of AI-generated code fails security tests. Cybernews: 815,000+ hardcoded secrets across 156,000 iOS apps (71% leaking ≥1 credential). Stanford: developers using AI write less secure code yet feel more confident.
 
 Apple's security primitives (Keychain, CryptoKit, Secure Enclave) are excellent but AI consistently bypasses them. CISA/FBI classified hardcoded credentials as elevating "risk to national security" in their January 2025 Bad Practices v2.0 (CWE-798).
 
@@ -34,13 +34,13 @@ Apple's security primitives (Keychain, CryptoKit, Secure Enclave) are excellent 
 
 ---
 
-## Anti-Pattern #1 — Storing Secrets in UserDefaults
+## Anti-Pattern #1: Storing Secrets in UserDefaults
 
 **Severity:** CRITICAL | **OWASP:** M9 (Insecure Data Storage) | **Fix effort:** Medium
 
-UserDefaults writes to an unencrypted XML plist at `~/Library/Preferences/{BUNDLE_ID}.plist`. Apple's documentation: "Don't store personal or sensitive information as settings." Readable from unencrypted backups, jailbroken devices (Objection `ios nsuserdefaults get`), and third-party SDKs. **SwiftUI's `@AppStorage` is a wrapper over `UserDefaults`** — it has identical security properties and must never be used for tokens, keys, or credentials.
+UserDefaults writes to an unencrypted XML plist at `~/Library/Preferences/{BUNDLE_ID}.plist`. Apple's documentation: "Don't store personal or sensitive information as settings." Readable from unencrypted backups, jailbroken devices (Objection `ios nsuserdefaults get`), and third-party SDKs. **SwiftUI's `@AppStorage` is a wrapper over `UserDefaults`**: it has identical security properties and must never be used for tokens, keys, or credentials.
 
-**❌ Insecure — AI-generated pattern:**
+**❌ Insecure: AI-generated pattern:**
 
 ```swift
 // Plaintext on disk, readable from backups
@@ -53,7 +53,7 @@ func saveAuthToken(_ token: String) {
 let token = UserDefaults.standard.string(forKey: "userAuthToken")
 ```
 
-**✅ Secure — Keychain with add-or-update:**
+**✅ Secure: Keychain with add-or-update:**
 
 ```swift
 func saveTokenToKeychain(_ token: Data, account: String) throws {
@@ -96,13 +96,13 @@ grep -rn "UserDefaults" --include="*.swift" | \
 
 ---
 
-## Anti-Pattern #2 — Hardcoded API Keys
+## Anti-Pattern #2: Hardcoded API Keys
 
 **Severity:** CRITICAL | **OWASP:** M1 (Improper Credential Usage) | **Fix effort:** High
 
-API keys compiled into Swift appear in the binary's `__TEXT.__cstring` segment — `strings MyApp.app/MyApp` extracts them instantly. Even `.xcconfig` or `Info.plist` values ship inside the IPA. Cybernews found 78,800 Google API keys across 156,000 iOS apps.
+API keys compiled into Swift appear in the binary's `__TEXT.__cstring` segment: `strings MyApp.app/MyApp` extracts them instantly. Even `.xcconfig` or `Info.plist` values ship inside the IPA. Cybernews found 78,800 Google API keys across 156,000 iOS apps.
 
-**❌ Insecure — AI-generated pattern:**
+**❌ Insecure: AI-generated pattern:**
 
 ```swift
 class PaymentService {
@@ -122,7 +122,7 @@ class PaymentService {
 let key = Bundle.main.infoDictionary?["API_KEY"] as? String
 ```
 
-**✅ Secure — server proxy + Keychain cache:**
+**✅ Secure: server proxy + Keychain cache:**
 
 ```swift
 class SecureAPIKeyManager {
@@ -153,7 +153,7 @@ class SecureAPIKeyManager {
 
 Apple's DeviceCheck and App Attest frameworks provide server-side device verification without embedding secrets. WWDC 2019-709 advises storing credentials in Keychain, not in code.
 
-**MASTG tests:** MASTG-TEST-0213, MASTG-TEST-0214. **MASWE:** MASWE-0005. **Legacy:** MSTG-STORAGE-12. **CISA/FBI:** CWE-798 — Product Security Bad Practices v2.0 (January 2025).
+**MASTG tests:** MASTG-TEST-0213, MASTG-TEST-0214. **MASWE:** MASWE-0005. **Legacy:** MSTG-STORAGE-12. **CISA/FBI:** CWE-798: Product Security Bad Practices v2.0 (January 2025).
 
 **Detection heuristic:**
 
@@ -165,13 +165,13 @@ grep -rn '"sk_live_\|"pk_live_\|"AIza[A-Za-z0-9]\|"AKIA[A-Z0-9]' \
 
 ---
 
-## Anti-Pattern #3 — LAContext-Only Biometric Authentication
+## Anti-Pattern #3: LAContext-Only Biometric Authentication
 
 **Severity:** CRITICAL | **OWASP:** M3 (Insecure Authentication) | **Fix effort:** Medium
 
-Using `LAContext.evaluatePolicy()` alone is the single most reproduced insecure pattern across iOS tutorials. The method returns a simple boolean callback in user-space — no cryptographic binding. Frida forces `success = true` in one command; Objection packages this as `ios ui biometrics_bypass`. OWASP MASTG: "Biometric authentication must be based on unlocking the keychain." Full deep dive: see `biometric-authentication.md`.
+Using `LAContext.evaluatePolicy()` alone is the single most reproduced insecure pattern across iOS tutorials. The method returns a simple boolean callback in user-space: no cryptographic binding. Frida forces `success = true` in one command; Objection packages this as `ios ui biometrics_bypass`. OWASP MASTG: "Biometric authentication must be based on unlocking the keychain." Full deep dive: see `biometric-authentication.md`.
 
-**❌ Insecure — AI-generated pattern:**
+**❌ Insecure: AI-generated pattern:**
 
 ```swift
 func authenticateUser(completion: @escaping (Bool) -> Void) {
@@ -190,7 +190,7 @@ func authenticateUser(completion: @escaping (Bool) -> Void) {
 }
 ```
 
-**✅ Secure — Keychain + SecAccessControl hardware binding:**
+**✅ Secure: Keychain + SecAccessControl hardware binding:**
 
 ```swift
 // STORE: biometric-protected via Secure Enclave
@@ -250,7 +250,7 @@ grep -rn "\.biometryCurrentSet\|\.biometryAny" --include="*.swift"
 
 ---
 
-## Anti-Pattern #4 — Ignoring SecItem Error Codes
+## Anti-Pattern #4: Ignoring SecItem Error Codes
 
 **Severity:** HIGH | **OWASP:** M8 (Security Misconfiguration) | **Fix effort:** Low
 
@@ -258,7 +258,7 @@ grep -rn "\.biometryCurrentSet\|\.biometryAny" --include="*.swift"
 
 Full CRUD patterns: see `keychain-fundamentals.md`.
 
-**❌ Insecure — AI-generated pattern:**
+**❌ Insecure: AI-generated pattern:**
 
 ```swift
 func saveToken(_ token: Data) {
@@ -272,7 +272,7 @@ func saveToken(_ token: Data) {
 }
 ```
 
-**✅ Secure — OSStatus switch with add-or-update:**
+**✅ Secure: OSStatus switch with add-or-update:**
 
 ```swift
 func saveToKeychain(value: Data, service: String, account: String) throws {
@@ -302,7 +302,7 @@ func saveToKeychain(value: Data, service: String, account: String) throws {
 }
 ```
 
-Critical detail: `SecItemUpdate` takes two dictionaries — search query (without `kSecValueData`) and attributes to update. Passing the full query as the search parameter is a common mistake.
+Critical detail: `SecItemUpdate` takes two dictionaries: search query (without `kSecValueData`) and attributes to update. Passing the full query as the search parameter is a common mistake.
 
 **MASTG tests:** MASTG-TEST-0300, MASTG-TEST-0301. **Legacy:** MASVS-STORAGE-2.
 
@@ -317,13 +317,13 @@ grep -rn "SecItemAdd(" --include="*.swift" | \
 
 ---
 
-## Anti-Pattern #5 — Wrong or Missing Data Protection Class
+## Anti-Pattern #5: Wrong or Missing Data Protection Class
 
 **Severity:** HIGH | **OWASP:** M9 (Insecure Data Storage) | **Fix effort:** Low
 
 Omitting `kSecAttrAccessible` inherits a default that may be insufficient. Using deprecated `kSecAttrAccessibleAlways` (deprecated iOS 12) leaves data decryptable on a locked device. Missing `ThisDeviceOnly` suffix means items are included in backups. Full protection class guide: see `keychain-access-control.md`.
 
-**❌ Insecure — AI-generated patterns:**
+**❌ Insecure: AI-generated patterns:**
 
 ```swift
 // Missing kSecAttrAccessible entirely
@@ -334,18 +334,18 @@ let query: [String: Any] = [
 ]
 SecItemAdd(query as CFDictionary, nil)
 
-// Deprecated — accessible when device is locked
+// Deprecated: accessible when device is locked
 kSecAttrAccessible as String: kSecAttrAccessibleAlways
 ```
 
-**✅ Secure — selection by use case:**
+**✅ Secure: selection by use case:**
 
 ```swift
 // Passwords, auth tokens (foreground-only)
 kSecAttrAccessible as String:
     kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
-// Highest sensitivity — requires passcode to exist
+// Highest sensitivity: requires passcode to exist
 kSecAttrAccessible as String:
     kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly
 
@@ -370,18 +370,18 @@ grep -rn "kSecAttrAccessibleWhenUnlocked\b" --include="*.swift" | \
 
 ---
 
-## Anti-Pattern #6 — Nonce Reuse in AES-GCM
+## Anti-Pattern #6: Nonce Reuse in AES-GCM
 
 **Severity:** CRITICAL | **OWASP:** M10 (Insufficient Cryptography) | **Fix effort:** Medium
 
 Reusing a nonce with the same key in AES-GCM is a complete cryptographic break. Identical nonces produce identical keystreams, enabling plaintext recovery via `C1 ⊕ C2 = P1 ⊕ P2` and authentication key recovery via polynomial factorization ("forbidden attack," Joux 2006). CryptoKit's `AES.GCM.seal` has a safe default: omitting the `nonce` parameter auto-generates a random 12-byte nonce. Danger occurs when AI explicitly constructs nonces. Full patterns: see `cryptokit-symmetric.md`.
 
-**❌ Insecure — AI-generated patterns:**
+**❌ Insecure: AI-generated patterns:**
 
 ```swift
 import CryptoKit
 
-// Hardcoded nonce — identical keystream every encryption
+// Hardcoded nonce: identical keystream every encryption
 let fixedNonce = try! AES.GCM.Nonce(data: Data(repeating: 0x00, count: 12))
 
 func encrypt(_ plaintext: Data, using key: SymmetricKey) throws -> Data {
@@ -392,7 +392,7 @@ func encrypt(_ plaintext: Data, using key: SymmetricKey) throws -> Data {
 // Also dangerous: counter-based nonce that resets on app restart → collision
 ```
 
-**✅ Secure — let CryptoKit handle nonces:**
+**✅ Secure: let CryptoKit handle nonces:**
 
 ```swift
 import CryptoKit
@@ -426,13 +426,13 @@ grep -rn "\.seal(.*nonce:" --include="*.swift"
 
 ---
 
-## Anti-Pattern #7 — MD5/SHA-1 for Security Purposes
+## Anti-Pattern #7: MD5/SHA-1 for Security Purposes
 
 **Severity:** HIGH | **OWASP:** M10 (Insufficient Cryptography) | **Fix effort:** Low
 
 MD5 broken since Wang & Yu (2005); SHA-1 broken by SHAttered (2017). CISA January 2025 lists both as insecure. Apple signals this via CryptoKit's `Insecure.MD5` and `Insecure.SHA1` namespacing.
 
-**❌ Insecure — AI-generated pattern:**
+**❌ Insecure: AI-generated pattern:**
 
 ```swift
 import CryptoKit
@@ -443,7 +443,7 @@ func hashPassword(_ password: String) -> String {
 // Also: CC_MD5, CC_SHA1 from CommonCrypto
 ```
 
-**✅ Secure — SHA-256 minimum, KDF for passwords:**
+**✅ Secure: SHA-256 minimum, KDF for passwords:**
 
 ```swift
 import CryptoKit
@@ -459,7 +459,7 @@ func authenticate(_ data: Data, key: SymmetricKey) -> Data {
     Data(HMAC<SHA256>.authenticationCode(for: data, using: key))
 }
 
-// Password storage — NEVER raw hashes. Use a KDF:
+// Password storage: NEVER raw hashes. Use a KDF:
 // Server-side: Argon2id, bcrypt, or scrypt
 // On-device: PBKDF2 with ≥600,000 iterations (OWASP 2023 minimum for HMAC-SHA256)
 // See cryptokit-symmetric.md for full PBKDF2 implementation
@@ -479,13 +479,13 @@ grep -rn "CC_MD5\|CC_SHA1\|CC_MD5_DIGEST_LENGTH\|CC_SHA1_DIGEST_LENGTH" \
 
 ---
 
-## Anti-Pattern #8 — Logging Sensitive Data
+## Anti-Pattern #8: Logging Sensitive Data
 
 **Severity:** HIGH | **OWASP:** M9 (Insecure Data Storage) | **Fix effort:** Low
 
-`print()`, `NSLog()`, and `os_log()` with sensitive values persist in device logs — accessible via Xcode Console, `idevicesyslog`, and `log collect --device`. On jailbroken devices, any process reads log storage. Apple's `OSLogPrivacy` (iOS 14+): `.private` redacts in production; `.sensitive` (iOS 15+) always redacted.
+`print()`, `NSLog()`, and `os_log()` with sensitive values persist in device logs: accessible via Xcode Console, `idevicesyslog`, and `log collect --device`. On jailbroken devices, any process reads log storage. Apple's `OSLogPrivacy` (iOS 14+): `.private` redacts in production; `.sensitive` (iOS 15+) always redacted.
 
-**❌ Insecure — AI-generated pattern:**
+**❌ Insecure: AI-generated pattern:**
 
 ```swift
 func login(username: String, password: String) async throws {
@@ -496,7 +496,7 @@ func login(username: String, password: String) async throws {
 }
 ```
 
-**✅ Secure — OSLogPrivacy with redaction:**
+**✅ Secure: OSLogPrivacy with redaction:**
 
 ```swift
 import os
@@ -504,7 +504,7 @@ import os
 let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "auth")
 
 func login(username: String, password: String) async throws {
-    // Log events, not values — .private(mask: .hash) enables correlation
+    // Log events, not values: .private(mask: .hash) enables correlation
     logger.info("Login attempt: \(username, privacy: .private(mask: .hash))")
     let token = try await authService.authenticate(username, password)
     logger.info("Authentication succeeded")  // No token value
@@ -534,13 +534,13 @@ grep -rn 'os_log.*%{public}' --include="*.swift" | \
 
 ---
 
-## Anti-Pattern #9 — Not Clearing Keychain on First Launch
+## Anti-Pattern #9: Not Clearing Keychain on First Launch
 
 **Severity:** MEDIUM | **OWASP:** M9 (Insecure Data Storage) | **Fix effort:** Low
 
 Keychain items persist in a system-wide encrypted database managed by `securityd`, outside the app sandbox. App deletion removes the sandbox but keychain items survive. Apple DTS engineer Quinn "The Eskimo!" confirmed this as "currently expected behaviour despite being an obvious privacy concern." Consequences: stale credentials on reinstall, cross-user data leakage on device resale, and Firebase SDK authentication errors on reinstall. Full migration patterns: see `migration-legacy-stores.md`.
 
-**❌ The missing pattern — AI never generates this:**
+**❌ The missing pattern: AI never generates this:**
 
 ```swift
 @main
@@ -552,7 +552,7 @@ struct MyApp: App {
 }
 ```
 
-**✅ Secure — first-launch keychain cleanup:**
+**✅ Secure: first-launch keychain cleanup:**
 
 ```swift
 @main
@@ -595,13 +595,13 @@ grep -rn "SecItemDelete" --include="*.swift" -l | \
 
 ---
 
-## Anti-Pattern #10 — Non-Cryptographic RNG for Security Operations
+## Anti-Pattern #10: Non-Cryptographic RNG for Security Operations
 
 **Severity:** HIGH | **OWASP:** M10 (Insufficient Cryptography) | **Fix effort:** Low
 
-`arc4random()` returns only 32-bit `UInt32` — insufficient for cryptographic purposes requiring 128–256 bits. Character-by-character token construction introduces bias. Truly non-cryptographic alternatives (`rand()`, `drand48()`, GameplayKit RNG) must never be used for security operations.
+`arc4random()` returns only 32-bit `UInt32`: insufficient for cryptographic purposes requiring 128-256 bits. Character-by-character token construction introduces bias. Truly non-cryptographic alternatives (`rand()`, `drand48()`, GameplayKit RNG) must never be used for security operations.
 
-**❌ Insecure — AI-generated patterns:**
+**❌ Insecure: AI-generated patterns:**
 
 ```swift
 func generateToken() -> String {
@@ -615,13 +615,13 @@ func generateSessionId(length: Int = 16) -> String {
 // Also dangerous: srand48/drand48, rand(), GameplayKit RNG
 ```
 
-**✅ Secure — SecRandomCopyBytes / CryptoKit:**
+**✅ Secure: SecRandomCopyBytes / CryptoKit:**
 
 ```swift
 import Security
 import CryptoKit
 
-// SecRandomCopyBytes — canonical iOS crypto RNG
+// SecRandomCopyBytes: canonical iOS crypto RNG
 func generateSecureToken(byteCount: Int = 32) throws -> String {
     var bytes = [UInt8](repeating: 0, count: byteCount)
     let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
@@ -635,7 +635,7 @@ func generateSecureToken(byteCount: Int = 32) throws -> String {
 let encryptionKey = SymmetricKey(size: .bits256)
 ```
 
-`SecRandomCopyBytes` sources entropy from the Secure Enclave's hardware TRNG via corecrypto's `ccrng_generate`. It reports errors via return status — unlike `arc4random`, which silently cannot fail.
+`SecRandomCopyBytes` sources entropy from the Secure Enclave's hardware TRNG via corecrypto's `ccrng_generate`. It reports errors via return status: unlike `arc4random`, which silently cannot fail.
 
 **MASTG test:** MASTG-TEST-0311. **MASTG demos:** MASTG-DEMO-0073, MASTG-DEMO-0074. **Legacy:** MSTG-CRYPTO-6.
 
@@ -671,7 +671,7 @@ grep -rn "GKARC4RandomSource\|GKMersenneTwisterRandomSource" --include="*.swift"
 
 **Semgrep** (pre-commit/PR gate): Fast structural pattern matching for `UserDefaults` misuse, missing `errSecDuplicateItem`, `LAContext` booleans. Limited data-flow analysis.
 
-**CodeQL** (nightly/PR gate): Deep semantic taint tracking — catches tokens assigned to variables then logged. Slower execution.
+**CodeQL** (nightly/PR gate): Deep semantic taint tracking: catches tokens assigned to variables then logged. Slower execution.
 
 **Binary scanning** (post-build): `strings`/`class-dump` on compiled binary catches hardcoded keys surviving source-level obfuscation.
 
@@ -685,7 +685,7 @@ WWDC 2025-314 introduced the most significant CryptoKit expansion since 2019:
 
 - **Symmetric keys:** `.bits256` recommended over `.bits128` for quantum resistance (anti-patterns #6, #10)
 - **Hashing:** SHA-3 family (`SHA3_256/384/512`) in CryptoKit on iOS 26+ (anti-pattern #7)
-- **Post-quantum:** ML-KEM 768/1024, ML-DSA 65/87, X-Wing — all with Secure Enclave support
+- **Post-quantum:** ML-KEM 768/1024, ML-DSA 65/87, X-Wing: all with Secure Enclave support
 - **TLS:** `X25519MLKEM768` enabled by default for `URLSession` in iOS 26
 - **Secure Enclave:** Hardware post-quantum key creation strengthens anti-patterns #3 and #5 fixes
 
@@ -695,14 +695,14 @@ WWDC 2025-314 introduced the most significant CryptoKit expansion since 2019:
 
 When reviewing iOS code for security anti-patterns, verify each item:
 
-1. **No secrets in UserDefaults** — tokens, passwords, API keys, JWTs use Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` or stricter
-1. **No hardcoded keys in source** — API keys fetched at runtime via server proxy or authenticated endpoint; no high-entropy string literals, no secrets in `.xcconfig` or `Info.plist`
-1. **Biometrics bound to Keychain** — `evaluatePolicy` is never used alone to gate sensitive actions; `SecAccessControlCreateWithFlags` with `.biometryCurrentSet` protects keychain items
-1. **All SecItem calls checked** — `SecItemAdd` handles `errSecDuplicateItem` with `SecItemUpdate` fallback; `SecItemCopyMatching` handles `errSecItemNotFound`; no discarded `OSStatus` return values
-1. **Explicit data protection class** — every `SecItemAdd` includes `kSecAttrAccessible` or `kSecAttrAccessControl`; no `kSecAttrAccessibleAlways`; `ThisDeviceOnly` variants used for non-syncing items
-1. **No nonce reuse** — `AES.GCM.seal` called without explicit `nonce:` parameter (auto-random); no stored/global/counter-based nonce variables
-1. **No broken hashes** — no `Insecure.MD5`, `Insecure.SHA1`, `CC_MD5`, `CC_SHA1` for security purposes; passwords use a password KDF such as Argon2id, bcrypt, or PBKDF2-HMAC-SHA256 with at least 600,000 iterations
-1. **No sensitive data in logs** — `print()` and `NSLog()` never contain tokens, keys, or credentials; `os_log` uses `%{private}@`; `Logger` uses `.private` or `.private(mask: .hash)`
-1. **First-launch keychain cleanup** — `UserDefaults` flag + `SecItemDelete` for all classes runs before SDK initialization at app startup
-1. **Cryptographic RNG only** — `SecRandomCopyBytes` or CryptoKit APIs for tokens, nonces, salts, keys; no `arc4random` / `rand()` / `drand48()` / GameplayKit RNG in security contexts
-1. **iOS 26 readiness** — symmetric keys use `.bits256`; no deprecated algorithms; aware of post-quantum CryptoKit APIs for forward-looking implementations
+1. **No secrets in UserDefaults**: tokens, passwords, API keys, JWTs use Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` or stricter
+1. **No hardcoded keys in source**: API keys fetched at runtime via server proxy or authenticated endpoint; no high-entropy string literals, no secrets in `.xcconfig` or `Info.plist`
+1. **Biometrics bound to Keychain**: `evaluatePolicy` is never used alone to gate sensitive actions; `SecAccessControlCreateWithFlags` with `.biometryCurrentSet` protects keychain items
+1. **All SecItem calls checked**: `SecItemAdd` handles `errSecDuplicateItem` with `SecItemUpdate` fallback; `SecItemCopyMatching` handles `errSecItemNotFound`; no discarded `OSStatus` return values
+1. **Explicit data protection class**: every `SecItemAdd` includes `kSecAttrAccessible` or `kSecAttrAccessControl`; no `kSecAttrAccessibleAlways`; `ThisDeviceOnly` variants used for non-syncing items
+1. **No nonce reuse**: `AES.GCM.seal` called without explicit `nonce:` parameter (auto-random); no stored/global/counter-based nonce variables
+1. **No broken hashes**: no `Insecure.MD5`, `Insecure.SHA1`, `CC_MD5`, `CC_SHA1` for security purposes; passwords use a password KDF such as Argon2id, bcrypt, or PBKDF2-HMAC-SHA256 with at least 600,000 iterations
+1. **No sensitive data in logs**: `print()` and `NSLog()` never contain tokens, keys, or credentials; `os_log` uses `%{private}@`; `Logger` uses `.private` or `.private(mask: .hash)`
+1. **First-launch keychain cleanup**: `UserDefaults` flag + `SecItemDelete` for all classes runs before SDK initialization at app startup
+1. **Cryptographic RNG only**: `SecRandomCopyBytes` or CryptoKit APIs for tokens, nonces, salts, keys; no `arc4random` / `rand()` / `drand48()` / GameplayKit RNG in security contexts
+1. **iOS 26 readiness**: symmetric keys use `.bits256`; no deprecated algorithms; aware of post-quantum CryptoKit APIs for forward-looking implementations

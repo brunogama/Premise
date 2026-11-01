@@ -30,7 +30,7 @@ let valueStrategy = Strategy<Int>.integers(in: 0...100)
 
       // Idempotence: two insertions of the same pair == one insertion.
       #expect(cache.uniqueKeyCount() == 1)
-      // This passes. But insertion count is 2, not 1 — the bug is elsewhere.
+      // This passes. But insertion count is 2, not 1: the bug is elsewhere.
       #expect(cache.totalInsertions() == 1)  // ← this will fail
     }
   }

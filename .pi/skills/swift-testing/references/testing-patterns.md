@@ -13,7 +13,7 @@
 - Mocking and Test Doubles
 - Testable Architecture
 - Async and Concurrent Tests
-- XCTest UI Tests — Page Object Pattern
+- XCTest UI Tests: Page Object Pattern
 - Performance Testing
 - Snapshot Testing
 - Test Attachments
@@ -73,7 +73,7 @@ struct AuthTests {
     let service: AuthService
     let mockRepo: MockUserRepository
 
-    // init() replaces setUp() -- runs before each test
+    // init() replaces setUp(): runs before each test
     init() {
         mockRepo = MockUserRepository()
         service = AuthService(repository: mockRepo)
@@ -167,7 +167,7 @@ Important implications:
 ### Confirmation (Async Event Testing)
 
 ```swift
-// Basic confirmation -- event must fire exactly once
+// Basic confirmation: event must fire exactly once
 await confirmation("Received notification") { confirm in
     let observer = NotificationCenter.default.addObserver(
         forName: .userLoggedIn, object: nil, queue: .main
@@ -176,7 +176,7 @@ await confirmation("Received notification") { confirm in
     NotificationCenter.default.removeObserver(observer)
 }
 
-// Expected count -- event must fire exactly N times
+// Expected count: event must fire exactly N times
 await confirmation("Received 3 items", expectedCount: 3) { confirm in
     processor.onItem = { _ in confirm() }
     await processor.process(items)
@@ -186,7 +186,7 @@ await confirmation("Received 3 items", expectedCount: 3) { confirm in
 ### Known Issues
 
 ```swift
-// Known failing test -- does not count as failure
+// Known failing test: does not count as failure
 withKnownIssue("Propane tank is empty") {
     #expect(truck.grill.isHeating)
 }
@@ -231,7 +231,7 @@ extension Tag {
 func apiCallReturnsData() async throws { /* ... */ }
 ```
 
-Filter tests by tag in Xcode test plans or CLI (tag-based filtering syntax varies by toolchain — verify for your Swift version).
+Filter tests by tag in Xcode test plans or CLI (tag-based filtering syntax varies by toolchain: verify for your Swift version).
 
 ## TestScoping and Test Organization
 
@@ -445,7 +445,7 @@ class ProfileViewModel {
 }
 ```
 
-## XCTest UI Tests — Page Object Pattern
+## XCTest UI Tests: Page Object Pattern
 
 Swift Testing does not support UI testing. Use XCTest with XCUITest for all UI tests.
 
@@ -506,7 +506,7 @@ class FeedPerformanceTests: XCTestCase {
 }
 ```
 
-Performance tests require XCTest — not available in Swift Testing.
+Performance tests require XCTest: not available in Swift Testing.
 
 ## Snapshot Testing
 
@@ -610,7 +610,7 @@ extension Food: CustomTestStringConvertible {
 func isDelicious(_ food: Food) { /* output shows custom descriptions */ }
 ```
 
-Use this for any type passed as a parameterized test argument where the default description is unclear — especially enums, IDs, or model types.
+Use this for any type passed as a parameterized test argument where the default description is unclear: especially enums, IDs, or model types.
 
 ## Availability-Conditional Tests
 

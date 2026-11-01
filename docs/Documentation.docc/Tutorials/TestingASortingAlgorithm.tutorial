@@ -1,7 +1,7 @@
 @Tutorial(time: 20) {
    @Intro(title: "Testing a Sorting Algorithm") {
       Sorting is a classic property-testing target. A correct sorting function
-      satisfies three independent properties that you can verify separately —
+      satisfies three independent properties that you can verify separately:
       and any one of them would catch most bugs.
    }
 
@@ -9,9 +9,9 @@
       @ContentAndMedia {
          A correct sorting function must satisfy:
 
-         1. **Order** — the output is in non-decreasing order
-         2. **Permutation** — the output contains exactly the same elements as the input
-         3. **Idempotence** — sorting the output again produces the same output
+         1. **Order**: the output is in non-decreasing order
+         2. **Permutation**: the output contains exactly the same elements as the input
+         3. **Idempotence**: sorting the output again produces the same output
 
          These properties are independent. A buggy sort might satisfy two of them
          while violating the third, so testing all three gives much stronger coverage.
@@ -84,7 +84,7 @@
       @ContentAndMedia {
          Replace the correct sort with a broken version that drops the largest
          element from arrays longer than 3. All three properties will catch it,
-         but the counterexamples they produce are different — and each one
+         but the counterexamples they produce are different: and each one
          explains the bug from a different angle.
       }
       @Steps {
@@ -96,7 +96,7 @@
          @Step {
             Run the tests. The permutation property fails first with a 4-element
             counterexample. The order property passes (the output is still in
-            order — it just has a missing element). This shows why testing
+            order: it just has a missing element). This shows why testing
             multiple independent properties matters.
 
             @Code(name: "Terminal", file: "t03-s07-output.txt")

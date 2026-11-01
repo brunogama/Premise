@@ -6,8 +6,8 @@ Build a Strategy<Value> for any domain type using PremiseData primitives.
 
 A ``Strategy``\<Value\> captures two pieces of behaviour in a single value:
 
-1. **`draw`** — given a mutable ``PremiseData``, produce a `Value`
-2. **`shrink`** — given a `Value`, return simpler candidates to try
+1. **`draw`**: given a mutable ``PremiseData``, produce a `Value`
+2. **`shrink`**: given a `Value`, return simpler candidates to try
 
 ```swift
 public struct Strategy<Value: Sendable>: Sendable {
@@ -33,7 +33,7 @@ Use ``PremiseData``'s draw methods to read random values. Every call is recorded
 let temperatureStrategy = Strategy<Double>(
     label: "temperature",
     draw: { data in
-        // Use the built-in float draw — edge-biased toward extremes
+        // Use the built-in float draw: edge-biased toward extremes
         data.drawInteger(in: 0...4) == 0
             ? -273.15  // absolute zero as a special case
             : Double(data.drawInteger(in: 0...UInt64(50000))) / 100.0 - 273.15
@@ -102,7 +102,7 @@ The shrink closure returns simpler candidates. Simpler typically means:
 - Shorter strings or collections
 - Structurally simpler variants (e.g. the "nil" case of an optional, the base case of a recursive type)
 
-Return candidates in *increasing order of simplicity* — the machine tries them in order and keeps the first one that still fails.
+Return candidates in *increasing order of simplicity*: the machine tries them in order and keeps the first one that still fails.
 
 ```swift
 struct User {
@@ -203,7 +203,7 @@ let validConfig = Strategy<Config>(
 enum DrawError: Error { case invalidCombination }
 ```
 
-Prefer constructing valid values directly over throwing — filtering via throws reduces the effective run count.
+Prefer constructing valid values directly over throwing: filtering via throws reduces the effective run count.
 
 ## Combining with Built-in Strategies
 
@@ -248,7 +248,7 @@ let one = emails.sampleOne(seed: 42)
 print(one.address)
 ```
 
-`sample` is purely for debugging — it creates a temporary `PremiseData` under the hood and does not participate in shrinking or replay. Use it during development to verify your strategy produces reasonable values before running full property tests.
+`sample` is purely for debugging: it creates a temporary `PremiseData` under the hood and does not participate in shrinking or replay. Use it during development to verify your strategy produces reasonable values before running full property tests.
 
 ## Testing Your Strategy
 

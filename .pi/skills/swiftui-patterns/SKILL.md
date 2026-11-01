@@ -38,7 +38,7 @@ Load [Behavior-Preserving View Refactoring](references/view-refactoring.md) for 
 
 ## Architecture: Model-View (MV) Pattern
 
-Default to MV -- views are lightweight state expressions; models and services own business logic. Do not introduce view models unless the existing code already uses them.
+Default to MV: views are lightweight state expressions; models and services own business logic. Do not introduce view models unless the existing code already uses them.
 
 **Core principles:**
 - Favor `@State`, `@Environment`, `@Query`, `.task`, and `.onChange` for orchestration
@@ -96,7 +96,7 @@ For MV pattern rationale, app wiring, and lightweight client examples, see [refe
 | Wrapper | When to Use |
 |---------|-------------|
 | `@State` | View owns the object or value. Creates and manages lifecycle. |
-| `let` | View receives an `@Observable` object. Read-only observation -- no wrapper needed. |
+| `let` | View receives an `@Observable` object. Read-only observation: no wrapper needed. |
 | `@Bindable` | View receives an `@Observable` object and needs two-way bindings (`$property`). |
 | `@Environment(Type.self)` | Access shared `@Observable` object from environment. |
 | `@State` (value types) | View-local simple state: toggles, counters, text field values. Always `private`. |
@@ -105,7 +105,7 @@ For MV pattern rationale, app wiring, and lightweight client examples, see [refe
 ### Ownership Pattern
 
 ```swift
-// UI-bound @Observable store -- main-actor isolated
+// UI-bound @Observable store: main-actor isolated
 @MainActor
 @Observable final class ItemStore {
     var title = ""
@@ -266,7 +266,7 @@ For iOS 17-compatible code or older compatibility shims, use manual `Environment
 
 ## Async Data Loading
 
-Always use `.task` -- it cancels automatically on view disappear:
+Always use `.task`: it cancels automatically on view disappear:
 
 ```swift
 struct ItemListView: View {
@@ -315,7 +315,7 @@ Follow Apple Human Interface Guidelines for layout, typography, color, and acces
 - Use semantic colors (`Color.primary`, `.secondary`, `Color(uiColor: .systemBackground)`) for automatic light/dark mode
 - Use system font styles (`.title`, `.headline`, `.body`, `.caption`) for Dynamic Type support
 - Use `ContentUnavailableView` for empty and error states
-- Omit `spacing:` on stacks unless a specific value is required — `nil` (the default) uses platform-appropriate adaptive spacing
+- Omit `spacing:` on stacks unless a specific value is required: `nil` (the default) uses platform-appropriate adaptive spacing
 - Support adaptive layouts via `horizontalSizeClass`
 - Provide VoiceOver labels (`.accessibilityLabel`) and support Dynamic Type accessibility sizes by switching layout orientation
 
@@ -345,24 +345,24 @@ TextField("Search…", text: $query)
 
 ## Common Mistakes
 
-1. Using `@ObservedObject` to create objects -- use `@StateObject` (legacy) or `@State` (modern)
-2. Heavy computation in view `body` -- move to model or computed property
-3. Not using `.task` for async work -- manual `Task` in `onAppear` leaks if not cancelled
-4. Array indices as `ForEach` IDs -- causes incorrect diffing and UI bugs
-5. Forgetting `@Bindable` -- `$property` syntax on `@Observable` requires `@Bindable`
-6. Over-using `@State` -- only for view-local state; shared state belongs in `@Observable`
-7. Keeping complex or independently previewable sections computed -- extract `View` types; extensions and `// MARK:` only organize
-8. Using `NavigationView` -- deprecated; use `NavigationStack`
+1. Using `@ObservedObject` to create objects: use `@StateObject` (legacy) or `@State` (modern)
+2. Heavy computation in view `body`: move to model or computed property
+3. Not using `.task` for async work: manual `Task` in `onAppear` leaks if not cancelled
+4. Array indices as `ForEach` IDs: causes incorrect diffing and UI bugs
+5. Forgetting `@Bindable`: `$property` syntax on `@Observable` requires `@Bindable`
+6. Over-using `@State`: only for view-local state; shared state belongs in `@Observable`
+7. Keeping complex or independently previewable sections computed: extract `View` types; extensions and `// MARK:` only organize
+8. Using `NavigationView`: deprecated; use `NavigationStack`
 9. Reaching for `foregroundColor(_:)` when `foregroundStyle(_:)` better matches semantic styling
-10. Inline closures in body -- extract complex closures to methods
-11. `.sheet(isPresented:)` when state represents a model -- use `.sheet(item:)` instead
-12. **Using `AnyView` for routine branching** -- type erasure hides structure and can hurt performance or identity-sensitive transitions. Use `@ViewBuilder`, `Group`, or generics unless an API genuinely needs heterogeneous view storage. See [references/deprecated-migration.md](references/deprecated-migration.md)
+10. Inline closures in body: extract complex closures to methods
+11. `.sheet(isPresented:)` when state represents a model: use `.sheet(item:)` instead
+12. **Using `AnyView` for routine branching**: type erasure hides structure and can hurt performance or identity-sensitive transitions. Use `@ViewBuilder`, `Group`, or generics unless an API genuinely needs heterogeneous view storage. See [references/deprecated-migration.md](references/deprecated-migration.md)
 13. **Putting `@AppStorage` inside an `@Observable` class.** `@AppStorage` is a view `DynamicProperty`; keep it in a `View`, or expose a normal observed property backed by `UserDefaults` in the model.
 
-14. Hard-coding `spacing:` on every stack -- omit it to get adaptive platform spacing; only specify when the value is intentional
-15. Treating `.copyable`, `.cuttable`, or command-based `.pasteDestination(for:action:validator:)` as iOS 16/iOS 26 APIs -- they are macOS 13+ and iOS/iPadOS/Mac Catalyst 27 beta in current Apple docs. Use `UIPasteboard`, drag/drop, or `ShareLink` for iOS 26 targets.
-16. Treating modern defaults as formal deprecations -- `#Preview` is the modern preview default, but `PreviewProvider` is legacy rather than compiler-deprecated. `EditButton`, `.onDelete`, and `.onMove` remain valid for edit-mode list workflows; use `.swipeActions` for contextual row actions.
-17. Making a required dependency optional to stop a preview crash -- install deterministic preview dependencies instead, without live networking, authentication, production databases, or global singletons
+14. Hard-coding `spacing:` on every stack: omit it to get adaptive platform spacing; only specify when the value is intentional
+15. Treating `.copyable`, `.cuttable`, or command-based `.pasteDestination(for:action:validator:)` as iOS 16/iOS 26 APIs: they are macOS 13+ and iOS/iPadOS/Mac Catalyst 27 beta in current Apple docs. Use `UIPasteboard`, drag/drop, or `ShareLink` for iOS 26 targets.
+16. Treating modern defaults as formal deprecations: `#Preview` is the modern preview default, but `PreviewProvider` is legacy rather than compiler-deprecated. `EditButton`, `.onDelete`, and `.onMove` remain valid for edit-mode list workflows; use `.swipeActions` for contextual row actions.
+17. Making a required dependency optional to stop a preview crash: install deterministic preview dependencies instead, without live networking, authentication, production databases, or global singletons
 
 ## Review Checklist
 
@@ -383,7 +383,7 @@ TextField("Search…", text: $query)
 - [ ] Custom `ViewModifier` for repeated styling
 - [ ] `.sheet(item:)` preferred over `.sheet(isPresented:)`
 - [ ] Sheets own their actions and call `dismiss()` internally
-- [ ] MV pattern followed -- no unnecessary view models
+- [ ] MV pattern followed: no unnecessary view models
 - [ ] UI-bound `@Observable` stores and view models are `@MainActor`-isolated
 - [ ] Model types passed across concurrency boundaries are `Sendable`
 - [ ] Stack `spacing:` omitted unless a specific value is required (prefer adaptive default)

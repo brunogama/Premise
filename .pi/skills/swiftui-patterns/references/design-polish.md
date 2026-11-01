@@ -26,7 +26,7 @@ iOS Human Interface Guidelines patterns for layout, typography, color, accessibi
 
 #### Spacing Grid
 
-Omit `spacing:` on stacks to get SwiftUI's adaptive default. Only specify an explicit value when you need a deliberate departure from the default — and when you do, stick to the 4pt grid below.
+Omit `spacing:` on stacks to get SwiftUI's adaptive default. Only specify an explicit value when you need a deliberate departure from the default: and when you do, stick to the 4pt grid below.
 
 This is a common design convention, not an Apple-prescribed system, but it keeps layouts visually coherent. Avoid inventing values between grid stops.
 
@@ -390,7 +390,7 @@ struct ProfileView: View {
 ### Pitfalls
 
 - Avoid sprinkling raw `Color` values in views; it breaks consistency.
-- Do not tie theme to a single view’s local state.
+- Do not tie theme to a single view's local state.
 - Avoid using `@Environment(\.colorScheme)` as the only theme control; it should complement your theme.
 
 ## Haptics
@@ -537,8 +537,8 @@ final class CoreHapticManager {
 
 Key lifecycle rules:
 - Call `engine.start()` before playing any patterns.
-- Handle `stoppedHandler` — the system can stop the engine when your app moves to the background or during audio interruptions.
-- Handle `resetHandler` — restart the engine when the system resets it.
+- Handle `stoppedHandler`: the system can stop the engine when your app moves to the background or during audio interruptions.
+- Handle `resetHandler`: restart the engine when the system resets it.
 - Call `engine.stop()` when haptics are no longer needed to save battery.
 
 #### CHHapticPattern and CHHapticEvent
@@ -572,7 +572,7 @@ func playTransientTap() throws {
 | `.audioContinuous` | Sustained audio tone |
 | `.audioCustom` | Play a custom audio resource |
 
-**Common parameters:** `.hapticIntensity` (0–1), `.hapticSharpness` (0–1), `.attackTime`, `.decayTime`, `.releaseTime`.
+**Common parameters:** `.hapticIntensity` (0-1), `.hapticSharpness` (0-1), `.attackTime`, `.decayTime`, `.releaseTime`.
 
 #### Playing patterns with CHHapticPatternPlayer
 
@@ -707,7 +707,7 @@ struct ToggleBadge: View {
 
 ### Pitfalls
 
-- Don’t use unstable IDs; it breaks the transition.
+- Don't use unstable IDs; it breaks the transition.
 - Avoid mismatched shapes (e.g., square to circle) unless the design expects it.
 
 ## Loading and Placeholders
@@ -728,9 +728,9 @@ Use this when a view needs a consistent loading state (skeletons, redaction, emp
 
 ### Pitfalls
 
-- Don’t animate layout shifts during redaction; keep frames stable.
+- Don't animate layout shifts during redaction; keep frames stable.
 - Avoid nesting multiple spinners; use one loading indicator per section.
-- Keep placeholder count small (3–6) to reduce jank on low-end devices.
+- Keep placeholder count small (3-6) to reduce jank on low-end devices.
 
 ### Minimal usage
 
@@ -840,5 +840,5 @@ struct PollView: View {
 
 ### Pitfalls
 
-- Don’t store focus state in shared objects; it is view-local.
+- Don't store focus state in shared objects; it is view-local.
 - Avoid aggressive focus changes during animation; delay if needed.

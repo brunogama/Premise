@@ -4,7 +4,7 @@ How Premise is designed for Swift 6 strict concurrency from the ground up.
 
 ## The Baseline
 
-Premise targets Swift 6 language mode with complete concurrency checking enabled. All public APIs are `Sendable`, all shared mutable state is actor-isolated, and `PremiseCore` has zero imports from `Testing` or `XCTest`. This is not a compatibility layer — it is the designed baseline.
+Premise targets Swift 6 language mode with complete concurrency checking enabled. All public APIs are `Sendable`, all shared mutable state is actor-isolated, and `PremiseCore` has zero imports from `Testing` or `XCTest`. This is not a compatibility layer: it is the designed baseline.
 
 ```swift
 // Package.swift
@@ -26,7 +26,7 @@ public struct FailureRecord: Sendable, Codable, Equatable { ... }
 public enum RunResult<Value: Sendable>: Sendable { ... }
 ```
 
-The `Value: Sendable` constraint on `Strategy` and `Runner` means the generated values are safe to pass across concurrency boundaries — both to the property closure and to the `ShrinkMachine`.
+The `Value: Sendable` constraint on `Strategy` and `Runner` means the generated values are safe to pass across concurrency boundaries: both to the property closure and to the `ShrinkMachine`.
 
 ### Closures are @Sendable
 
@@ -110,10 +110,10 @@ call `executeDetailed` and translate the returned ``DetailedRunResult`` and
 
 ## PrimitiveProviderState: Copy-on-Write Inside PremiseData
 
-``PremiseData`` holds a `PrimitiveProviderState` — a copy-on-write wrapper around a generic provider. This design lets `PremiseData` be a value type (a `struct`) while still supporting arbitrary concrete provider types at runtime, without existential boxing in the hot draw path.
+``PremiseData`` holds a `PrimitiveProviderState`: a copy-on-write wrapper around a generic provider. This design lets `PremiseData` be a value type (a `struct`) while still supporting arbitrary concrete provider types at runtime, without existential boxing in the hot draw path.
 
 ```swift
-// PremiseData is a struct — it can be passed by value
+// PremiseData is a struct: it can be passed by value
 public struct PremiseData: Sendable {
     private var provider: PrimitiveProviderState  // CoW wrapper
     private var spanStarts: [SpanStart]
@@ -128,7 +128,7 @@ The `@unchecked Sendable` on `PrimitiveProviderBoxBase` and `PrimitiveProviderBo
 
 Because the property closure is `@escaping @Sendable`, you may not capture non-`Sendable` values. Common patterns:
 
-### Capturing immutable value types — fine
+### Capturing immutable value types: fine
 
 ```swift
 let multiplier = 3  // Int is Sendable
@@ -137,7 +137,7 @@ try await forAll(.integers(in: 1...100)) { n in
 }
 ```
 
-### Capturing an actor — fine
+### Capturing an actor: fine
 
 ```swift
 @MainActor class ViewModel { ... }
@@ -150,7 +150,7 @@ try await forAll(.strings(from: lowercase, length: 1...20)) { input in
 }
 ```
 
-### Capturing a class — requires Sendable or @unchecked Sendable
+### Capturing a class: requires Sendable or @unchecked Sendable
 
 ```swift
 // If MyService is not Sendable, this won't compile under Swift 6:

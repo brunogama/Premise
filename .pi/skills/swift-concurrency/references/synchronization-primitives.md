@@ -52,7 +52,7 @@ Use `withLockIfAvailable` to attempt acquisition without blocking. Returns
 ```swift
 let counter = Mutex<Int>(0)
 
-// Non-blocking attempt — returns nil if lock is contended
+// Non-blocking attempt: returns nil if lock is contended
 if let value = counter.withLockIfAvailable({ $0 }) {
     print("Current count: \(value)")
 } else {
@@ -69,7 +69,7 @@ if let value = counter.withLockIfAvailable({ $0 }) {
 - **Non-recursive:** Attempting to lock a `Mutex` that you already hold on the
   same thread is undefined behavior.
 - **Synchronous only:** Do not `await` inside `withLock`. The lock is held for
-  the duration of the closure — blocking across a suspension point will
+  the duration of the closure: blocking across a suspension point will
   deadlock or starve other threads.
 
 ## OSAllocatedUnfairLock
@@ -120,7 +120,7 @@ When protecting external state or a code section rather than a specific value:
 let lock = OSAllocatedUnfairLock()
 
 lock.withLock {
-    // Critical section — no associated state
+    // Critical section: no associated state
     writeToSharedFile(data)
 }
 ```
@@ -146,12 +146,12 @@ defer { lock.unlock() }
 | **`withLockIfAvailable`** | Returns `nil` on contention | Returns `nil` on contention |
 | **Ownership assertions** | Not available | `precondition(.owner)` / `precondition(.notOwner)` |
 | **Manual lock/unlock** | Not available | Available (`lock()` / `unlock()`) |
-| **Recommendation** | Preferred for iOS 18+ code | Use when targeting iOS 16–17 |
+| **Recommendation** | Preferred for iOS 18+ code | Use when targeting iOS 16-17 |
 
 **Guideline:** Use `Mutex` for new code targeting iOS 18+. For apps that run on
 iOS 16 through current releases, either keep the shared abstraction backed by
 `OSAllocatedUnfairLock` or branch with `#available(iOS 18, *)` so iOS 18+ uses
-`Mutex` and iOS 16–17 uses `OSAllocatedUnfairLock`. Prefer
+`Mutex` and iOS 16-17 uses `OSAllocatedUnfairLock`. Prefer
 `OSAllocatedUnfairLock` when you need ownership assertions for debugging.
 Do not introduce a broad generic lock wrapper with `@unchecked Sendable` just to
 hide the deployment-target branch; keep the protected state inside the concrete
@@ -258,15 +258,15 @@ Atomic operations require an explicit memory ordering:
 
 | Ordering | Use case |
 |---|---|
-| `.relaxed` | Counters, statistics — no ordering guarantees needed |
+| `.relaxed` | Counters, statistics: no ordering guarantees needed |
 | `.acquiring` | Read that must see all writes before a corresponding release |
 | `.releasing` | Write that must be visible to a corresponding acquire |
 | `.acquiringAndReleasing` | Compare-and-swap, read-modify-write |
-| `.sequentiallyConsistent` | Strongest guarantee — rarely needed |
+| `.sequentiallyConsistent` | Strongest guarantee: rarely needed |
 
 **Guideline:** Use `.relaxed` for simple counters. Use
 `.acquiringAndReleasing` for compare-and-swap patterns. Avoid
-`.sequentiallyConsistent` unless you have a proven need — it is the most
+`.sequentiallyConsistent` unless you have a proven need: it is the most
 expensive ordering.
 
 ### When to Use Atomics vs Mutex
@@ -328,7 +328,7 @@ actor ImageDownloader {
 - **Simple counters or flags.** `Atomic<Int>` or `Atomic<Bool>` is cheaper and
   simpler than creating an actor for a single value.
 - **Availability matters.** `Atomic` from `Synchronization` is iOS 18+; for
-  iOS 16–17, use `OSAllocatedUnfairLock` for synchronous state or an existing
+  iOS 16-17, use `OSAllocatedUnfairLock` for synchronous state or an existing
   package-backed atomic only when the dependency is already accepted.
 
 ```swift
@@ -371,7 +371,7 @@ synchronization and risks deadlocks. This is a lock-inside-actor problem, not an
 `NSLock`-specific problem.
 
 ```swift
-// WRONG: Lock inside an actor — double synchronization
+// WRONG: Lock inside an actor: double synchronization
 actor BadCache {
     let lock = Mutex<[String: Data]>([:])  // Unnecessary!
     // The actor already protects its state

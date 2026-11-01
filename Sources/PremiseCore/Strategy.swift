@@ -1,6 +1,6 @@
 /// Witness-backed generation contract for property strategies.
 ///
-/// A `Strategy` is a pair of closures — one to generate (`draw`) and one to
+/// A `Strategy` is a pair of closures: one to generate (`draw`) and one to
 /// minimise (`shrink`).  Strategies compose via `map`, `flatMap`, `filter`,
 /// `zip`, and other combinators in `PremiseStrategies`.
 ///

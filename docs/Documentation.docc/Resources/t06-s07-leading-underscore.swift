@@ -5,7 +5,7 @@ import PremiseStrategies
 let validator = UsernameValidator()
 let safe = Array("abcdefghijklmnopqrstuvwxyz0123456789")
 
-// Usernames that start with underscore — leading underscore rule.
+// Usernames that start with underscore: leading underscore rule.
 let leadingUnderscoreStrategy = Strategy<String>
   .strings(from: safe, length: 2...19)
   .map { "_" + $0 }  // prepend underscore: always invalid, always right length

@@ -2,7 +2,7 @@
 
 > Scope: Secure Enclave capabilities, constraints, and integration patterns for key generation, persistence, biometric gating, and testability on Apple platforms.
 
-**The Secure Enclave (SE) is Apple's dedicated security coprocessor — a physically isolated chip that generates, stores, and operates on cryptographic keys in silicon that never exposes private key material to the application processor.** Every modern Apple device since iPhone 5s (2013) contains this hardware, but developers routinely misuse it because of subtle API behaviors, simulator traps, and fundamental architectural constraints that AI code generators consistently get wrong. This reference covers CryptoKit's `SecureEnclave` module (iOS 13+), the legacy Security framework path, iOS 26 post-quantum additions, correct and incorrect code patterns, persistence, testing strategies, and the hardware limitations you must design around.
+**The Secure Enclave (SE) is Apple's dedicated security coprocessor: a physically isolated chip that generates, stores, and operates on cryptographic keys in silicon that never exposes private key material to the application processor.** Every modern Apple device since iPhone 5s (2013) contains this hardware, but developers routinely misuse it because of subtle API behaviors, simulator traps, and fundamental architectural constraints that AI code generators consistently get wrong. This reference covers CryptoKit's `SecureEnclave` module (iOS 13+), the legacy Security framework path, iOS 26 post-quantum additions, correct and incorrect code patterns, persistence, testing strategies, and the hardware limitations you must design around.
 
 Primary sources: Apple Platform Security Guide (Secure Enclave chapter), Apple Developer Documentation for CryptoKit `SecureEnclave` types, WWDC 2019 Session 709 "Cryptography and Your Apps," WWDC 2025 "Get ahead with quantum-secure cryptography," Apple DTS documentation "Protecting keys with the Secure Enclave," and "Storing CryptoKit Keys in the Keychain."
 
@@ -43,7 +43,7 @@ The SE is a dedicated security subsystem embedded in Apple's SoC. It has its own
 
 The SE's core guarantee: **private key material generated inside the Secure Enclave never leaves its hardware boundary.** When your code "uses" an SE key, it sends a request through the mailbox, the SE performs the cryptographic operation internally, and only the result (a signature, a shared secret) comes back. There is no API, debug interface, or JTAG path to extract the raw key.
 
-Each SoC has a Unique ID (UID) permanently fused into silicon at manufacturing. This UID is inaccessible to any software (including Apple's) and serves as the root cryptographic key from which all SE keys derive. This is what makes keys irrevocably device-bound.
+Each SoC has a Unique ID (UID) permanently fused into silicon at manufacturing. This UID is inaccessible to any software (including Apple's) and acts as the root cryptographic key from which all SE keys derive. This is what makes keys irrevocably device-bound.
 
 **Devices with Secure Enclave:** All iPhones from iPhone 5s onward (A7+ chips), all iPads from iPad Air onward, Apple Watch Series 1+, Apple TV HD (4th gen) onward, HomePod, all Macs with T1/T2/M-series chips, and Apple Vision Pro. Intel Macs without T1 or T2 chips (pre-2016 MacBook Pro, pre-2018 MacBook Air, pre-2020 iMac except iMac Pro) do **not** have a Secure Enclave.
 
@@ -51,15 +51,15 @@ Each SoC has a Unique ID (UID) permanently fused into silicon at manufacturing. 
 
 ## Hardware limitations you must design around
 
-These constraints are architectural, not bugs — they are fundamental to the SE's security model:
+These constraints are architectural, not bugs: they are fundamental to the SE's security model:
 
-- **P-256 only for classical EC** — No P-384, P-521, Curve25519, or secp256k1. CryptoKit has no `SecureEnclave.P384` or `SecureEnclave.Curve25519` types. iOS 26 adds lattice-based post-quantum algorithms (ML-KEM, ML-DSA), not additional curves.
-- **No symmetric key operations** — The internal AES engine handles Data Protection and FileVault but is **not exposed as a developer API**. There is no `SecureEnclave.AES`.
-- **No key export** — `SecKeyCopyExternalRepresentation()` on an SE private key fails. The `dataRepresentation` property returns an encrypted opaque blob, not raw key material.
-- **No key import** — Keys must be generated inside the SE. `init(dataRepresentation:)` accepts only the opaque blob from a previously created SE key — not arbitrary key material. There is no `init(rawRepresentation:)` on SE key types.
-- **Device-bound** — Keys are tied to the device's UID fused at manufacturing. They do not survive factory resets, cannot be backed up to iCloud, cannot sync via iCloud Keychain, and cannot be transferred to a replacement device.
-- **Limited storage** — Treat SE key storage as scarce and reserve it for high-value keys. For bulk data, use an SE-protected root key to derive or unwrap software symmetric keys.
-- **Performance overhead** — Each operation requires an interrupt-driven round-trip to the isolated coprocessor. The SE is not suitable for high-frequency operations (thousands of signatures per second). Batch signing or bulk encryption should use SE-derived symmetric keys instead.
+- **P-256 only for classical EC**: No P-384, P-521, Curve25519, or secp256k1. CryptoKit has no `SecureEnclave.P384` or `SecureEnclave.Curve25519` types. iOS 26 adds lattice-based post-quantum algorithms (ML-KEM, ML-DSA), not additional curves.
+- **No symmetric key operations**: The internal AES engine handles Data Protection and FileVault but is **not exposed as a developer API**. There is no `SecureEnclave.AES`.
+- **No key export**: `SecKeyCopyExternalRepresentation()` on an SE private key fails. The `dataRepresentation` property returns an encrypted opaque blob, not raw key material.
+- **No key import**: Keys must be generated inside the SE. `init(dataRepresentation:)` accepts only the opaque blob from a previously created SE key: not arbitrary key material. There is no `init(rawRepresentation:)` on SE key types.
+- **Device-bound**: Keys are tied to the device's UID fused at manufacturing. They do not survive factory resets, cannot be backed up to iCloud, cannot sync via iCloud Keychain, and cannot be transferred to a replacement device.
+- **Limited storage**: Treat SE key storage as scarce and reserve it for high-value keys. For bulk data, use an SE-protected root key to derive or unwrap software symmetric keys.
+- **Performance overhead**: Each operation requires an interrupt-driven round-trip to the isolated coprocessor. The SE is not suitable for high-frequency operations (thousands of signatures per second). Batch signing or bulk encryption should use SE-derived symmetric keys instead.
 
 ---
 
@@ -72,7 +72,7 @@ Two operation families are supported: **signing** (`SecureEnclave.P256.Signing`)
 ### Creating signing keys
 
 ```swift
-// ✅ CORRECT: Robust availability check + key creation
+// ✅ CORRECT: Defensive availability check + key creation
 import CryptoKit
 
 func createSigningKey() throws -> SecureEnclave.P256.Signing.PrivateKey {
@@ -92,17 +92,17 @@ enum SecureEnclaveError: Error {
 }
 ```
 
-The `#if targetEnvironment(simulator)` compile-time guard is essential. **`SecureEnclave.isAvailable` can return `true` on the Simulator** when the host Mac has SE hardware (T2/M-series), but actual key generation fails at runtime. This behavior varies across Xcode versions — some return `false` consistently, others reflect the host's hardware. The compile-time check eliminates the ambiguity entirely.
+The `#if targetEnvironment(simulator)` compile-time guard is essential. **`SecureEnclave.isAvailable` can return `true` on the Simulator** when the host Mac has SE hardware (T2/M-series), but actual key generation fails at runtime. This behavior varies across Xcode versions: some return `false` consistently, others reflect the host's hardware. The compile-time check eliminates the ambiguity entirely.
 
 ```swift
-// ❌ INCORRECT: No availability check — crashes on simulator and old devices
+// ❌ INCORRECT: No availability check: crashes on simulator and old devices
 let key = try SecureEnclave.P256.Signing.PrivateKey()
 // Simulator: error -25293 or EXC_BAD_ACCESS depending on Xcode version
 ```
 
 ### Signing and verification
 
-Once you have an SE key, signing is straightforward. The SE performs ECDSA internally and returns a standard `P256.Signing.ECDSASignature`. Verification uses the public key — a regular `P256.Signing.PublicKey` that can be freely exported and used anywhere:
+Once you have an SE key, signing is straightforward. The SE performs ECDSA internally and returns a standard `P256.Signing.ECDSASignature`. Verification uses the public key: a regular `P256.Signing.PublicKey` that can be freely exported and used anywhere:
 
 ```swift
 // ✅ Sign with SE key, verify with public key
@@ -112,7 +112,7 @@ let message = "Transfer $500 to Alice".data(using: .utf8)!
 // Signing happens inside the Secure Enclave hardware
 let signature = try privateKey.signature(for: message)
 
-// Public key is standard P256 — works anywhere, export as DER for servers
+// Public key is standard P256: works anywhere, export as DER for servers
 let publicKey = privateKey.publicKey
 let isValid = publicKey.isValidSignature(signature, for: message) // true
 
@@ -123,7 +123,7 @@ let publicDER = publicKey.derRepresentation       // Register with backend
 
 ### Key agreement (ECDH) with HKDF derivation
 
-`SecureEnclave.P256.KeyAgreement.PrivateKey` performs Elliptic Curve Diffie-Hellman inside the SE. The resulting `SharedSecret` is then derived into a usable symmetric key via HKDF — this is the **only correct path to symmetric encryption** when starting from an SE key:
+`SecureEnclave.P256.KeyAgreement.PrivateKey` performs Elliptic Curve Diffie-Hellman inside the SE. The resulting `SharedSecret` is then derived into a usable symmetric key via HKDF: this is the **only correct path to symmetric encryption** when starting from an SE key:
 
 ```swift
 // ✅ CORRECT: ECDH key agreement → HKDF → AES-GCM
@@ -150,17 +150,17 @@ let sealedBox = try AES.GCM.seal(plaintext, using: symmetricKey)
 
 ```swift
 // ❌ WRONG: There is no SE symmetric API
-// SecureEnclave.AES.GCM.seal(data, using: seKey) — DOES NOT EXIST
-// AES.GCM.seal(data, using: seSigningKey) — TYPE MISMATCH (needs SymmetricKey)
+// SecureEnclave.AES.GCM.seal(data, using: seKey): DOES NOT EXIST
+// AES.GCM.seal(data, using: seSigningKey): TYPE MISMATCH (needs SymmetricKey)
 ```
 
-> The ECDH + HKDF pattern is covered in full — including curve selection, `info` parameter guidance, and output key length — in `cryptokit-public-key.md` § Key Agreement with HKDF Derivation.
+> The ECDH + HKDF pattern is covered in full, including curve selection, `info` parameter guidance, and output key length, in `cryptokit-public-key.md` § Key Agreement with HKDF Derivation.
 
 ---
 
 ## Persisting SE keys via dataRepresentation
 
-CryptoKit SE keys are **ephemeral by default** — if you don't persist the `dataRepresentation`, the key reference is lost when the app terminates. The `dataRepresentation` property returns an opaque encrypted blob that only the same Secure Enclave on the same device can use to reconstruct the key. It is emphatically **not** the raw private key.
+CryptoKit SE keys are **ephemeral by default**: if you don't persist the `dataRepresentation`, the key reference is lost when the app terminates. The `dataRepresentation` property returns an opaque encrypted blob that only the same Secure Enclave on the same device can use to reconstruct the key. It is emphatically **not** the raw private key.
 
 ```swift
 // ✅ Persist SE key to keychain and retrieve later
@@ -201,12 +201,12 @@ guard fetchStatus == errSecSuccess, let storedBlob = item as? Data else {
 let restoredKey = try SecureEnclave.P256.Signing.PrivateKey(
     dataRepresentation: storedBlob
 )
-// restoredKey is fully functional — operations route to the same SE key
+// restoredKey is fully functional: operations route to the same SE key
 ```
 
 On macOS, add `kSecUseDataProtectionKeychain: true` to target the modern data protection keychain rather than the legacy file-based keychain. On iOS/tvOS/watchOS this flag is redundant but harmless.
 
-**Always use `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`** for SE key blobs — the key is device-bound anyway, and syncable accessibility levels would store the blob on iCloud servers where it is useless (the SE that can decrypt it isn't there).
+**Always use `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`** for SE key blobs: the key is device-bound anyway, and syncable accessibility levels would store the blob on iCloud servers where it is useless (the SE that can decrypt it isn't there).
 
 ---
 
@@ -271,9 +271,9 @@ let badControl = SecAccessControlCreateWithFlags(
 
 **Access control flag selection:**
 
-- **`.biometryCurrentSet`** — Strongest. Key is permanently invalidated when the user re-enrolls biometrics (adds a new fingerprint, re-registers Face ID). Best for banking/healthcare. Requires re-keying logic when invalidation occurs.
-- **`.biometryAny`** — Key survives biometric re-enrollment. Good balance of security and convenience for most apps.
-- **`.userPresence`** — Accepts biometric or device passcode. Most flexible; use when you just need proof that a human is present.
+- **`.biometryCurrentSet`**: Strongest. Key is permanently invalidated when the user re-enrolls biometrics (adds a new fingerprint, re-registers Face ID). Best for banking/healthcare. Requires re-keying logic when invalidation occurs.
+- **`.biometryAny`**: Key survives biometric re-enrollment. Good balance of security and convenience for most apps.
+- **`.userPresence`**: Accepts biometric or device passcode. Most flexible; use when you just need proof that a human is present.
 
 **Critical operational note:** If you use `.biometryCurrentSet` and the user changes their enrolled biometrics, the key becomes **permanently unusable**. Your app must detect `errSecItemNotFound` or authentication errors, explain to the user why re-authentication is needed, and generate a fresh key with server-side re-enrollment. (See `biometric-authentication.md` for full LAContext integration patterns.)
 
@@ -284,7 +284,7 @@ let badControl = SecAccessControlCreateWithFlags(
 Before CryptoKit, SE keys were created via `SecKeyCreateRandomKey` with `kSecAttrTokenIDSecureEnclave`. This still works and is necessary when targeting pre-iOS 13 or working with certificate-based identity operations:
 
 ```swift
-// Legacy approach — functional but verbose; prefer CryptoKit for new code
+// Legacy approach: functional but verbose; prefer CryptoKit for new code
 import Security
 
 func legacyCreateSEKey(tag: String) throws -> SecKey {
@@ -322,8 +322,8 @@ CryptoKit is preferred for new code because it provides compile-time type safety
 
 WWDC 2025 session "Get ahead with quantum-secure cryptography" announced the most significant expansion of the SE's developer-facing capabilities since its 2013 introduction. Starting with **iOS 26, macOS 26, and all 2025 platform releases**, four new algorithm families are available:
 
-- **`SecureEnclave.MLKEM768`** and **`SecureEnclave.MLKEM1024`** — Post-quantum key encapsulation (FIPS 203). Hardware-isolated ML-KEM operations for quantum-resistant key exchange.
-- **`SecureEnclave.MLDSA65`** and **`SecureEnclave.MLDSA87`** — Post-quantum digital signatures (FIPS 204). Hardware-isolated ML-DSA signing resistant to quantum attacks.
+- **`SecureEnclave.MLKEM768`** and **`SecureEnclave.MLKEM1024`**: Post-quantum key encapsulation (FIPS 203). Hardware-isolated ML-KEM operations for quantum-resistant key exchange.
+- **`SecureEnclave.MLDSA65`** and **`SecureEnclave.MLDSA87`**: Post-quantum digital signatures (FIPS 204). Hardware-isolated ML-DSA signing resistant to quantum attacks.
 
 These are **hardware-backed**, not software-only. Apple confirmed SE support explicitly. The implementations are formally verified as functionally equivalent to their FIPS specifications.
 
@@ -337,20 +337,20 @@ These are **hardware-backed**, not software-only. Apple confirmed SE support exp
 | ----------------------- | -------------------------------------------------------------------------------------------------- |
 | **iOS 13** (2019)       | CryptoKit introduced: `SecureEnclave.P256.Signing`, `.P256.KeyAgreement`, `.isAvailable`           |
 | **iOS 14** (2020)       | No SE changes. Added HKDF, PEM/DER format support                                                  |
-| **iOS 15–16** (2021–22) | No SE changes                                                                                      |
+| **iOS 15-16** (2021-22) | No SE changes                                                                                      |
 | **iOS 17** (2023)       | No SE changes. HPKE added (software-only). iMessage PQ3 shipped in 17.4                            |
 | **iOS 18** (2024)       | No SE changes                                                                                      |
 | **iOS 26** (2025)       | **Major expansion**: `.MLKEM768`, `.MLKEM1024`, `.MLDSA65`, `.MLDSA87`. Quantum-secure TLS default |
 
-The SE's classical elliptic curve support remains **P-256 only** — the expansion is entirely into lattice-based post-quantum algorithms.
+The SE's classical elliptic curve support remains **P-256 only**: the expansion is entirely into lattice-based post-quantum algorithms.
 
-> For the full post-quantum algorithm catalog — including software-only types, X-Wing hybrid KEM construction, key/signature size trade-offs, HPKE integration patterns, and hybrid classical+PQ signing — see `cryptokit-public-key.md` § Post-Quantum Cryptography (iOS 26+). This section covers the hardware-backed SE variants specifically.
+> For the full post-quantum algorithm catalog, including software-only types, X-Wing hybrid KEM construction, key/signature size trade-offs, HPKE integration patterns, and hybrid classical+PQ signing, see `cryptokit-public-key.md` § Post-Quantum Cryptography (iOS 26+). This section covers the hardware-backed SE variants specifically.
 
 ---
 
 ## When to use SE versus software keys
 
-**Use the Secure Enclave for:** root signing keys, device attestation, transaction authorization, biometric-gated authentication, and any scenario where proving key possession on a specific physical device matters. The non-exportability guarantee is the core value — an attacker who compromises the application processor still cannot extract the private key.
+**Use the Secure Enclave for:** root signing keys, device attestation, transaction authorization, biometric-gated authentication, and any scenario where proving key possession on a specific physical device matters. The non-exportability guarantee is the core value: an attacker who compromises the application processor still cannot extract the private key.
 
 **Use standard keychain (software keys) for:** session tokens, API keys, symmetric encryption keys, keys requiring algorithms beyond P-256 (RSA, P-384, Ed25519), keys that must sync via iCloud Keychain, keys that need to survive device replacement, and high-throughput operations requiring thousands of operations per second.
 
@@ -366,10 +366,10 @@ These patterns appear routinely in LLM-generated code. Each reflects a misunders
 
 ### 1. Not checking isAvailable (and the simulator double-trap)
 
-The minimal check is `SecureEnclave.isAvailable`, but this alone is insufficient on the simulator. The robust pattern combines compile-time and runtime checks:
+The minimal check is `SecureEnclave.isAvailable`, but this alone is insufficient on the simulator. The defensive pattern combines compile-time and runtime checks:
 
 ```swift
-// ✅ Robust availability check — safe everywhere
+// ✅ Defensive availability check: safe everywhere
 var canUseSecureEnclave: Bool {
     #if targetEnvironment(simulator)
     return false
@@ -474,7 +474,7 @@ final class MockSigningKey: SigningKeyProvider {
 ### Factory with SE → software fallback
 
 ```swift
-// ✅ Runtime factory — SE when available, software otherwise
+// ✅ Runtime factory: SE when available, software otherwise
 struct SigningKeyFactory {
     static func create() throws -> SigningKeyProvider {
         #if targetEnvironment(simulator)
@@ -489,7 +489,7 @@ struct SigningKeyFactory {
 }
 ```
 
-Both SE and software implementations produce **identical P256 ECDSA signatures** — verification code works the same regardless of which implementation created the key.
+Both SE and software implementations produce **identical P256 ECDSA signatures**: verification code works the same regardless of which implementation created the key.
 
 ### XCTest patterns
 
@@ -526,7 +526,7 @@ final class AuthServiceTests: XCTestCase {
 
 ### CI/CD reality
 
-GitHub Actions macOS runners (both arm64 and Intel) run in VMs where the **Secure Enclave is not accessible** — the Apple Virtualization Framework does not pass through SE access to guest VMs. Self-hosted runners on physical Mac hardware (Mac mini M-series, MacBook Pro with T2) do have SE access. Xcode Cloud runs on Apple silicon but SE availability depends on the specific cloud configuration.
+GitHub Actions macOS runners (both arm64 and Intel) run in VMs where the **Secure Enclave is not accessible**: the Apple Virtualization Framework does not pass through SE access to guest VMs. Self-hosted runners on physical Mac hardware (Mac mini M-series, MacBook Pro with T2) do have SE access. Xcode Cloud runs on Apple silicon but SE availability depends on the specific cloud configuration.
 
 **Practical CI approach:** Run unit tests with mocks on CI; run SE integration tests only on physical device test farms or self-hosted runners; tag SE-specific tests with `XCTSkip` guards for conditional execution. (See `testing-security-code.md` for comprehensive CI/CD patterns.)
 
@@ -545,7 +545,7 @@ Treat SE keys as **ephemeral, device-bound artifacts** rather than permanent use
 
 ## Conclusion
 
-The Secure Enclave's developer surface was remarkably stable from iOS 13 to iOS 25 — `SecureEnclave.P256` was the entire API. iOS 26 broke open the boundary with post-quantum ML-KEM and ML-DSA, the first algorithm expansion in the SE's 12-year history. The practical insight is that **correct SE usage is more about what you don't do** (don't skip availability checks, don't try to import keys, don't assume portability, don't use the SE for symmetric encryption) than complex API choreography. The CryptoKit API is deliberately minimal and hard to misuse, which is its greatest strength.
+The Secure Enclave's developer surface was remarkably stable from iOS 13 to iOS 25: `SecureEnclave.P256` was the entire API. iOS 26 broke open the boundary with post-quantum ML-KEM and ML-DSA, the first algorithm expansion in the SE's 12-year history. The practical insight is that **correct SE usage is more about what you don't do** (don't skip availability checks, don't try to import keys, don't assume portability, don't use the SE for symmetric encryption) than complex API choreography. The CryptoKit API is deliberately minimal and hard to misuse, which is its greatest strength.
 
 For new projects, the recommended architecture is: protocol-based abstraction around signing and key agreement; SE implementation as primary with software P256 fallback; `dataRepresentation` persisted in the keychain as `kSecClassGenericPassword` with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`; biometric access control for high-value keys; server-side public key registration with re-keying support for device replacement; and `XCTSkip`-guarded integration tests on physical hardware.
 
@@ -553,14 +553,14 @@ For new projects, the recommended architecture is: protocol-based abstraction ar
 
 ## Summary Checklist
 
-1. **Availability guard** — Always combine `#if targetEnvironment(simulator)` (compile-time) with `SecureEnclave.isAvailable` (runtime) before any SE key creation. Never assume SE is present.
-2. **No key import** — SE keys must be generated inside the hardware. `init(dataRepresentation:)` reconstructs existing SE keys only — it cannot import external key material.
-3. **No symmetric encryption** — The SE does not expose AES to developers. Use ECDH → HKDF → `AES.GCM` for encryption workflows starting from an SE key.
-4. **Device-bound design** — SE keys cannot be backed up, synced, or transferred. Build server-side re-enrollment flows for device replacement from day one.
-5. **Persist dataRepresentation** — Store the opaque encrypted blob in the keychain as `kSecClassGenericPassword` with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. Without persistence, keys are lost on app termination.
-6. **Include .privateKeyUsage** — When creating `SecAccessControl` for biometric-gated SE keys, always include `.privateKeyUsage` alongside the biometric flag. Omitting it causes signing to fail silently.
-7. **Handle biometric invalidation** — `.biometryCurrentSet` keys are permanently invalidated on biometric re-enrollment. Detect the error and trigger re-keying with server notification.
-8. **Protocol abstraction** — Abstract SE operations behind a protocol with SE, software, and mock implementations for testability. Both SE and software P256 produce identical signature formats.
-9. **CryptoKit over Security framework** — Use `SecureEnclave.P256.Signing.PrivateKey` (CryptoKit) instead of `SecKeyCreateRandomKey` + `kSecAttrTokenIDSecureEnclave` for new code. Reserve the Security framework for certificates and pre-iOS 13 targets.
-10. **iOS 26 post-quantum** — `SecureEnclave.MLKEM768/1024` and `.MLDSA65/87` are hardware-backed. For custom E2E encryption, adopt hybrid constructions (classical + PQC). `URLSession` TLS upgrades automatically.
-11. **CI/CD skip guards** — Use `XCTSkip` for SE-specific tests in CI. GitHub Actions VMs do not have SE access. Run SE integration tests only on physical hardware or device farms.
+1. **Availability guard**: Always combine `#if targetEnvironment(simulator)` (compile-time) with `SecureEnclave.isAvailable` (runtime) before any SE key creation. Never assume SE is present.
+2. **No key import**: SE keys must be generated inside the hardware. `init(dataRepresentation:)` reconstructs existing SE keys only: it cannot import external key material.
+3. **No symmetric encryption**: The SE does not expose AES to developers. Use ECDH → HKDF → `AES.GCM` for encryption workflows starting from an SE key.
+4. **Device-bound design**: SE keys cannot be backed up, synced, or transferred. Build server-side re-enrollment flows for device replacement from day one.
+5. **Persist dataRepresentation**: Store the opaque encrypted blob in the keychain as `kSecClassGenericPassword` with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. Without persistence, keys are lost on app termination.
+6. **Include .privateKeyUsage**: When creating `SecAccessControl` for biometric-gated SE keys, always include `.privateKeyUsage` alongside the biometric flag. Omitting it causes signing to fail silently.
+7. **Handle biometric invalidation**: `.biometryCurrentSet` keys are permanently invalidated on biometric re-enrollment. Detect the error and trigger re-keying with server notification.
+8. **Protocol abstraction**: Abstract SE operations behind a protocol with SE, software, and mock implementations for testability. Both SE and software P256 produce identical signature formats.
+9. **CryptoKit over Security framework**: Use `SecureEnclave.P256.Signing.PrivateKey` (CryptoKit) instead of `SecKeyCreateRandomKey` + `kSecAttrTokenIDSecureEnclave` for new code. Reserve the Security framework for certificates and pre-iOS 13 targets.
+10. **iOS 26 post-quantum**: `SecureEnclave.MLKEM768/1024` and `.MLDSA65/87` are hardware-backed. For custom E2E encryption, adopt hybrid constructions (classical + PQC). `URLSession` TLS upgrades automatically.
+11. **CI/CD skip guards**: Use `XCTSkip` for SE-specific tests in CI. GitHub Actions VMs do not have SE access. Run SE integration tests only on physical hardware or device farms.

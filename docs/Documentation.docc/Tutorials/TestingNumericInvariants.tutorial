@@ -1,6 +1,6 @@
 @Tutorial(time: 15) {
    @Intro(title: "Testing Numeric Invariants") {
-      Mathematical laws — commutativity, associativity, identity elements —
+      Mathematical laws, commutativity, associativity, identity elements,
       make excellent properties. They're universally quantified statements
       about your code that hold for any valid input.
    }
@@ -16,7 +16,7 @@
          - **Idempotence**: `f(f(x)) == f(x)`
 
          If your function claims to implement one of these operations, you can
-         verify it holds for all generated inputs — not just the examples you
+         verify it holds for all generated inputs: not just the examples you
          thought of.
       }
       @Steps {
@@ -48,7 +48,7 @@
    @Section(title: "Associativity") {
       @ContentAndMedia {
          Associativity means grouping doesn't matter:
-         `add(add(a,b), c) == add(a, add(b,c))`. This is crucial for operations
+         `add(add(a,b), c) == add(a, add(b,c))`. This is essential for operations
          used in fold/reduce pipelines, where the grouping of operations varies.
       }
       @Steps {

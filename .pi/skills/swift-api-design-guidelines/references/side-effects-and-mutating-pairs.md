@@ -12,7 +12,7 @@ Extended examples for side-effect naming, the -ed/-ing decision tree, form- pref
 
 ## Side-Effect Naming Extended Examples
 
-### Mutating — imperative verbs
+### Mutating: imperative verbs
 
 Methods that change the receiver's state use imperative verb form.
 
@@ -25,7 +25,7 @@ dictionary.updateValue(newValue, forKey: key)
 buffer.replaceSubrange(range, with: newElements)
 ```
 
-### Nonmutating — nouns, past participles, descriptions
+### Nonmutating: nouns, past participles, descriptions
 
 Methods that return a value without changing the receiver use a form that describes the result.
 
@@ -38,19 +38,19 @@ let successor = index.advanced(by: 1)
 let prefix = array.prefix(3)
 ```
 
-### Mixed — same type, both variants
+### Mixed: same type, both variants
 
 When both exist, the naming makes the difference obvious at every call site.
 
 ```swift
 // Mutating
 array.sort()
-// Nonmutating — returns new value
+// Nonmutating: returns new value
 let newArray = array.sorted()
 
 // Mutating
 set.formUnion(other)
-// Nonmutating — returns new value
+// Nonmutating: returns new value
 let combined = set.union(other)
 ```
 
@@ -105,30 +105,30 @@ The `form` prefix applies only to noun-described operations where the nonmutatin
 Do not apply `form` to verb-described operations. The imperative verb form is already the mutating version.
 
 ```swift
-// WRONG — sort is a verb, not a noun
+// WRONG: sort is a verb, not a noun
 mutating func formSort()       // ✗
 mutating func sort()           // ✓
 
-// WRONG — append is a verb
+// WRONG: append is a verb
 mutating func formAppend(_:)   // ✗
 mutating func append(_:)       // ✓
 ```
 
-The `form` prefix exists because the noun form (`union`) is naturally the nonmutating name, and the mutating version needs a distinct name. Verbs do not have this problem — the imperative (`sort`) and participle (`sorted`) are already distinct.
+The `form` prefix exists because the noun form (`union`) is naturally the nonmutating name, and the mutating version needs a distinct name. Verbs do not have this problem: the imperative (`sort`) and participle (`sorted`) are already distinct.
 
 ## Boolean Naming Patterns
 
 Boolean properties and methods read as assertions about the receiver. They answer a yes/no question.
 
 ```swift
-// Properties — "is" prefix for adjectives
+// Properties: "is" prefix for adjectives
 line.isEmpty
 url.isFileURL
 connection.isSecure
 view.isHidden
 option.isEnabled
 
-// Properties — no prefix for verb phrases
+// Properties: no prefix for verb phrases
 set.contains(element)        // "set contains element"
 string.hasPrefix("https")    // "string has prefix"
 array.canAppend(element)     // "array can append element"
@@ -144,12 +144,12 @@ node.leaf           // noun, not an assertion
 Factory methods that create and return a new value use the `make` prefix. This distinguishes them from initializers and from methods that return existing values.
 
 ```swift
-// GOOD — factory creates a new value
+// GOOD: factory creates a new value
 let iterator = collection.makeIterator()
 let buffer = parser.makeBuffer()
 let snapshot = store.makeSnapshot()
 
-// BAD — wrong prefix
+// BAD: wrong prefix
 let iterator = collection.createIterator()    // use "make"
 let buffer = parser.buildBuffer()             // use "make"
 let snapshot = store.getSnapshot()            // "get" implies retrieval, not creation

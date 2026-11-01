@@ -40,7 +40,7 @@ extension UTType {
 }
 ```
 
-Representation order matters — place the most specific first, with broader fallbacks after.
+Representation order matters: place the most specific first, with broader fallbacks after.
 
 ### Common transferable values
 
@@ -235,10 +235,10 @@ extension Report: Transferable {
 ### Pitfalls
 
 - Always declare custom `UTType` identifiers in Info.plist under Exported/Imported Type Identifiers.
-- Representation order matters — the first matching representation wins. Put the richest format first.
+- Representation order matters: the first matching representation wins. Put the richest format first.
 - `FileRepresentation` files are temporary; copy them if you need to persist.
 - Keep custom `UTType` declarations and transfer code in modules that are visible to every app target or extension that imports, exports, drags, or shares the type.
-- Test drag and drop on device — Simulator haptics and drop targeting differ from hardware.
+- Test drag and drop on device: Simulator haptics and drop targeting differ from hardware.
 
 ## Media Patterns
 
@@ -314,7 +314,7 @@ struct AppRoot: View {
 ### Pitfalls
 
 - Avoid loading full-size images in list rows; use resized previews.
-- Don’t present multiple viewer sheets at once; keep a single source of truth.
+- Don't present multiple viewer sheets at once; keep a single source of truth.
 
 ## Top Bar Overlays
 
@@ -363,7 +363,7 @@ content
 
 ### Pitfalls
 
-- Don’t stack multiple top insets; it can create extra padding.
+- Don't stack multiple top insets; it can create extra padding.
 - Avoid heavy, opaque backgrounds that fight the navigation bar.
 
 ## Title Menus
@@ -457,7 +457,7 @@ ToolbarItem(placement: .principal) {
 
 ### Pitfalls
 
-- Don’t overload the menu with too many options.
+- Don't overload the menu with too many options.
 - Avoid using title menus for destructive actions.
 
 ## Input Toolbar
@@ -624,7 +624,7 @@ struct ItemCommands: Commands {
 ### Pitfalls
 
 - Avoid registering the same keyboard shortcut in multiple command groups.
-- Don’t use menu items as the only discoverable entry point for critical features.
+- Don't use menu items as the only discoverable entry point for critical features.
 
 ## macOS Settings
 
@@ -697,5 +697,5 @@ struct SettingsView: View {
 
 ### Pitfalls
 
-- Don’t reuse iOS-only settings layouts (full-screen stacks, toolbar-heavy flows).
+- Don't reuse iOS-only settings layouts (full-screen stacks, toolbar-heavy flows).
 - Avoid large custom view hierarchies inside `Form`; keep rows focused and accessible.

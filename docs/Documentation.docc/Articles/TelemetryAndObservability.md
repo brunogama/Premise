@@ -4,7 +4,7 @@ Observe the engine's lifecycle events without affecting test results.
 
 ## Overview
 
-`PremiseTelemetry` provides a lightweight, actor-based observability layer for the Premise engine. It lets you log run progress, collect metrics, drive dashboards, or feed data into your CI observability pipeline — all without modifying the engine's core behaviour.
+`PremiseTelemetry` provides a lightweight, actor-based observability layer for the Premise engine. It lets you log run progress, collect metrics, drive dashboards, or feed data into your CI observability pipeline: all without modifying the engine's core behaviour.
 
 The design principle is strict: telemetry observers can only *read* events. They cannot modify traces, values, or results. The engine remains deterministic regardless of what telemetry sinks are attached.
 
@@ -33,7 +33,7 @@ public protocol TelemetrySink: Sendable {
 }
 ```
 
-Implement this to receive events. The `async` signature gives your implementation freedom to forward events to an actor, write to a file, post to a metrics endpoint, or anything else — without blocking the engine.
+Implement this to receive events. The `async` signature gives your implementation freedom to forward events to an actor, write to a file, post to a metrics endpoint, or anything else: without blocking the engine.
 
 ### TelemetryRelay
 
@@ -159,7 +159,7 @@ In V2, ``PropertyConfig`` will gain a `telemetry` field so sinks are attached di
 
 - `TelemetrySink.record` is `async`. If your sink does significant work (network I/O, disk writes), ensure it doesn't introduce latency that compounds across hundreds of runs.
 - For high-run-count properties, consider batching events in your sink instead of forwarding each one immediately.
-- If you don't need telemetry in production CI, don't register any sinks — the relay returns immediately when the sink list is empty.
+- If you don't need telemetry in production CI, don't register any sinks: the relay returns immediately when the sink list is empty.
 
 ## Next Steps
 

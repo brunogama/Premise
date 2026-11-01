@@ -4,7 +4,7 @@ How Premise saves failing traces and replays them automatically on future runs.
 
 ## The Problem: Flaky Failures
 
-Property-based tests are random. Without persistence, a test that fails once might not fail again on the next run — the engine just happens to generate different inputs. This is a major problem in CI: a test that fails on a branch might not fail on a rerun, making it hard to confirm a fix.
+Property-based tests are random. Without persistence, a test that fails once might not fail again on the next run: the engine just happens to generate different inputs. This is a major problem in CI: a test that fails on a branch might not fail on a rerun, making it hard to confirm a fix.
 
 Premise solves this with **replay-first execution**. Every minimised failure is saved to disk as a ``ChoiceTrace``. On the next run, the engine replays all stored traces *before* generating any fresh inputs. If the failure is still present, it's caught deterministically. If the fix is in place, the replay passes and the stored trace is no longer needed.
 
@@ -159,7 +159,7 @@ Run 3 (after fix is applied):
 (Stored trace T remains in .premise/examples/)
 ```
 
-> Note: The stored trace is not automatically deleted when a test passes. This is intentional — the trace serves as a permanent regression case. Delete it manually or via `database.clear(for:)` if you no longer want it replayed.
+> Note: The stored trace is not automatically deleted when a test passes. This is intentional: the trace acts as a permanent regression case. Delete it manually or via `database.clear(for:)` if you no longer want it replayed.
 
 ## Committing Failure Files
 
@@ -169,11 +169,11 @@ The `.premise/examples/` directory should typically be **committed to version co
 - Fixes are verified against the exact trace that originally failed
 - The trace history documents what bugs were found and fixed
 
-Add it to your repository alongside your source code. If you prefer not to commit it, add `.premise/` to `.gitignore` — but be aware that failures will not persist across machines.
+Add it to your repository alongside your source code. If you prefer not to commit it, add `.premise/` to `.gitignore`: but be aware that failures will not persist across machines.
 
 ## Using a Custom Database
 
-You can provide a custom ``/PremiseDatabase/ExampleDatabase`` implementation — for example, one backed by SQLite, an in-memory store for fast CI, or a remote key-value service:
+You can provide a custom ``/PremiseDatabase/ExampleDatabase`` implementation: for example, one backed by SQLite, an in-memory store for fast CI, or a remote key-value service:
 
 ```swift
 // Use an in-memory store for isolated unit tests

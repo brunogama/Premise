@@ -2,7 +2,7 @@
 
 > Scope: Access-group design and entitlement correctness for sharing keychain items across app targets, extensions, and devices.
 
-Keychain access groups are the sole mechanism for sharing credentials between apps and extensions on Apple platforms. Correct configuration requires exact Team ID prefixes, per-target entitlements, and explicit `kSecAttrAccessGroup` usage in code — three requirements that most AI-generated code gets wrong. This reference covers access group mechanics, the two entitlement systems, correct and incorrect Swift patterns, macOS-specific requirements, iCloud sync, platform edge cases, and debugging strategies. All guidance reflects current Apple-platform behavior in the iOS 26 and macOS 26 SDK generation.
+Keychain access groups are the sole mechanism for sharing credentials between apps and extensions on Apple platforms. Correct configuration requires exact Team ID prefixes, per-target entitlements, and explicit `kSecAttrAccessGroup` usage in code: three requirements that most AI-generated code gets wrong. This reference covers access group mechanics, the two entitlement systems, correct and incorrect Swift patterns, macOS-specific requirements, iCloud sync, platform edge cases, and debugging strategies. All guidance reflects current Apple-platform behavior in the iOS 26 and macOS 26 SDK generation.
 
 **Authoritative sources:** Apple "Sharing Access to Keychain Items Among a Collection of Apps" documentation, TN3137 "On Mac Keychain APIs and Implementations," Apple Platform Security Guide (iCloud Keychain syncing), Quinn "The Eskimo!" DTS forum posts "SecItem: Fundamentals" and "SecItem: Pitfalls and Best Practices" (updated May 2025), Configuring Keychain Sharing documentation.
 
@@ -41,19 +41,19 @@ Keychain access groups are the sole mechanism for sharing credentials between ap
   - [Debugging Checklist](#debugging-checklist)
   - [Test Matrix](#test-matrix)
 - [Security Threat Model Notes](#security-threat-model-notes)
-- [What Changed in 2024–2026](#what-changed-in-20242026)
+- [What Changed in 2024-2026](#what-changed-in-20242026)
 - [Cross-References](#cross-references)
 - [Conclusion](#conclusion)
 - [Summary Checklist](#summary-checklist)
 
 ## How Access Groups Work
 
-Every app belongs to one or more **access groups** — string identifiers that tag which processes can read and write specific keychain items. An app can belong to many groups, but each keychain item belongs to **exactly one**. The `securityd` daemon enforces access by checking the calling process's entitlements against the item's group at runtime.
+Every app belongs to one or more **access groups**: string identifiers that tag which processes can read and write specific keychain items. An app can belong to many groups, but each keychain item belongs to **exactly one**. The `securityd` daemon enforces access by checking the calling process's entitlements against the item's group at runtime.
 
 The system constructs a virtual array of access groups for each app by concatenating three sources **in this exact order**:
 
 1. **Keychain access groups** from the `keychain-access-groups` entitlement
-2. **Application identifier** — automatically generated as `TeamID.BundleID` (e.g., `SKMME9E2Y8.com.example.MyApp`)
+2. **Application identifier**: automatically generated as `TeamID.BundleID` (e.g., `SKMME9E2Y8.com.example.MyApp`)
 3. **App groups** from the `com.apple.security.application-groups` entitlement (iOS 8+)
 
 **The first item in this concatenated list becomes the default access group.** When `SecItemAdd` is called without specifying `kSecAttrAccessGroup`, the item lands in that default group. When `SecItemCopyMatching` is called without specifying a group, the search spans **all** groups the app belongs to. This ordering means a keychain access group can be the default (it appears first), but an app group can never be the default because the application identifier always precedes it.
@@ -92,7 +92,7 @@ This entitlement exists solely for sharing keychain items between apps. Identifi
 </plist>
 ```
 
-The `$(AppIdentifierPrefix)` build variable resolves at signing time to the Team ID followed by a dot (e.g., `SKMME9E2Y8.`). In code, the fully resolved string is required — `"SKMME9E2Y8.com.example.SharedItems"` — not just `"com.example.SharedItems"`.
+The `$(AppIdentifierPrefix)` build variable resolves at signing time to the Team ID followed by a dot (e.g., `SKMME9E2Y8.`). In code, the fully resolved string is required, `"SKMME9E2Y8.com.example.SharedItems"`, not just `"com.example.SharedItems"`.
 
 ### App Groups (`com.apple.security.application-groups`)
 
@@ -112,7 +112,7 @@ App Groups share more than keychain items: shared file containers, `UserDefaults
 </plist>
 ```
 
-Since iOS 8, app group names double as keychain access groups — `"group.com.example.AppSuite"` can be used as the `kSecAttrAccessGroup` value. However, App Groups appear last in the access group array and **can never be the default group for new items**. A critical macOS caveat: **app groups cannot be used as keychain access groups on macOS** — this is an iOS/iPadOS-only feature.
+Since iOS 8, app group names double as keychain access groups: `"group.com.example.AppSuite"` can be used as the `kSecAttrAccessGroup` value. However, App Groups appear last in the access group array and **can never be the default group for new items**. A critical macOS caveat: **app groups cannot be used as keychain access groups on macOS**: this is an iOS/iPadOS-only feature.
 
 ### Comparison Table
 
@@ -125,7 +125,7 @@ Since iOS 8, app group names double as keychain access groups — `"group.com.ex
 | **Can be default group**   | Yes (if first in array)                    | No                                                           |
 | **macOS keychain sharing** | Yes (with data protection keychain)        | No                                                           |
 
-Both entitlements can be used simultaneously. If only keychain sharing is needed, use Keychain Sharing. If App Groups are already in use for shared UserDefaults or file containers, they can piggyback for keychain sharing on iOS — but always specify `kSecAttrAccessGroup` explicitly.
+Both entitlements can be used simultaneously. If only keychain sharing is needed, use Keychain Sharing. If App Groups are already in use for shared UserDefaults or file containers, they can piggyback for keychain sharing on iOS: but always specify `kSecAttrAccessGroup` explicitly.
 
 ---
 
@@ -156,12 +156,12 @@ guard status == errSecSuccess else {
 }
 ```
 
-The Team ID must be the **literal 10-character string** from the Apple Developer account, not a build variable — `$(AppIdentifierPrefix)` only works in entitlements plists, not in Swift code.
+The Team ID must be the **literal 10-character string** from the Apple Developer account, not a build variable: `$(AppIdentifierPrefix)` only works in entitlements plists, not in Swift code.
 
 ### Access group without Team ID prefix (most common AI mistake)
 
 ```swift
-// ❌ WRONG — Missing Team ID prefix
+// ❌ WRONG: Missing Team ID prefix
 let accessGroup = "com.example.SharedItems"
 
 let addQuery: [String: Any] = [
@@ -211,7 +211,7 @@ if status == errSecSuccess, let data = result as? Data {
 // Result: errSecMissingEntitlement (-34018)
 ```
 
-**Each executable target — main app, widget extension, share extension, notification extension — needs its own Keychain Sharing entitlement.** Frameworks do not have entitlements; only the targets linking them do. In Xcode: select the extension target → Signing & Capabilities → + Capability → Keychain Sharing → add the same group name.
+**Each executable target, main app, widget extension, share extension, notification extension, needs its own Keychain Sharing entitlement.** Frameworks do not have entitlements; only the targets linking them do. In Xcode: select the extension target → Signing & Capabilities → + Capability → Keychain Sharing → add the same group name.
 
 ### iCloud Keychain sync with `kSecAttrSynchronizable`
 
@@ -230,8 +230,8 @@ let status = SecItemAdd(syncQuery as CFDictionary, nil)
 
 **Critical constraints:**
 
-- Synchronizable items **cannot** use `kSecAttrAccessible` values ending in `ThisDeviceOnly` — the item would never sync. Attempting this silently fails to sync across devices.
-- When querying for synchronizable items, include `kSecAttrSynchronizable: true` or `kSecAttrSynchronizableAny` — otherwise the search excludes them.
+- Synchronizable items **cannot** use `kSecAttrAccessible` values ending in `ThisDeviceOnly`: the item would never sync. Attempting this silently fails to sync across devices.
+- When querying for synchronizable items, include `kSecAttrSynchronizable: true` or `kSecAttrSynchronizableAny`: otherwise the search excludes them.
 - The user must have iCloud Keychain enabled and be signed into the same Apple ID on all target devices.
 - Synchronization is orthogonal to on-device sharing: an item can be both in a shared access group and synchronizable across devices.
 
@@ -248,7 +248,7 @@ let findQuery: [String: Any] = [
 ### Assuming items sync by default
 
 ```swift
-// ❌ WRONG — This item will NOT sync to iCloud Keychain.
+// ❌ WRONG: This item will NOT sync to iCloud Keychain.
 // kSecAttrSynchronizable defaults to false when omitted.
 let addQuery: [String: Any] = [
     kSecClass as String:       kSecClassGenericPassword,
@@ -259,7 +259,7 @@ let addQuery: [String: Any] = [
 ]
 ```
 
-iCloud Keychain sync is **strictly opt-in per item**. Omitting `kSecAttrSynchronizable` or setting it to `false` means the item exists only on the current device. Synchronized items benefit from end-to-end encryption — Apple cannot decrypt the data.
+iCloud Keychain sync is **strictly opt-in per item**. Omitting `kSecAttrSynchronizable` or setting it to `false` means the item exists only on the current device. Synchronized items benefit from end-to-end encryption: Apple cannot decrypt the data.
 
 ---
 
@@ -271,7 +271,7 @@ Extensions are separate sandboxed executable targets that do **not** inherit cap
 
 1. Select the main application target → Signing & Capabilities → + Capability → Keychain Sharing.
 2. Add the desired group identifier (e.g., `com.example.shared`). Xcode auto-prefixes with Team ID in the entitlements file.
-3. **Repeat for every extension target** — select the extension target, add Keychain Sharing, add the **exact same** group identifier.
+3. **Repeat for every extension target**: select the extension target, add Keychain Sharing, add the **exact same** group identifier.
 4. For App Groups: add the App Groups capability to each target and use the same `group.` identifier.
 
 ### Required Entitlements Matrix
@@ -289,9 +289,9 @@ Extensions are separate sandboxed executable targets that do **not** inherit cap
 
 macOS maintains **two completely separate keychain implementations**, and confusing them is a source of endless bugs. Per Apple's TN3137:
 
-**File-based keychain** — the legacy system dating back to Mac OS X. Uses Access Control Lists (`SecAccess`), stores items in `.keychain-db` files, and is the default target for `SecItem` API calls on macOS. Does not support iCloud Keychain, biometrics, Secure Enclave keys, or access groups.
+**File-based keychain**: the legacy system dating back to Mac OS X. Uses Access Control Lists (`SecAccess`), stores items in `.keychain-db` files, and is the default target for `SecItem` API calls on macOS. Does not support iCloud Keychain, biometrics, Secure Enclave keys, or access groups.
 
-**Data protection keychain** — originated on iOS and arrived on macOS via iCloud Keychain in 10.9. Uses keychain access groups + `SecAccessControl`, supports iCloud sync, Touch ID/Face ID, and Secure Enclave. Available only in user-login contexts — **`launchd` daemons cannot use it**.
+**Data protection keychain**: originated on iOS and arrived on macOS via iCloud Keychain in 10.9. Uses keychain access groups + `SecAccessControl`, supports iCloud sync, Touch ID/Face ID, and Secure Enclave. Available only in user-login contexts: **`launchd` daemons cannot use it**.
 
 ### Cross-platform macOS support with `kSecUseDataProtectionKeychain`
 
@@ -309,7 +309,7 @@ let status = SecItemAdd(query as CFDictionary, nil)
 
 On macOS, `kSecAttrAccessGroup` **is silently ignored** unless the data protection keychain is targeted. Setting `kSecUseDataProtectionKeychain` to `true` opts into iOS-style keychain behavior. On iOS, tvOS, and watchOS this key is ignored (those platforms always use data protection).
 
-Two ways to target the data protection keychain on macOS: set `kSecUseDataProtectionKeychain` to `true`, or set `kSecAttrSynchronizable` to `true` (which also enables iCloud sync). Mac Catalyst and iOS Apps on Mac use data protection exclusively — the flag is ignored there.
+Two ways to target the data protection keychain on macOS: set `kSecUseDataProtectionKeychain` to `true`, or set `kSecAttrSynchronizable` to `true` (which also enables iCloud sync). Mac Catalyst and iOS Apps on Mac use data protection exclusively: the flag is ignored there.
 
 | Platform/Runtime   | Default keychain  | Access groups supported | Required flag                         |
 | ------------------ | ----------------- | ----------------------- | ------------------------------------- |
@@ -323,7 +323,7 @@ Apple's TN3137 states the file-based keychain is **"on the road to deprecation."
 
 ## Migrating Items Between Access Groups
 
-`kSecAttrAccessGroup` is **immutable** for an existing keychain item — it cannot be changed via `SecItemUpdate`. Migration requires a read-add-delete sequence:
+`kSecAttrAccessGroup` is **immutable** for an existing keychain item: it cannot be changed via `SecItemUpdate`. Migration requires a read-add-delete sequence:
 
 1. **Read**: Retrieve the complete item from its original access group via `SecItemCopyMatching`.
 2. **Add**: Call `SecItemAdd` with the new `kSecAttrAccessGroup`.
@@ -337,7 +337,7 @@ If the add operation fails, the original item remains untouched, preventing data
 
 ### Keychain items persist after app uninstall
 
-This behavior is undocumented but has been consistent since iOS's early days. Apple attempted to delete keychain items on app removal in iOS 10.3 beta but rolled it back before release due to compatibility issues. Quinn "The Eskimo!" has warned this behavior **could change without notice**. If shared keychain items exist between App A and App B, deleting App A leaves all shared items intact for App B. Even deleting all apps in a shared group does not remove orphaned items — only a factory reset clears them reliably.
+This behavior is undocumented but has been consistent since iOS's early days. Apple attempted to delete keychain items on app removal in iOS 10.3 beta but rolled it back before release due to compatibility issues. Quinn "The Eskimo!" has warned this behavior **could change without notice**. If shared keychain items exist between App A and App B, deleting App A leaves all shared items intact for App B. Even deleting all apps in a shared group does not remove orphaned items: only a factory reset clears them reliably.
 
 A common workaround for detecting fresh installs (since `UserDefaults` _are_ wiped on uninstall):
 
@@ -377,7 +377,7 @@ watchOS 2+ runs a **separate keychain** not connected to the paired iPhone's key
 
 ### Widget Extensions (WidgetKit)
 
-Widget extensions follow the same rules as all app extensions — add Keychain Sharing or App Groups capabilities to the widget extension target independently. Widgets commonly need auth tokens for network requests. Store these in the shared keychain group rather than `UserDefaults(suiteName:)`, which lacks keychain-level encryption. App Group shared containers use only standard filesystem encryption (`NSFileProtectionCompleteUntilFirstUserAuthentication`), making the keychain the more secure choice for sensitive credentials.
+Widget extensions follow the same rules as all app extensions: add Keychain Sharing or App Groups capabilities to the widget extension target independently. Widgets commonly need auth tokens for network requests. Store these in the shared keychain group rather than `UserDefaults(suiteName:)`, which lacks keychain-level encryption. App Group shared containers use only standard filesystem encryption (`NSFileProtectionCompleteUntilFirstUserAuthentication`), making the keychain the more secure choice for sensitive credentials.
 
 ---
 
@@ -408,14 +408,14 @@ Starting with **iOS 13**, querying an unauthorized access group returns the expl
 
 ### Debugging Checklist
 
-**1. Verify entitlements on the built binary** — not the `.entitlements` source file:
+**1. Verify entitlements on the built binary**: not the `.entitlements` source file:
 
 ```bash
 codesign -d --entitlements :- /path/to/YourApp.app
 codesign -d --entitlements :- /path/to/YourExtension.appex
 ```
 
-Compare the `keychain-access-groups` arrays — they must contain a common group.
+Compare the `keychain-access-groups` arrays: they must contain a common group.
 
 **2. Inspect the provisioning profile:**
 
@@ -429,7 +429,7 @@ Verify that `keychain-access-groups`, `com.apple.security.application-groups`, a
 
 **4. Monitor system logs.** Open Console.app, select the connected device, filter for "keychain", and reproduce the issue. The system logs explicit messages when an entitlement check fails, identifying the missing group.
 
-**5. Check for App ID prefix mismatches** across all sharing targets — especially if any target has different capabilities enabled.
+**5. Check for App ID prefix mismatches** across all sharing targets: especially if any target has different capabilities enabled.
 
 ### Test Matrix
 
@@ -446,18 +446,18 @@ Verify that `keychain-access-groups`, `com.apple.security.application-groups`, a
 
 - **End-to-end encryption:** Synchronized iCloud Keychain items are encrypted end-to-end; Apple cannot decrypt them.
 - **Malicious device risk:** A device joined to the user's iCloud account could potentially access or poison synchronized keychain items. Always scope secrets minimally and validate data retrieved from shared or synchronized keychains.
-- **Over-sharing risk:** Items placed in a shared access group are readable by all apps in that group. Use the narrowest possible access group — do not share an access group across apps that do not need the same credentials.
+- **Over-sharing risk:** Items placed in a shared access group are readable by all apps in that group. Use the narrowest possible access group: do not share an access group across apps that do not need the same credentials.
 - **Orphaned items:** After all apps in a shared group are uninstalled, keychain items remain on-device until factory reset. Consider this when storing highly sensitive data.
 
 ---
 
-## What Changed in 2024–2026
+## What Changed in 2024-2026
 
 The core `SecItem` API has **not changed**. No new keychain-sharing-specific APIs were introduced in iOS 17, 18, or macOS 14/15. Apple still has not shipped a Swift-native keychain wrapper; the C-based Security framework remains the only official interface.
 
-The **Passwords app** introduced in iOS 18 and macOS Sequoia (WWDC 2024) provides a dedicated user-facing interface for managing passwords, passkeys, and verification codes. This is a UI layer over iCloud Keychain — it does not affect the `SecItem` API or access group mechanics.
+The **Passwords app** introduced in iOS 18 and macOS Sequoia (WWDC 2024) provides a dedicated user-facing interface for managing passwords, passkeys, and verification codes. This is a UI layer over iCloud Keychain: it does not affect the `SecItem` API or access group mechanics.
 
-**Passkey enhancements** continued through WWDC 2024–2025, including automatic passkey upgrades and credential import/export APIs (`ASCredentialExportManager`). These operate at the credential-manager level and do not introduce new keychain-sharing mechanisms.
+**Passkey enhancements** continued through WWDC 2024-2025, including automatic passkey upgrades and credential import/export APIs (`ASCredentialExportManager`). These operate at the credential-manager level and do not introduce new keychain-sharing mechanisms.
 
 `kSecAttrAccessibleAlways` and `kSecAttrAccessibleAlwaysThisDeviceOnly` remain deprecated since iOS 12. Use `kSecAttrAccessibleAfterFirstUnlock` or the more restrictive `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`.
 
@@ -465,17 +465,17 @@ The **Passwords app** introduced in iOS 18 and macOS Sequoia (WWDC 2024) provide
 
 ## Cross-References
 
-- `keychain-fundamentals.md` — SecItem CRUD patterns, `kSecUseDataProtectionKeychain` on macOS, query dictionary construction
-- `keychain-access-control.md` — Accessibility constants for shared items, `ThisDeviceOnly` vs syncable implications
-- `keychain-item-classes.md` — Composite primary keys and how `kSecAttrAccessGroup` interacts with each `kSecClass`
-- `common-anti-patterns.md` — Anti-pattern #5 (missing `kSecAttrAccessible`), which compounds in shared contexts
-- `credential-storage-patterns.md` — OAuth token sharing between app and extensions
+- `keychain-fundamentals.md`: SecItem CRUD patterns, `kSecUseDataProtectionKeychain` on macOS, query dictionary construction
+- `keychain-access-control.md`: Accessibility constants for shared items, `ThisDeviceOnly` vs syncable implications
+- `keychain-item-classes.md`: Composite primary keys and how `kSecAttrAccessGroup` interacts with each `kSecClass`
+- `common-anti-patterns.md`: Anti-pattern #5 (missing `kSecAttrAccessible`), which compounds in shared contexts
+- `credential-storage-patterns.md`: OAuth token sharing between app and extensions
 
 ---
 
 ## Conclusion
 
-Keychain sharing on Apple platforms is a precise, entitlement-driven system where small configuration errors — a missing Team ID prefix, a capability not added to an extension target, a forgotten `kSecUseDataProtectionKeychain` on macOS — produce cryptic errors with no runtime warnings. The access group array's three-source concatenation order determines defaults and search scope in ways that catch developers off guard.
+Keychain sharing on Apple platforms is a precise, entitlement-driven system where small configuration errors, a missing Team ID prefix, a capability not added to an extension target, a forgotten `kSecUseDataProtectionKeychain` on macOS, produce cryptic errors with no runtime warnings. The access group array's three-source concatenation order determines defaults and search scope in ways that catch developers off guard.
 
 Three rules prevent most issues: always include the full Team ID prefix in code (`TEAMID.com.example.shared`, never just `com.example.shared`); add Keychain Sharing to every executable target that needs access, not just the main app; and set `kSecUseDataProtectionKeychain` to `true` on macOS for iOS-consistent behavior. For iCloud sync, remember that `kSecAttrSynchronizable` defaults to `false` and that queries must explicitly opt in to find synchronizable items.
 
@@ -483,14 +483,14 @@ Three rules prevent most issues: always include the full Team ID prefix in code 
 
 ## Summary Checklist
 
-1. **Team ID prefix in code** — Access group strings in Swift must use the fully resolved `TEAMID.com.example.shared` format; `$(AppIdentifierPrefix)` only works in entitlements plists.
-2. **Per-target entitlements** — Every executable target (main app, each extension) must independently have the Keychain Sharing capability added in Xcode with the same group identifier.
-3. **Keychain Sharing vs App Groups** — These are separate entitlements with different formats (`keychain-access-groups` with Team ID prefix vs `com.apple.security.application-groups` with `group.` prefix). App Groups cannot serve as keychain access groups on macOS.
-4. **Default access group awareness** — The first entry in the concatenated access group array (keychain groups → app identifier → app groups) becomes the default. App Groups can never be the default.
-5. **Explicit `kSecAttrAccessGroup`** — Always specify the access group in both `SecItemAdd` and `SecItemCopyMatching` calls. Omitting it on add uses the default group (which may be unexpected); omitting it on query searches all groups (which may be slow or overly broad).
-6. **iCloud sync is opt-in** — `kSecAttrSynchronizable` defaults to `false`. Sync requires non-`ThisDeviceOnly` accessibility, and queries must include `kSecAttrSynchronizable: true` or `kSecAttrSynchronizableAny` to find synced items.
-7. **macOS data protection keychain** — Set `kSecUseDataProtectionKeychain: true` on all macOS `SecItem` calls. Without it, `kSecAttrAccessGroup` is silently ignored and the legacy file-based keychain is used.
-8. **Items persist after uninstall** — Keychain items survive app deletion. Use a `UserDefaults` flag to detect fresh installs and clean up stale items. Scope deletion carefully to avoid nuking shared items.
-9. **`kSecAttrAccessGroup` is immutable** — Moving an item between groups requires a read-add-delete sequence, not an update.
-10. **Verify built binary entitlements** — Use `codesign -d --entitlements :-` on the built `.app`/`.appex` to confirm entitlements, not the source `.entitlements` file. Test on physical devices; the Simulator may not surface entitlement issues.
-11. **watchOS is isolated** — The Apple Watch has a separate keychain not connected via access groups. Use iCloud Keychain sync or WatchConnectivity for cross-device credential sharing.
+1. **Team ID prefix in code**: Access group strings in Swift must use the fully resolved `TEAMID.com.example.shared` format; `$(AppIdentifierPrefix)` only works in entitlements plists.
+2. **Per-target entitlements**: Every executable target (main app, each extension) must independently have the Keychain Sharing capability added in Xcode with the same group identifier.
+3. **Keychain Sharing vs App Groups**: These are separate entitlements with different formats (`keychain-access-groups` with Team ID prefix vs `com.apple.security.application-groups` with `group.` prefix). App Groups cannot serve as keychain access groups on macOS.
+4. **Default access group awareness**: The first entry in the concatenated access group array (keychain groups → app identifier → app groups) becomes the default. App Groups can never be the default.
+5. **Explicit `kSecAttrAccessGroup`**: Always specify the access group in both `SecItemAdd` and `SecItemCopyMatching` calls. Omitting it on add uses the default group (which may be unexpected); omitting it on query searches all groups (which may be slow or overly broad).
+6. **iCloud sync is opt-in**: `kSecAttrSynchronizable` defaults to `false`. Sync requires non-`ThisDeviceOnly` accessibility, and queries must include `kSecAttrSynchronizable: true` or `kSecAttrSynchronizableAny` to find synced items.
+7. **macOS data protection keychain**: Set `kSecUseDataProtectionKeychain: true` on all macOS `SecItem` calls. Without it, `kSecAttrAccessGroup` is silently ignored and the legacy file-based keychain is used.
+8. **Items persist after uninstall**: Keychain items survive app deletion. Use a `UserDefaults` flag to detect fresh installs and clean up stale items. Scope deletion carefully to avoid nuking shared items.
+9. **`kSecAttrAccessGroup` is immutable**: Moving an item between groups requires a read-add-delete sequence, not an update.
+10. **Verify built binary entitlements**: Use `codesign -d --entitlements :-` on the built `.app`/`.appex` to confirm entitlements, not the source `.entitlements` file. Test on physical devices; the Simulator may not surface entitlement issues.
+11. **watchOS is isolated**: The Apple Watch has a separate keychain not connected via access groups. Use iCloud Keychain sync or WatchConnectivity for cross-device credential sharing.

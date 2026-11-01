@@ -129,14 +129,14 @@ extension PropertyConfig {
 
   // MARK: - Presets
 
-  /// Fast feedback during development — 20 runs, 100 shrink iterations.
+  /// Fast feedback during development: 20 runs, 100 shrink iterations.
   public static let quick = Self(
     maxRuns: 20,
     maxShrinkIterations: 100,
     maxDrawsPerRun: 5_000
   )
 
-  /// Deep exploration — 1,000 runs, 2,000 shrink iterations.
+  /// Deep exploration: 1,000 runs, 2,000 shrink iterations.
   public static let thorough = Self(
     maxRuns: 1_000,
     maxShrinkIterations: 2_000,

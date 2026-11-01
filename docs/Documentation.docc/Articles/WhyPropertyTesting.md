@@ -1,6 +1,6 @@
 # Why Property-Based Testing
 
-Example-based tests tell you that your code works for a few inputs you thought of. Property-based tests tell you it works for *all* inputs you could ever think of — and many you couldn't.
+Example-based tests tell you that your code works for a few inputs you thought of. Property-based tests tell you it works for *all* inputs you could ever think of: and many you couldn't.
 
 ## The Problem with Hand-Written Examples
 
@@ -58,7 +58,7 @@ In Premise:
 }
 ```
 
-The engine generates hundreds of random arrays and verifies the property holds for each one. When it finds the broken implementation above, it immediately shrinks the failing input to its minimal form — probably `[0, 0]` or `[0, 1]` — so you see the simplest case that demonstrates the bug.
+The engine generates hundreds of random arrays and verifies the property holds for each one. When it finds the broken implementation above, it immediately shrinks the failing input to its minimal form, probably `[0, 0]` or `[0, 1]`, so you see the simplest case that demonstrates the bug.
 
 ## What Kinds of Properties Exist?
 
@@ -119,7 +119,7 @@ isValidEmail(validator.normalise(email))
 
 ## The Shrinking Advantage
 
-When a property fails, Premise doesn't just report the first failing case it found — which might be a 500-element array with complex relationships between its values. It *shrinks* the failure: it systematically tries smaller and simpler inputs, keeping the ones that still fail, until it can't get any smaller.
+When a property fails, Premise doesn't just report the first failing case it found: which might be a 500-element array with complex relationships between its values. It *shrinks* the failure: it systematically tries smaller and simpler inputs, keeping the ones that still fail, until it can't get any smaller.
 
 The result is the *minimal counterexample*: the simplest possible input that demonstrates the bug. This is the key practical advantage of property-based testing over fuzzing. Fuzzing finds bugs; Premise finds bugs *and* hands you a readable reproduction case.
 

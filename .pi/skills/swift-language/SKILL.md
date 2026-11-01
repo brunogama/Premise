@@ -60,7 +60,7 @@ func badgeText(for priority: Priority) -> String {
 
 **Rules:**
 - Every branch must produce a value of the same type.
-- Multi-statement branches are not allowed -- each branch is a single expression.
+- Multi-statement branches are not allowed: each branch is a single expression.
 - Wrap in parentheses when used as a function argument to avoid ambiguity.
 
 ## Typed Throws
@@ -78,7 +78,7 @@ func validate(username: String) throws(ValidationError) -> String {
     return username.lowercased()
 }
 
-// Caller gets typed error -- no cast needed
+// Caller gets typed error: no cast needed
 do {
     let name = try validate(username: input)
 } catch {
@@ -96,7 +96,7 @@ do {
   handling. For mixed error sources, use untyped `throws`.
 - When modernizing a helper with one local error enum, prefer `throws(ErrorEnum)` and note Swift 6+.
 - `throws(Never)` marks a function that syntactically throws but never actually
-  does -- useful in generic contexts.
+  does: useful in generic contexts.
 - Typed throws propagate: a function calling `throws(A)` and `throws(B)` must
   itself throw a type that covers both (or use untyped `throws`).
 
@@ -177,7 +177,7 @@ return has one fixed underlying concrete type across all return branches.
 
 ```swift
 func makeCollection() -> some Collection<Int> {
-    [1, 2, 3]  // Always returns Array<Int> -- compiler knows the concrete type
+    [1, 2, 3]  // Always returns Array<Int>: compiler knows the concrete type
 }
 ```
 
@@ -263,13 +263,13 @@ enum Result<Success, Failure: Error> {
     case success(Success)
     case failure(Failure)
 }
-// Result<String, Never> -- a result that can never fail
+// Result<String, Never>: a result that can never fail
 
 // Exhaustive switch: no default needed since Never has no cases
 func handle(_ result: Result<String, Never>) {
     switch result {
     case .success(let value): print(value)
-    // No .failure case needed -- compiler knows it's impossible
+    // No .failure case needed: compiler knows it's impossible
     }
 }
 ```
@@ -319,29 +319,29 @@ Prefer these modern APIs over manual loops:
 ```swift
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8]
 
-// count(where:) -- use instead of .filter { }.count
+// count(where:): use instead of .filter { }.count
 let evenCount = numbers.count(where: { $0.isMultiple(of: 2) })
 
-// contains(where:) -- short-circuits on first match
+// contains(where:): short-circuits on first match
 let hasNegative = numbers.contains(where: { $0 < 0 })
 
 // first(where:) / last(where:)
 let firstEven = numbers.first(where: { $0.isMultiple(of: 2) })
 
-// String replacing() -- Swift 5.7+, returns new string
+// String replacing(): Swift 5.7+, returns new string
 let cleaned = rawText.replacing(/\s+/, with: " ")
 let snakeCase = name.replacing("_", with: " ")
 
-// compactMap -- unwrap optionals from a transform
+// compactMap: unwrap optionals from a transform
 let ids = strings.compactMap { Int($0) }
 
-// flatMap -- flatten nested collections
+// flatMap: flatten nested collections
 let allTags = articles.flatMap(\.tags)
 
 // Dictionary(grouping:by:)
 let byCategory = Dictionary(grouping: items, by: \.category)
 
-// reduce(into:) -- efficient accumulation
+// reduce(into:): efficient accumulation
 let freq = words.reduce(into: [:]) { counts, word in
     counts[word, default: 0] += 1
 }

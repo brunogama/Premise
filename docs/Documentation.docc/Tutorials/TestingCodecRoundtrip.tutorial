@@ -2,7 +2,7 @@
    @Intro(title: "Testing Encoder/Decoder Round-Trips") {
       Encode-decode round-trips are among the most powerful properties you can
       write. If `decode(encode(x)) == x` for all `x`, your codec is correct by
-      definition — no hand-crafted example set can match that coverage.
+      definition: no hand-crafted example set can match that coverage.
    }
 
    @Section(title: "The Round-Trip Property") {
@@ -13,7 +13,7 @@
       }
       @Steps {
          @Step {
-            Define a `Codable` model. Keep it simple for this tutorial — a
+            Define a `Codable` model. Keep it simple for this tutorial: a
             `Contact` with a name, email, and age.
 
             @Code(name: "CodecTests.swift", file: "t04-s01-model.swift")
@@ -84,7 +84,7 @@
       @Steps {
          @Step {
             Write a Plist round-trip property alongside the JSON one.
-            The same `contactStrategy` works for both — you don't need to
+            The same `contactStrategy` works for both: you don't need to
             create a new strategy per codec.
 
             @Code(name: "CodecTests.swift", file: "t04-s08-plist-roundtrip.swift")

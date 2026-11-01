@@ -29,7 +29,7 @@ Default to Model-View (MV) in SwiftUI. Views are lightweight state expressions; 
 
 ### Why Not MVVM
 
-SwiftUI views are structs -- lightweight, disposable, and recreated frequently. Adding a ViewModel means fighting the framework's core design. Apple's own WWDC sessions (*Data Flow Through SwiftUI*, *Data Essentials in SwiftUI*, *Discover Observation in SwiftUI*) barely mention ViewModels.
+SwiftUI views are structs: lightweight, disposable, and recreated frequently. Adding a ViewModel means fighting the framework's core design. Apple's own WWDC sessions (*Data Flow Through SwiftUI*, *Data Essentials in SwiftUI*, *Discover Observation in SwiftUI*) barely mention ViewModels.
 
 Every ViewModel adds:
 - More complexity and objects to synchronize
@@ -217,10 +217,10 @@ Use `@MainActor` for observable types that are owned by SwiftUI views and mutate
 
 The MV pattern is the default. Introduce a ViewModel only when the view would be hard to read or test without one:
 
-- **Multi-step workflows** — onboarding, checkout, or wizard flows where each step mutates shared draft state
-- **Non-trivial business logic** — validation chains, derived state from multiple sources, or transformation pipelines that don't belong in a lightweight client
-- **Coordinated async streams** — the view orchestrates multiple publishers or `AsyncSequence` values with interdependent state transitions
-- **Existing test surface** — the codebase already tests against a ViewModel interface and rewriting to MV would be high cost, low reward
+- **Multi-step workflows**: onboarding, checkout, or wizard flows where each step mutates shared draft state
+- **Non-trivial business logic**: validation chains, derived state from multiple sources, or transformation pipelines that don't belong in a lightweight client
+- **Coordinated async streams**: the view orchestrates multiple publishers or `AsyncSequence` values with interdependent state transitions
+- **Existing test surface**: the codebase already tests against a ViewModel interface and rewriting to MV would be high cost, low reward
 
 The bar is "this view would be hard to read and test without a ViewModel," not "I'm used to MVVM."
 
@@ -556,5 +556,5 @@ struct MyApp: App {
 - If you need multiple variants (mock/stub), add `static func mock(...)`.
 
 ### Pitfalls
-- Don’t put UI state in the client; keep state in the store.
-- Don’t capture `self` or view state in the client closures.
+- Don't put UI state in the client; keep state in the store.
+- Don't capture `self` or view state in the client closures.

@@ -15,30 +15,30 @@ Extended examples for name selection, role-based naming, weak-type compensation,
 If omitting a word makes the call site ambiguous, keep it. The test: can a reader unfamiliar with the declaration understand the call site?
 
 ```swift
-// GOOD — "for" distinguishes key lookup from index lookup
+// GOOD: "for" distinguishes key lookup from index lookup
 dictionary.removeValue(forKey: key)
 
-// BAD — is key the value or the lookup key?
+// BAD: is key the value or the lookup key?
 dictionary.remove(key)
 ```
 
 ```swift
-// GOOD — "for" clarifies the relationship
+// GOOD: "for" clarifies the relationship
 extension List {
     func member(for key: Key) -> Value?
 }
 
-// BAD — what is "key" relative to the list?
+// BAD: what is "key" relative to the list?
 extension List {
     func member(_ key: Key) -> Value?
 }
 ```
 
 ```swift
-// GOOD — preposition clarifies direction
+// GOOD: preposition clarifies direction
 view.fade(from: previousColor)
 
-// BAD — is this the target or the source?
+// BAD: is this the target or the source?
 view.fade(previousColor)
 ```
 
@@ -50,7 +50,7 @@ Remove words that merely restate type information. Every word in a name should c
 // GOOD
 allViews.remove(cancelButton)
 
-// BAD — "Element" repeats the type constraint
+// BAD: "Element" repeats the type constraint
 allViews.removeElement(cancelButton)
 ```
 
@@ -58,7 +58,7 @@ allViews.removeElement(cancelButton)
 // GOOD
 let result = parser.parse(data)
 
-// BAD — "Data" is already the parameter type
+// BAD: "Data" is already the parameter type
 let result = parser.parseData(data)
 ```
 
@@ -66,7 +66,7 @@ let result = parser.parseData(data)
 // GOOD
 func move(to point: CGPoint)
 
-// BAD — "point" is already in the type
+// BAD: "point" is already in the type
 func moveToPoint(_ point: CGPoint)
 ```
 
@@ -75,13 +75,13 @@ func moveToPoint(_ point: CGPoint)
 Variables, parameters, and associated types should describe the entity's role in the current context.
 
 ```swift
-// GOOD — describes the role
+// GOOD: describes the role
 var greeting: String
 var bodyText: String
 let widthConstraint: NSLayoutConstraint
 func restock(from supplier: Warehouse)
 
-// BAD — describes the type
+// BAD: describes the type
 var string: String
 var text: String
 let constraint: NSLayoutConstraint
@@ -97,7 +97,7 @@ protocol Container {
     associatedtype Index
 }
 
-// BAD — names the constraint, not the role
+// BAD: names the constraint, not the role
 protocol Container {
     associatedtype ItemType
     associatedtype IntegerIndex
@@ -109,12 +109,12 @@ protocol Container {
 When a parameter type is `Any`, `AnyObject`, `NSObject`, or a fundamental type (`Int`, `String`, `Double`), the call site may lack enough context to convey meaning. Add clarifying words to the name.
 
 ```swift
-// GOOD — role words compensate for weak types
+// GOOD: role words compensate for weak types
 func addObserver(_ observer: NSObject, forKeyPath path: String)
 func fill(with color: UIColor, alpha: Double)
 func setTag(_ tag: Int, for view: UIView)
 
-// BAD — weak types make the call site opaque
+// BAD: weak types make the call site opaque
 func add(_ object: NSObject, for string: String)
 func fill(with any: UIColor, _ value: Double)
 func set(_ value: Int, for object: UIView)
@@ -123,11 +123,11 @@ func set(_ value: Int, for object: UIView)
 For function return types, the same principle applies:
 
 ```swift
-// GOOD — return context clarifies weak type
+// GOOD: return context clarifies weak type
 func maximumScore() -> Int
 func playerName() -> String
 
-// BAD — generic return with no context
+// BAD: generic return with no context
 func value() -> Int
 func name() -> String
 ```
@@ -139,11 +139,11 @@ func name() -> String
 Use a common English word when it works. Reserve terms of art for situations where the precise technical meaning matters and no common word captures it.
 
 ```swift
-// GOOD — common word suffices
+// GOOD: common word suffices
 skin                // not "epidermis"
 beginners           // not "neophytes"
 
-// GOOD — term of art is precise and necessary
+// GOOD: term of art is precise and necessary
 func sin(_ angle: Double) -> Double  // "sine" is the term of art
 ```
 
@@ -152,10 +152,10 @@ func sin(_ angle: Double) -> Double  // "sine" is the term of art
 Never use a term of art with a non-standard meaning. Anyone who knows the term expects its conventional definition.
 
 ```swift
-// GOOD — Array is the established term
+// GOOD: Array is the established term
 struct Array<Element> { ... }
 
-// BAD — "List" means something different in CS (linked list)
+// BAD: "List" means something different in CS (linked list)
 struct List<Element> { ... }  // if it's really an array
 ```
 
@@ -178,7 +178,7 @@ var charIdx: Int
 Follow naming conventions already established in the ecosystem, even if they conflict with a "purer" design.
 
 ```swift
-// GOOD — matches existing Swift/Cocoa convention
+// GOOD: matches existing Swift/Cocoa convention
 Array, Dictionary, Set       // not Vector, Map, HashSet
 sin(x), cos(x)              // not sine(x), cosine(x)
 ```

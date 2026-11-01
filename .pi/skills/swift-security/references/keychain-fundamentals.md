@@ -1,6 +1,6 @@
 # Keychain Fundamentals
 
-> **Scope:** SecItem\* CRUD operations, query dictionary structure, kSecClass types, OSStatus error handling, actor-based wrapper patterns. This is the foundation file — all other reference files assume familiarity with these patterns.
+> **Scope:** SecItem\* CRUD operations, query dictionary structure, kSecClass types, OSStatus error handling, actor-based wrapper patterns. This is the foundation file: all other reference files assume familiarity with these patterns.
 >
 > **Key APIs:** `SecItemAdd`, `SecItemCopyMatching`, `SecItemUpdate`, `SecItemDelete`, `kSecClassGenericPassword`, `kSecClassInternetPassword`, `kSecClassKey`, `kSecClassCertificate`, `kSecClassIdentity`
 >
@@ -21,7 +21,7 @@
 - [OSStatus Error Handling](#osstatus-error-handling)
 - [Actor-Isolated Keychain Manager (iOS 17+ / macOS 14+)](#actor-isolated-keychain-manager-ios-17-macos-14)
   - [Why Actors over GCD](#why-actors-over-gcd)
-  - [Legacy GCD Pattern (iOS 13–16 codebases)](#legacy-gcd-pattern-ios-1316-codebases)
+  - [Legacy GCD Pattern (iOS 13-16 codebases)](#legacy-gcd-pattern-ios-1316-codebases)
 - [Performance Architecture](#performance-architecture)
   - [Two-Tier Encryption and Query Cost](#two-tier-encryption-and-query-cost)
   - [Query Specificity](#query-specificity)
@@ -46,11 +46,11 @@ Internally, keychain items use **two-tier AES-256-GCM encryption** (per the Appl
 
 Each function accepts a specific _type_ of dictionary. Confusing which keys belong in which dictionary is the single most common source of bugs. Quinn (Apple DTS) defines five property groups:
 
-1. **Item class** — `kSecClass`
-2. **Item attributes** — `kSecAttrAccount`, `kSecAttrService`, etc.
-3. **Search properties** — `kSecMatchLimit`
-4. **Return type properties** — `kSecReturnData`, `kSecReturnAttributes`, `kSecReturnRef`, `kSecReturnPersistentRef`
-5. **Value type properties** — `kSecValueData`, `kSecValueRef`
+1. **Item class**: `kSecClass`
+2. **Item attributes**: `kSecAttrAccount`, `kSecAttrService`, etc.
+3. **Search properties**: `kSecMatchLimit`
+4. **Return type properties**: `kSecReturnData`, `kSecReturnAttributes`, `kSecReturnRef`, `kSecReturnPersistentRef`
+5. **Value type properties**: `kSecValueData`, `kSecValueRef`
 
 | Function                    | Dictionary Type                              | Supports Return Keys?   | Default `kSecMatchLimit` | Since   |
 | --------------------------- | -------------------------------------------- | ----------------------- | ------------------------ | ------- |
@@ -86,7 +86,7 @@ The most common AI-generated keychain bug is calling `SecItemAdd` without handli
 ❌ **Naive add that silently fails on duplicate:**
 
 ```swift
-// ❌ WRONG — silently fails if item already exists
+// ❌ WRONG: silently fails if item already exists
 func savePassword(_ password: String, account: String) {
     let query: [CFString: Any] = [
         kSecClass: kSecClassGenericPassword,
@@ -95,14 +95,14 @@ func savePassword(_ password: String, account: String) {
         kSecValueData: Data(password.utf8)
     ]
     SecItemAdd(query as CFDictionary, nil)  // Return value IGNORED!
-    // If item exists → errSecDuplicateItem (-25299) — password never saved
+    // If item exists → errSecDuplicateItem (-25299): password never saved
 }
 ```
 
 ✅ **Correct add-or-update with exhaustive OSStatus handling:**
 
 ```swift
-// ✅ CORRECT — attempts add, falls back to update on duplicate
+// ✅ CORRECT: attempts add, falls back to update on duplicate
 func savePassword(_ password: String, account: String) throws {
     let baseQuery: [CFString: Any] = [
         kSecClass: kSecClassGenericPassword,
@@ -121,7 +121,7 @@ func savePassword(_ password: String, account: String) throws {
         return
 
     case errSecDuplicateItem:
-        // Item exists — update it
+        // Item exists: update it
         let updates: [CFString: Any] = [kSecValueData: Data(password.utf8)]
         let updateStatus = SecItemUpdate(
             baseQuery as CFDictionary,
@@ -132,7 +132,7 @@ func savePassword(_ password: String, account: String) throws {
         }
 
     case errSecInteractionNotAllowed:
-        // Device locked — do NOT delete-and-retry!
+        // Device locked: do NOT delete-and-retry!
         throw KeychainError(status: addStatus)
 
     default:
@@ -143,20 +143,20 @@ func savePassword(_ password: String, account: String) throws {
 
 Key points in this pattern:
 
-- **Separate dictionaries** for add vs. update — the update dictionary contains only the attributes to change, never `kSecClass` or search properties.
+- **Separate dictionaries** for add vs. update: the update dictionary contains only the attributes to change, never `kSecClass` or search properties.
 - **`errSecInteractionNotAllowed`** (-25308) means the device is locked and data protection prevents access. Never delete items in response to this error; the item is valid but temporarily inaccessible.
-- **Prefer update over delete-then-add** — update preserves persistent references and avoids the race condition window between delete and add.
+- **Prefer update over delete-then-add**: update preserves persistent references and avoids the race condition window between delete and add.
 
 ---
 
 ## Reading from the Keychain: Return Flags and Type Casting
 
-The second most common bug is calling `SecItemCopyMatching` without `kSecReturn*` flags. The function may return `errSecSuccess` with a `nil` result — this is "success but nil," not a real success.
+The second most common bug is calling `SecItemCopyMatching` without `kSecReturn*` flags. The function may return `errSecSuccess` with a `nil` result: this is "success but nil," not a real success.
 
 ❌ **Query that returns no data because `kSecReturnData` is missing:**
 
 ```swift
-// ❌ WRONG — no kSecReturn* flags, result is always nil
+// ❌ WRONG: no kSecReturn* flags, result is always nil
 func loadPassword(account: String) -> Data? {
     let query: [CFString: Any] = [
         kSecClass: kSecClassGenericPassword,
@@ -167,14 +167,14 @@ func loadPassword(account: String) -> Data? {
     ]
     var result: CFTypeRef?
     SecItemCopyMatching(query as CFDictionary, &result)
-    return result as? Data  // Always nil — no return type was requested
+    return result as? Data  // Always nil: no return type was requested
 }
 ```
 
 ✅ **Correct query with proper return flags and exhaustive error handling:**
 
 ```swift
-// ✅ CORRECT — explicitly requests data, handles all error states
+// ✅ CORRECT: explicitly requests data, handles all error states
 func loadPassword(account: String) throws -> Data? {
     let query: [CFString: Any] = [
         kSecClass: kSecClassGenericPassword,
@@ -195,7 +195,7 @@ func loadPassword(account: String) throws -> Data? {
         return data
 
     case errSecItemNotFound:
-        return nil  // Legitimate "not found" — not an error
+        return nil  // Legitimate "not found": not an error
 
     case errSecInteractionNotAllowed:
         throw KeychainError(status: status)
@@ -281,9 +281,9 @@ Never treat all non-zero `OSStatus` values as fatal errors. Several codes repres
 | `0`           | `errSecSuccess`               | Operation succeeded                                | Proceed normally                           |
 | `-25299`      | `errSecDuplicateItem`         | Item already exists (on add)                       | Fall back to `SecItemUpdate`               |
 | `-25300`      | `errSecItemNotFound`          | No matching item found                             | Return `nil` / treat as success for delete |
-| `-25308`      | `errSecInteractionNotAllowed` | Device locked, data protection active              | Retry later — **never delete**             |
+| `-25308`      | `errSecInteractionNotAllowed` | Device locked, data protection active              | Retry later: **never delete**             |
 | `-25293`      | `errSecUserCanceled`          | User cancelled biometric prompt                    | Propagate cancellation to UI               |
-| `-50`         | `errSecParam`                 | Invalid parameter / wrong dictionary keys          | Developer error — fix query                |
+| `-50`         | `errSecParam`                 | Invalid parameter / wrong dictionary keys          | Developer error: fix query                |
 | `-25244`      | `errSecNoSuchAttr`            | Attribute not supported (data protection keychain) | Check for unsupported attributes           |
 
 Map raw codes to a domain-specific Swift error:
@@ -310,7 +310,7 @@ Every `SecItem*` function blocks the calling thread due to IPC to `securityd` an
 ❌ **`@MainActor` keychain access that blocks the UI:**
 
 ```swift
-// ❌ WRONG — blocks main thread, freezes UI during securityd IPC
+// ❌ WRONG: blocks main thread, freezes UI during securityd IPC
 @MainActor
 class SettingsViewModel: ObservableObject {
     @Published var token: String = ""
@@ -336,7 +336,7 @@ class SettingsViewModel: ObservableObject {
 ✅ **Actor-isolated keychain manager with full CRUD:**
 
 ```swift
-// ✅ CORRECT — dedicated actor keeps all SecItem calls off @MainActor
+// ✅ CORRECT: dedicated actor keeps all SecItem calls off @MainActor
 actor KeychainManager {
     static let shared = KeychainManager()
 
@@ -422,7 +422,7 @@ actor KeychainManager {
         }
     }
 
-    // MARK: - List all accounts (attributes only — fast)
+    // MARK: - List all accounts (attributes only: fast)
 
     func allAccounts() throws -> [String] {
         let query: [CFString: Any] = [
@@ -457,7 +457,7 @@ class AuthViewModel: ObservableObject {
 
     func loadToken() async {
         do {
-            // Crosses actor boundary — suspends, does NOT block MainActor
+            // Crosses actor boundary: suspends, does NOT block MainActor
             let data = try await KeychainManager.shared.load(for: "authToken")
             isAuthenticated = data != nil
         } catch {
@@ -471,13 +471,13 @@ class AuthViewModel: ObservableObject {
 
 | Dimension             | Actor (iOS 17+)                   | GCD Serial Queue                        |
 | --------------------- | --------------------------------- | --------------------------------------- |
-| UI blocking           | Low — compiler-enforced isolation | Low (if dispatched correctly)           |
-| Thread safety         | Serialized by actor runtime       | Manual — developer discipline           |
+| UI blocking           | Low: compiler-enforced isolation | Low (if dispatched correctly)           |
+| Thread safety         | Serialized by actor runtime       | Manual: developer discipline           |
 | Readability           | Linear async/await                | Nested completion handlers              |
-| Compiler guarantees   | Enforced `Sendable` + isolation   | None — silent data races possible       |
-| Swift 6 compatibility | Native — actors are `Sendable`    | Requires manual `@Sendable` annotations |
+| Compiler guarantees   | Enforced `Sendable` + isolation   | None: silent data races possible       |
+| Swift 6 compatibility | Native: actors are `Sendable`    | Requires manual `@Sendable` annotations |
 
-### Legacy GCD Pattern (iOS 13–16 codebases)
+### Legacy GCD Pattern (iOS 13-16 codebases)
 
 ```swift
 class LegacyKeychainManager {
@@ -515,9 +515,9 @@ The underlying SQLite database benefits from narrow constraints. A query specify
 Keychain access during app launch is a measurable performance risk:
 
 - Each call requires IPC to `securityd` plus potential Secure Enclave latency
-- Items with `kSecAttrAccessibleWhenUnlocked` may be unavailable before first unlock (iOS can launch apps before the user unlocks — e.g., background refresh, VoIP pushes)
+- Items with `kSecAttrAccessibleWhenUnlocked` may be unavailable before first unlock (iOS can launch apps before the user unlocks: e.g., background refresh, VoIP pushes)
 - **Best practice:** Defer keychain reads until actually needed. Never call SecItem synchronously in `application(_:didFinishLaunchingWithOptions:)`.
-- Handle `errSecInteractionNotAllowed` gracefully — never destructively.
+- Handle `errSecInteractionNotAllowed` gracefully: never destructively.
 
 ### Batch Operations
 
@@ -548,7 +548,7 @@ query[kSecUseDataProtectionKeychain] = true
 #endif
 ```
 
-The file-based keychain's shim layer has documented bugs — it silently ignores unsupported attributes where the data protection keychain correctly returns `errSecNoSuchAttr` (-25244). Debugging keychain issues on macOS often starts with confirming which implementation is in use.
+The file-based keychain's shim layer has documented bugs: it silently ignores unsupported attributes where the data protection keychain correctly returns `errSecNoSuchAttr` (-25244). Debugging keychain issues on macOS often starts with confirming which implementation is in use.
 
 ---
 
@@ -563,7 +563,7 @@ The `kSecAttrAccessible` attribute controls when a keychain item's secret data c
 | `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`  | Only if passcode set + unlocked  | No               | Highest-sensitivity data (OWASP recommended) |
 | `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` | After first unlock until restart | No               | Background + device-only                     |
 
-**Deprecated:** `kSecAttrAccessibleAlways` — deprecated in iOS 12, unsupported on Apple Silicon Macs. Never use.
+**Deprecated:** `kSecAttrAccessibleAlways`: deprecated in iOS 12, unsupported on Apple Silicon Macs. Never use.
 
 ---
 
@@ -586,10 +586,10 @@ The `kSecAttrAccessible` attribute controls when a keychain item's secret data c
 | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | [Keychain Services](https://sosumi.ai/documentation/security/keychain_services)                                       | Main API landing page                              |
 | [TN3137: On Mac Keychain APIs and Implementations](https://sosumi.ai/documentation/technotes/tn3137-on-mac-keychains) | macOS data protection vs file-based routing        |
-| Quinn "The Eskimo!" — "SecItem: Fundamentals" / "SecItem: Pitfalls and Best Practices"                                          | Most practical DTS reference, updated through 2025 |
-| [Apple Platform Security Guide](https://support.apple.com/guide/security/welcome/web) — Keychain Data Protection chapter        | Two-tier encryption architecture                   |
-| WWDC 2014 Session 711 — "Keychain and Authentication with Touch ID"                                                             | Touch ID/keychain integration patterns             |
-| WWDC 2019 Session 516 — "What's New in Authentication"                                                                          | Modern credential management                       |
+| Quinn "The Eskimo!": "SecItem: Fundamentals" / "SecItem: Pitfalls and Best Practices"                                          | Most practical DTS reference, updated through 2025 |
+| [Apple Platform Security Guide](https://support.apple.com/guide/security/welcome/web): Keychain Data Protection chapter        | Two-tier encryption architecture                   |
+| WWDC 2014 Session 711: "Keychain and Authentication with Touch ID"                                                             | Touch ID/keychain integration patterns             |
+| WWDC 2019 Session 516: "What's New in Authentication"                                                                          | Modern credential management                       |
 
 ---
 
@@ -607,14 +607,14 @@ The `kSecAttrAccessible` attribute controls when a keychain item's secret data c
 
 Before shipping keychain code, verify:
 
-1. **OSStatus checked on every call** — exhaustive `switch` covering at minimum `errSecSuccess`, `errSecDuplicateItem`, `errSecItemNotFound`, `errSecInteractionNotAllowed`; no ignored return values
-2. **Add-or-update pattern implemented** — `SecItemAdd` catches `-25299` and falls back to `SecItemUpdate`; duplicate saves never crash or silently fail
-3. **Return flags explicitly set** — every `SecItemCopyMatching` call includes at least one `kSecReturn*` flag; no "success but nil" bugs
-4. **CFTypeRef cast matches flags** — cast type corresponds to the combination of return flags and match limit (see Return Type Cheat Sheet)
-5. **Zero SecItem calls on `@MainActor`** — all keychain access isolated in a dedicated `actor` (iOS 17+) or serial `DispatchQueue` (iOS 13–16)
-6. **Fresh dictionaries per call** — no dictionary reuse across SecItem functions; add dict, query dict, and update dict are separate
-7. **kSec\* constants used** — no raw string literals for dictionary keys; using either `[CFString: Any]` or `[String: Any]` with `as String` casts
-8. **Queries are specific** — `kSecAttrService` + `kSecAttrAccount` included for GenericPassword; `kSecMatchLimitOne` used unless enumeration is needed
-9. **Delete treats not-found as success** — `errSecItemNotFound` on delete is a valid postcondition, not an error
-10. **macOS targets data protection keychain** — `kSecUseDataProtectionKeychain: true` set for macOS targets (automatic for Catalyst/iOS-on-Mac)
-11. **errSecInteractionNotAllowed handled non-destructively** — device-locked state triggers retry-later logic, never delete-and-recreate
+1. **OSStatus checked on every call**: exhaustive `switch` covering at minimum `errSecSuccess`, `errSecDuplicateItem`, `errSecItemNotFound`, `errSecInteractionNotAllowed`; no ignored return values
+2. **Add-or-update pattern implemented**: `SecItemAdd` catches `-25299` and falls back to `SecItemUpdate`; duplicate saves never crash or silently fail
+3. **Return flags explicitly set**: every `SecItemCopyMatching` call includes at least one `kSecReturn*` flag; no "success but nil" bugs
+4. **CFTypeRef cast matches flags**: cast type corresponds to the combination of return flags and match limit (see Return Type Cheat Sheet)
+5. **Zero SecItem calls on `@MainActor`**: all keychain access isolated in a dedicated `actor` (iOS 17+) or serial `DispatchQueue` (iOS 13-16)
+6. **Fresh dictionaries per call**: no dictionary reuse across SecItem functions; add dict, query dict, and update dict are separate
+7. **kSec\* constants used**: no raw string literals for dictionary keys; using either `[CFString: Any]` or `[String: Any]` with `as String` casts
+8. **Queries are specific**: `kSecAttrService` + `kSecAttrAccount` included for GenericPassword; `kSecMatchLimitOne` used unless enumeration is needed
+9. **Delete treats not-found as success**: `errSecItemNotFound` on delete is a valid postcondition, not an error
+10. **macOS targets data protection keychain**: `kSecUseDataProtectionKeychain: true` set for macOS targets (automatic for Catalyst/iOS-on-Mac)
+11. **errSecInteractionNotAllowed handled non-destructively**: device-locked state triggers retry-later logic, never delete-and-recreate

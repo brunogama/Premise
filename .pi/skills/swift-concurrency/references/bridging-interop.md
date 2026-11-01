@@ -35,7 +35,7 @@ func fetchData() async throws -> Data {
 
 - **Resume exactly once.** Missing resume suspends the task forever (leak). Double resume crashes at runtime.
 - **Prefer checked over unsafe.** `withCheckedContinuation` detects misuse at runtime with diagnostics. Use `withUnsafeContinuation` only in performance-critical paths after correctness is proven.
-- **Capture continuation carefully.** The continuation escapes the closure — ensure all code paths resume it, including error and cancellation paths.
+- **Capture continuation carefully.** The continuation escapes the closure: ensure all code paths resume it, including error and cancellation paths.
 
 ### Delegate Bridging
 

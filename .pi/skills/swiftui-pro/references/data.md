@@ -1,6 +1,6 @@
 # Data flow, shared state, and property wrappers
 
-It is important that SwiftUI body code and logic code be kept separate in order to make code easier to read, write, and maintain. That usually means placing code into methods rather than inline in the `body` property, but often also means carving functionality out into separate `@Observable` classes.
+It is important that SwiftUI body code and logic code be kept separate to make code easier to read, write, and maintain. That usually means placing code into methods rather than inline in the `body` property, but often also means carving functionality out into separate `@Observable` classes.
 
 These rules help ensure code is efficient and works well in the long term.
 
@@ -15,7 +15,7 @@ These rules help ensure code is efficient and works well in the long term.
 ## Local state
 
 - `@State` should be marked `private` and only owned by the view that created it.
-- If a view stores a class instance that contains expensive-to-recompute data, e.g. `CIContext`, it can be stored using `@State` even though it is not an observable object. This effectively uses `@State` as a cache – storing something persistently, but not doing any change tracking on it since it's not an observable object.
+- If a view stores a class instance that contains expensive-to-recompute data, e.g. `CIContext`, it can be stored using `@State` even though it is not an observable object. This effectively uses `@State` as a cache - storing something persistently, but not doing any change tracking on it since it's not an observable object.
 
 
 ## Bindings
@@ -27,7 +27,7 @@ These rules help ensure code is efficient and works well in the long term.
 ## Working with data
 
 - Prefer to make structs conform to `Identifiable` rather than using `id: \.someProperty` in SwiftUI code.
-- Never attempt to use `@AppStorage` inside an `@Observable` class, even if marked `@ObservationIgnored` – it will *not* trigger view updates when a change happens.
+- Never attempt to use `@AppStorage` inside an `@Observable` class, even if marked `@ObservationIgnored` - it will *not* trigger view updates when a change happens.
 
 
 ## SwiftData

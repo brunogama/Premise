@@ -76,7 +76,7 @@ func updateDisplayName() {
 let user = try #require(await fetchUser(id: 1))
 #expect(user.name == "Alice")
 
-// #require for optionals -- unwraps or fails
+// #require for optionals: unwraps or fails
 let first = try #require(items.first)
 #expect(first.isValid)
 ```

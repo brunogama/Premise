@@ -8,7 +8,7 @@ struct Money: Equatable {
 
   // Buggy: overflows silently for large values.
   func add(_ other: Self) -> Self {
-    let result = cents &+ other.cents  // wrapping add — intentional bug
+    let result = cents &+ other.cents  // wrapping add: intentional bug
     return Self(cents: result)
   }
 }

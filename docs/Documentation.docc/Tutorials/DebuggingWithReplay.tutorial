@@ -39,14 +39,14 @@
       @Steps {
          @Step {
             Look at the generated trace file. It contains the minimised
-            ``ChoiceTrace`` — the sequence of choices that reproduces the
+            ``ChoiceTrace``: the sequence of choices that reproduces the
             smallest failing input.
 
             @Code(name: "Terminal", file: "t10-s03-trace-file.txt")
          }
          @Step {
             Run the test a second time *without changing any code*. The engine
-            loads the stored trace and replays it immediately — you see the
+            loads the stored trace and replays it immediately: you see the
             same failure without waiting for random generation to rediscover it.
 
             @Code(name: "Terminal", file: "t10-s04-replay-output.txt")
@@ -57,7 +57,7 @@
    @Section(title: "Using Replay to Debug") {
       @ContentAndMedia {
          Because the replay is deterministic, you can add `print` statements,
-         attach breakpoints in Xcode, or add extra assertions — and the exact
+         attach breakpoints in Xcode, or add extra assertions: and the exact
          same inputs will be exercised every time.
       }
       @Steps {
@@ -70,7 +70,7 @@
          @Step {
             Fix the bug in `BuggyCache`. Run the tests again. The stored trace
             is replayed, passes, and fresh generation also passes. The stored
-            trace remains — it is now a permanent regression case.
+            trace remains: it is now a permanent regression case.
 
             @Code(name: "ReplayTests.swift", file: "t10-s06-fixed.swift")
          }

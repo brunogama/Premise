@@ -25,22 +25,22 @@ repeatably in future runs.
 
 ## Features
 
-- **Deterministic replay** — every failing run records a `ChoiceTrace` that can
+- **Deterministic replay**: every failing run records a `ChoiceTrace` that can
   be decoded and replayed exactly.
-- **Structural shrinking** — failing choices are minimized at the trace level,
+- **Structural shrinking**: failing choices are minimized at the trace level,
   with strategy-specific shrinkers for common Swift values.
-- **Persistent failures** — file-backed and SQLite-backed databases replay known
+- **Persistent failures**: file-backed and SQLite-backed databases replay known
   failures before fresh generation.
-- **Rich strategy catalog** — primitives, collections, URLs, UUIDs, dates,
+- **Rich strategy catalog**: primitives, collections, URLs, UUIDs, dates,
   regex-shaped strings, network strings, records, vectors, recursive data, and
   more.
-- **swift-testing and XCTest adapters** — use `forAll` or `premise_forAll`
+- **swift-testing and XCTest adapters**: use `forAll` or `premise_forAll`
   without changing your test framework.
-- **Stateful testing** — generate operation sequences or rule-based state
+- **Stateful testing**: generate operation sequences or rule-based state
   machine programs with replayable minimal failures.
-- **Tooling included** — replay trace inspection, ghostwritten property
+- **Tooling included**: replay trace inspection, ghostwritten property
   skeletons, JSONL run output, and fuzzer byte-input bridging.
-- **Strict concurrency** — built for Swift 6 complete strict-concurrency checks.
+- **Strict concurrency**: built for Swift 6 complete strict-concurrency checks.
 
 ## Getting started
 
@@ -120,12 +120,12 @@ final class MathTests: XCTestCase {
 
 ## How it works
 
-1. **Draw** — a strategy asks `PremiseData` for primitive choices.
-2. **Record** — every choice is stored in a deterministic `ChoiceTrace`.
-3. **Check** — your property runs against the generated value.
-4. **Shrink** — on failure, Premise replays smaller traces until the
+1. **Draw**: a strategy asks `PremiseData` for primitive choices.
+2. **Record**: every choice is stored in a deterministic `ChoiceTrace`.
+3. **Check**: your property runs against the generated value.
+4. **Shrink**: on failure, Premise replays smaller traces until the
    counterexample is minimal.
-5. **Persist** — the failure is stored and replayed first on the next run.
+5. **Persist**: the failure is stored and replayed first on the next run.
 
 ## Strategies
 

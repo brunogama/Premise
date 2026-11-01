@@ -4,7 +4,7 @@ Build complex strategies from simple ones using flatMap, filter, oneOf, frequenc
 
 ## Overview
 
-Simple strategies for primitives are easy. Real domain types — users, requests, trees, JSON — require combining and transforming strategies. The combinators in `PremiseStrategies` give you a composable toolkit for generating any value your code can accept.
+Simple strategies for primitives are easy. Real domain types, users, requests, trees, JSON, require combining and transforming strategies. The combinators in `PremiseStrategies` give you a composable toolkit for generating any value your code can accept.
 
 ## flatMap: Dependent Generation
 
@@ -53,7 +53,7 @@ let dateRange = Strategy<Int>.integers(in: 0...3650)
 let positiveOdd = Strategy<Int>.integers(in: 1...200)
     .filter { $0 % 2 != 0 }
 
-// Bad: only 1 in 1000 values pass — engine exhausts its draw budget
+// Bad: only 1 in 1000 values pass: engine exhausts its draw budget
 let primes1To1000 = Strategy<Int>.integers(in: 1...1000)
     .filter { isPrime($0) }  // don't do this
 ```
@@ -188,7 +188,7 @@ let jsonStrategy = Strategy<JSON>.recursive(
 
 ## assume: Precondition on the Generated Domain
 
-`assume` is like `filter` but communicates a clearer intent — "I assume this holds for the values I'm interested in." It's the Swift equivalent of Hypothesis's `assume()`:
+`assume` is like `filter` but communicates a clearer intent: "I assume this holds for the values I'm interested in." It's the Swift equivalent of Hypothesis's `assume()`:
 
 ```swift
 let nonZero = Strategy<Int>.integers(in: -100...100)
@@ -199,7 +199,7 @@ try await forAll(nonZero) { n in
 }
 ```
 
-If the assumption rejects too many values (default: 32 attempts), the run is silently skipped — not counted as a failure. Use `assume` for light preconditions; for tight constraints, generate the valid domain directly.
+If the assumption rejects too many values (default: 32 attempts), the run is silently skipped: not counted as a failure. Use `assume` for light preconditions; for tight constraints, generate the valid domain directly.
 
 ## zip: Combining Independent Strategies
 
@@ -214,7 +214,7 @@ let pair = zip(strategyA, strategyB)
 let triple = zip(strategyA, strategyB, strategyC)
 ```
 
-Shrinking is handled at the trace level by the `ShrinkMachine` — each component's draws are independent spans.
+Shrinking is handled at the trace level by the `ShrinkMachine`: each component's draws are independent spans.
 
 ## ||| Operator: Inline Choice
 

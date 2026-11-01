@@ -46,7 +46,7 @@ Use only the documented workarounds:
 3. **Fix diagnostics bottom-up.** Start with leaf types (models, DTOs), then
    services, then UI.
 4. **Use `@preconcurrency import`** temporarily for third-party modules that
-   haven't adopted Sendable — document removal plan.
+   haven't adopted Sendable: document removal plan.
 
 For Sendable diagnostics, check this order before adding annotations:
 immutable `struct` / `enum`, immutable `let` properties on a `final` class,

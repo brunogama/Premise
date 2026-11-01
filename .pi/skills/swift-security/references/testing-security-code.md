@@ -2,7 +2,7 @@
 
 > Scope: Unit, integration, and CI patterns for validating keychain, CryptoKit, and biometric security code across simulator, CI runners, and physical devices.
 
-**Protocol-based abstraction is the single most important pattern for testable security code.** Wrapping Security framework calls behind a Swift protocol lets you inject an in-memory mock for unit tests while reserving real keychain integration tests for physical devices. The core challenge is that keychain behavior differs dramatically across three environments — Xcode simulator, CI runner, and physical device — and tests that ignore these differences produce flaky failures, crashes, or false confidence.
+**Protocol-based abstraction is the single most important pattern for testable security code.** Wrapping Security framework calls behind a Swift protocol lets you inject an in-memory mock for unit tests while reserving real keychain integration tests for physical devices. The core challenge is that keychain behavior differs dramatically across three environments, Xcode simulator, CI runner, and physical device, and tests that ignore these differences produce flaky failures, crashes, or false confidence.
 
 This reference covers mock design, CryptoKit round-trip tests, Secure Enclave guards, biometric mocking, CI/CD keychain creation, simulator limitations, Swift Testing framework patterns, mutation testing, and OWASP MASTG validation. Examples target Swift 6-era code, iOS 17+ baselines, and iOS 26 post-quantum notes where applicable.
 
@@ -19,20 +19,20 @@ Key sources: Apple TN3137 "On Mac keychain APIs and implementations," WWDC19-413
   - [Conditional Compilation and Runtime Guards](#conditional-compilation-and-runtime-guards)
 - [Essential Testing Patterns](#essential-testing-patterns)
   - [setUp/tearDown Cleanup for Real Keychain Tests](#setupteardown-cleanup-for-real-keychain-tests)
-  - [No Cleanup — Flaky Across Runs](#no-cleanup-flaky-across-runs)
+  - [No Cleanup: Flaky Across Runs](#no-cleanup-flaky-across-runs)
   - [Testing Error Paths with Injected Failures](#testing-error-paths-with-injected-failures)
   - [CryptoKit Round-Trip Tests (Simulator-Safe)](#cryptokit-round-trip-tests-simulator-safe)
-- [Secure Enclave Test Strategy — Protocol Fallback](#secure-enclave-test-strategy-protocol-fallback)
+- [Secure Enclave Test Strategy: Protocol Fallback](#secure-enclave-test-strategy-protocol-fallback)
   - [SigningKeyProvider Protocol with SE/Software Implementations](#signingkeyprovider-protocol-with-sesoftware-implementations)
   - [Testing Secure Enclave Code](#testing-secure-enclave-code)
-- [Biometric Flow Testing — LAContext Mocking](#biometric-flow-testing-lacontext-mocking)
+- [Biometric Flow Testing: LAContext Mocking](#biometric-flow-testing-lacontext-mocking)
   - [Protocol-Based Approach (Preferred)](#protocol-based-approach-preferred)
   - [Biometric Scenarios to Cover](#biometric-scenarios-to-cover)
 - [CI/CD Pipeline Configuration](#cicd-pipeline-configuration)
   - [GitHub Actions](#github-actions)
   - [Common CI Error Reference](#common-ci-error-reference)
   - [Test Host App Requirement](#test-host-app-requirement)
-- [Xcode Test Plans — Separating Simulator from Device](#xcode-test-plans-separating-simulator-from-device)
+- [Xcode Test Plans: Separating Simulator from Device](#xcode-test-plans-separating-simulator-from-device)
 - [Swift Testing Framework Patterns](#swift-testing-framework-patterns)
 - [Advanced Patterns](#advanced-patterns)
   - [Migration Testing: UserDefaults to Keychain](#migration-testing-userdefaults-to-keychain)
@@ -82,7 +82,7 @@ protocol KeychainServiceProtocol: Sendable {
 
 The real `KeychainService` implementation wraps `SecItem*` calls with the add-or-update pattern and proper `OSStatus` mapping (see `keychain-fundamentals.md` for the full implementation). Key points: `save` attempts update first to avoid `errSecDuplicateItem`; `delete` treats `errSecItemNotFound` as success; the class conforms to `@unchecked Sendable` with immutable stored properties.
 
-The mock replaces Security framework with a dictionary. Runs everywhere — simulator, CI, even Linux — with zero entitlement requirements. Supports injectable errors and call counting:
+The mock replaces Security framework with a dictionary. Runs everywhere, simulator, CI, even Linux, with zero entitlement requirements. Supports injectable errors and call counting:
 
 ```swift
 final class MockKeychainService: KeychainServiceProtocol, @unchecked Sendable {
@@ -123,7 +123,7 @@ final class MockKeychainService: KeychainServiceProtocol, @unchecked Sendable {
 }
 ```
 
-Business logic depends only on the protocol — never on `SecItem*` directly:
+Business logic depends only on the protocol: never on `SecItem*` directly:
 
 ```swift
 final class AuthenticationManager {
@@ -180,7 +180,7 @@ Understanding exactly what works where prevents entire categories of test failur
 | `kSecAttrAccessible` values                                   | ✅ Accepted but not hardware-enforced | ✅ Hardware-enforced         |
 | `SecureEnclave.isAvailable`                                   | Returns **false**                     | Returns **true** (A7+)       |
 | `SecureEnclave.P256.Signing.PrivateKey()`                     | ❌ Throws                             | ✅ Works                     |
-| Biometric prompt on protected items                           | ❌ Skipped — value returned silently  | ✅ Shows prompt              |
+| Biometric prompt on protected items                           | ❌ Skipped: value returned silently  | ✅ Shows prompt              |
 | `LAContext.canEvaluatePolicy(.biometrics)`                    | Returns **false**                     | Returns **true** if enrolled |
 | Face ID simulation via Xcode menu                             | ✅ Manual only                        | N/A (real hardware)          |
 | Post-quantum (ML-KEM, ML-DSA) iOS 26+                         | ✅ Software (iOS 26 runtime)          | ✅ Works                     |
@@ -249,7 +249,7 @@ final class KeychainIntegrationTests: XCTestCase {
 }
 ```
 
-### No Cleanup — Flaky Across Runs
+### No Cleanup: Flaky Across Runs
 
 ```swift
 // ❌ INCORRECT: No cleanup, no isolation
@@ -365,7 +365,7 @@ final class CryptoKitTests: XCTestCase {
 
 ---
 
-## Secure Enclave Test Strategy — Protocol Fallback
+## Secure Enclave Test Strategy: Protocol Fallback
 
 `SecureEnclave.P256.Signing.PrivateKey` and `P256.Signing.PrivateKey` are distinct types, so a single function should not promise to return one concrete type for both SE and software paths. Use a protocol-based abstraction:
 
@@ -430,7 +430,7 @@ func testSecureEnclaveSigning_BROKEN() throws {
 // ✅ CORRECT: Skip gracefully when SE unavailable
 func testSecureEnclaveSigning_withGuard() throws {
     try XCTSkipUnless(SecureEnclave.isAvailable,
-                      "Secure Enclave not available — skipping on simulator")
+                      "Secure Enclave not available: skipping on simulator")
     let key = try SecureEnclave.P256.Signing.PrivateKey()
     let data = "authenticated payload".data(using: .utf8)!
     let sig = try key.signature(for: data)
@@ -452,7 +452,7 @@ func testSigningWithFallback() throws {
 
 ---
 
-## Biometric Flow Testing — LAContext Mocking
+## Biometric Flow Testing: LAContext Mocking
 
 Wrap `LAContext` behind a protocol for full control over biometric outcomes in tests. Alternatively, subclass `LAContext` directly (simpler but tighter coupling).
 
@@ -555,7 +555,7 @@ func testBiometricAuthUnavailable() {
 
 ## CI/CD Pipeline Configuration
 
-Running keychain tests in CI is the most error-prone part. The `-25308` (`errSecInteractionNotAllowed`) error is the most common CI failure — keychain locked or requires GUI interaction in a headless environment.
+Running keychain tests in CI is the most error-prone part. The `-25308` (`errSecInteractionNotAllowed`) error is the most common CI failure: keychain locked or requires GUI interaction in a headless environment.
 
 ### GitHub Actions
 
@@ -592,9 +592,9 @@ jobs:
         run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
 ```
 
-**`security set-key-partition-list` must be called after importing certificates** — this is the step most people miss. Without it, `codesign` hangs indefinitely waiting for a GUI prompt. The `-A` flag on import grants access to all applications, necessary in CI.
+**`security set-key-partition-list` must be called after importing certificates**: this is the step most people miss. Without it, `codesign` hangs indefinitely waiting for a GUI prompt. The `-A` flag on import grants access to all applications, necessary in CI.
 
-**Xcode Cloud:** Uses ephemeral environments — no manual `security create-keychain`. Apple manages signing automatically. Ensure Keychain Sharing capability is enabled. The `-25308` error is common when SPM tries to save credentials.
+**Xcode Cloud:** Uses ephemeral environments: no manual `security create-keychain`. Apple manages signing automatically. Ensure Keychain Sharing capability is enabled. The `-25308` error is common when SPM tries to save credentials.
 
 **Fastlane:** `setup_ci` creates a temporary `fastlane_tmp_keychain` and sets it as default. On self-hosted runners, this can interfere with the host machine's keychain.
 
@@ -622,7 +622,7 @@ Since Xcode 9, test bundles on iOS simulator require a host app to access the ke
 
 ---
 
-## Xcode Test Plans — Separating Simulator from Device
+## Xcode Test Plans: Separating Simulator from Device
 
 Create two test plans for CI/device split:
 
@@ -698,7 +698,7 @@ struct KeychainTests {
 }
 ```
 
-The `.serialized` trait ensures keychain tests modifying shared state run sequentially. Tags integrate with test plans for filtering — `.ciSafe` tests run in CI, `.deviceOnly` tests run on device farms.
+The `.serialized` trait ensures keychain tests modifying shared state run sequentially. Tags integrate with test plans for filtering: `.ciSafe` tests run in CI, `.deviceOnly` tests run on device farms.
 
 ---
 
@@ -706,7 +706,7 @@ The `.serialized` trait ensures keychain tests modifying shared state run sequen
 
 ### Migration Testing: UserDefaults to Keychain
 
-Migration code is security-critical — silent failure leaves credentials in UserDefaults (see `migration-legacy-stores.md`). The class under test accepts injected dependencies for both stores:
+Migration code is security-critical: silent failure leaves credentials in UserDefaults (see `migration-legacy-stores.md`). The class under test accepts injected dependencies for both stores:
 
 ```swift
 final class StorageMigrationManager {
@@ -770,13 +770,13 @@ func testKeychainWritePerformance() {
 
 ### Mutation Testing
 
-Mutation testing introduces deliberate bugs (flipping `==` to `!=`, removing `SecItemDelete` calls, swapping `&&` to `||`) and checks whether your tests catch them. A project can have 81% code coverage but only 16% mutation score — tests execute security code without validating it does the right thing.
+Mutation testing introduces deliberate bugs (flipping `==` to `!=`, removing `SecItemDelete` calls, swapping `&&` to `||`) and checks whether your tests catch them. A project can have 81% code coverage but only 16% mutation score: tests execute security code without validating it does the right thing.
 
 **Muter** (`brew install muter-mutation-testing/muter/muter`) is the primary Swift mutation testing tool. Its `RelationalOperatorReplacement` operator catches authentication bypasses; `RemoveSideEffects` catches missing `SecItemDelete` calls in logout flows. For security code, target mutation score above **80%**.
 
 ### OWASP MASTG Keychain Validation
 
-MASTG-TEST-0052 requires that sensitive data use the Keychain, not `NSUserDefaults` or `.plist` files. OWASP also documents that keychain data persists after app uninstallation — the app sandbox is wiped but keychain items remain. Standard mitigation is a fresh-install detector (see `common-anti-patterns.md`):
+MASTG-TEST-0052 requires that sensitive data use the Keychain, not `NSUserDefaults` or `.plist` files. OWASP also documents that keychain data persists after app uninstallation: the app sandbox is wiped but keychain items remain. Standard mitigation is a fresh-install detector (see `common-anti-patterns.md`):
 
 ```swift
 static func handleFreshInstall(keychain: KeychainServiceProtocol) {
@@ -794,20 +794,20 @@ static func handleFreshInstall(keychain: KeychainServiceProtocol) {
 
 Protocol-abstraction is non-negotiable for testable keychain code. Every `SecItem` call should be behind `KeychainServiceProtocol` so that 95%+ of your test suite runs against `MockKeychainService` with zero entitlement requirements and zero CI flakiness. Reserve real-keychain integration tests for a dedicated test plan on physical devices.
 
-Three insights most guides miss: (1) the simulator silently returns biometric-protected items without prompting — tests appear to validate biometric gates but test nothing; (2) TN3137's distinction between file-based and data protection keychains means `security create-keychain` in CI creates the wrong keychain type; (3) mutation testing reveals that even high-coverage suites fail to catch inverted conditionals and removed side effects — the exact mutations that create real vulnerabilities.
+Three insights most guides miss: (1) the simulator silently returns biometric-protected items without prompting, tests appear to validate biometric gates but test nothing; (2) TN3137's distinction between file-based and data protection keychains means `security create-keychain` in CI creates the wrong keychain type; (3) mutation testing reveals that even high-coverage suites fail to catch inverted conditionals and removed side effects, the exact mutations that create real vulnerabilities.
 
 ---
 
 ## Summary Checklist
 
-1. **Protocol abstraction** — All keychain access goes through `KeychainServiceProtocol`; no direct `SecItem*` calls in business logic
-2. **Mock with injectable errors** — `MockKeychainService` supports `errorToThrow` for testing `errSecDuplicateItem`, `errSecAuthFailed`, `errSecInteractionNotAllowed`, and `errSecItemNotFound` paths
-3. **setUp/tearDown cleanup** — Every integration test using real keychain has both pre-test and post-test cleanup with a test-specific `kSecAttrService`
-4. **Secure Enclave guard** — All SE tests use `try XCTSkipUnless(SecureEnclave.isAvailable, ...)` or protocol-based fallback; never call `SecureEnclave.P256.*` unconditionally
-5. **Biometric mock** — `LAContext` wrapped behind protocol or subclass mock; tests cover success, user cancel, lockout, and not-enrolled scenarios
-6. **Simulator/device split** — Two Xcode test plans: `CITests` (mock-based, simulator-safe) and `DeviceTests` (real keychain, SE, biometrics on physical device)
-7. **CI keychain setup** — GitHub Actions calls `security set-key-partition-list` after cert import; test target has host app with Keychain Sharing capability enabled
-8. **CryptoKit round-trips** — Encrypt→decrypt and sign→verify tests for AES-GCM, ChaChaPoly, P256, Curve25519; wrong-key failure tests included
-9. **Error path coverage** — Every `OSStatus` code the app can encounter has a corresponding test with injected mock failure
-10. **Migration testing** — UserDefaults→Keychain migration tested with isolated `UserDefaults(suiteName:)` and mock keychain; verifies source cleared after migration
-11. **Mutation testing baseline** — Muter mutation score ≥80% for security-critical code paths; `RelationalOperatorReplacement` and `RemoveSideEffects` operators enabled
+1. **Protocol abstraction**: All keychain access goes through `KeychainServiceProtocol`; no direct `SecItem*` calls in business logic
+2. **Mock with injectable errors**: `MockKeychainService` supports `errorToThrow` for testing `errSecDuplicateItem`, `errSecAuthFailed`, `errSecInteractionNotAllowed`, and `errSecItemNotFound` paths
+3. **setUp/tearDown cleanup**: Every integration test using real keychain has both pre-test and post-test cleanup with a test-specific `kSecAttrService`
+4. **Secure Enclave guard**: All SE tests use `try XCTSkipUnless(SecureEnclave.isAvailable, ...)` or protocol-based fallback; never call `SecureEnclave.P256.*` unconditionally
+5. **Biometric mock**: `LAContext` wrapped behind protocol or subclass mock; tests cover success, user cancel, lockout, and not-enrolled scenarios
+6. **Simulator/device split**: Two Xcode test plans: `CITests` (mock-based, simulator-safe) and `DeviceTests` (real keychain, SE, biometrics on physical device)
+7. **CI keychain setup**: GitHub Actions calls `security set-key-partition-list` after cert import; test target has host app with Keychain Sharing capability enabled
+8. **CryptoKit round-trips**: Encrypt→decrypt and sign→verify tests for AES-GCM, ChaChaPoly, P256, Curve25519; wrong-key failure tests included
+9. **Error path coverage**: Every `OSStatus` code the app can encounter has a corresponding test with injected mock failure
+10. **Migration testing**: UserDefaults→Keychain migration tested with isolated `UserDefaults(suiteName:)` and mock keychain; verifies source cleared after migration
+11. **Mutation testing baseline**: Muter mutation score ≥80% for security-critical code paths; `RelationalOperatorReplacement` and `RemoveSideEffects` operators enabled

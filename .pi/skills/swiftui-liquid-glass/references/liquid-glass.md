@@ -390,7 +390,7 @@ NavigationSplitView {
 ```
 
 Also available as `backgroundExtensionEffect(isEnabled:)` for conditional use.
-Apply with discretion — typically to a single background view in the detail column.
+Apply with discretion: typically to a single background view in the detail column.
 
 ## Toolbar Spacing
 
@@ -444,7 +444,7 @@ if #available(iOS 26, *) {
 4. Use `.interactive()` only on tappable/focusable elements.
 5. Use `withAnimation` when toggling views with `glassEffectID` for morphing.
 6. Prefer `.buttonStyle(.glass)`, `.buttonStyle(.glassProminent)`, or configurable styles such as `.buttonStyle(.glass(.clear))` for buttons.
-7. Avoid overusing Liquid Glass -- reserve it for key functional elements.
+7. Avoid overusing Liquid Glass: reserve it for key functional elements.
 8. Always gate with `if #available(iOS 26, *)` and provide fallback UI.
 9. Test with Reduce Transparency and Reduce Motion accessibility settings.
 10. Apply `glassEffectTransition(_:)` to the conditional glass view that appears or disappears.

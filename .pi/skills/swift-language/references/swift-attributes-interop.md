@@ -4,12 +4,12 @@ Attributes and interoperability features for Swift. Covers C-calling-convention 
 
 ## Contents
 
-- [C Interoperability — `@c` Attribute](#c-interoperability--c-attribute)
+- [C Interoperability: `@c` Attribute](#c-interoperability--c-attribute)
 - [Module Selectors](#module-selectors)
 - [Performance Annotations](#performance-annotations)
 - [Symbol Visibility and Layout](#symbol-visibility-and-layout)
 
-## C Interoperability — `@c` Attribute
+## C Interoperability: `@c` Attribute
 
 For functions, the `@c` attribute (SE-0495) marks a Swift declaration for direct C-calling-convention export. The function becomes callable from C, C++, and Objective-C without bridging headers or `@_cdecl`.
 
@@ -80,8 +80,8 @@ values, protocol values, generic constraints, or non-final class dispatch.
 
 SE-0497 gives explicit control over symbol visibility and definition availability:
 
-- `@export(interface)` — ensures a callable symbol exists in the binary but hides the definition from clients (no inlining/specialization by external callers). Replaces `@_neverEmitIntoClient`.
-- `@export(implementation)` — makes the definition available for inlining/specialization but does not guarantee a callable symbol. Replaces `@_alwaysEmitIntoClient`.
+- `@export(interface)`: ensures a callable symbol exists in the binary but hides the definition from clients (no inlining/specialization by external callers). Replaces `@_neverEmitIntoClient`.
+- `@export(implementation)`: makes the definition available for inlining/specialization but does not guarantee a callable symbol. Replaces `@_alwaysEmitIntoClient`.
 
 ```swift
 @export(interface)

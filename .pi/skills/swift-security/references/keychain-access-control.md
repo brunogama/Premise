@@ -2,9 +2,9 @@
 
 > Scope: Selecting `kSecAttrAccessible` classes and `SecAccessControl` flags to enforce the correct lock-state and user-presence guarantees for keychain items.
 
-Data protection classes (`kSecAttrAccessible`) and runtime authentication gates (`SecAccessControl`) form the two-layer security model protecting every keychain item. The first controls **when** an item's class key is available in memory based on device state; the second controls **how** the user must authenticate at access time. Both must be satisfied for a read to succeed. Getting this wrong is the single most common cause of production keychain failures — background operations that silently return `nil`, items that vanish after device migration, or credentials left decryptable at rest.
+Data protection classes (`kSecAttrAccessible`) and runtime authentication gates (`SecAccessControl`) form the two-layer security model protecting every keychain item. The first controls **when** an item's class key is available in memory based on device state; the second controls **how** the user must authenticate at access time. Both must be satisfied for a read to succeed. Getting this wrong is the single most common cause of production keychain failures: background operations that silently return `nil`, items that vanish after device migration, or credentials left decryptable at rest.
 
-Sources: Apple Platform Security Guide (2024–2026 editions), Apple Keychain Services documentation, TN3137, WWDC 2014 Session 711 ("Keychain and Authentication with Touch ID"), WWDC 2015 Session 706, SecAccessControl documentation, OWASP MASTG.
+Sources: Apple Platform Security Guide (2024-2026 editions), Apple Keychain Services documentation, TN3137, WWDC 2014 Session 711 ("Keychain and Authentication with Touch ID"), WWDC 2015 Session 706, SecAccessControl documentation, OWASP MASTG.
 
 ---
 
@@ -20,10 +20,10 @@ Sources: Apple Platform Security Guide (2024–2026 editions), Apple Keychain Se
   - [Composing Constraints](#composing-constraints)
 - [The Cardinal Rule: Never Set Both Attributes](#the-cardinal-rule-never-set-both-attributes)
 - [Decision Matrix: Choosing the Right Accessibility Level](#decision-matrix-choosing-the-right-accessibility-level)
-  - [`WhenPasscodeSetThisDeviceOnly` — Data that should self-destruct](#whenpasscodesetthisdeviceonly-data-that-should-self-destruct)
-  - [`WhenUnlockedThisDeviceOnly` — Standard device-bound credentials](#whenunlockedthisdeviceonly-standard-device-bound-credentials)
-  - [`AfterFirstUnlockThisDeviceOnly` — Background operations (most common for services)](#afterfirstunlockthisdeviceonly-background-operations-most-common-for-services)
-  - [`AfterFirstUnlock` — Background + backup migration](#afterfirstunlock-background-backup-migration)
+  - [`WhenPasscodeSetThisDeviceOnly`: Data that should self-destruct](#whenpasscodesetthisdeviceonly-data-that-should-self-destruct)
+  - [`WhenUnlockedThisDeviceOnly`: Standard device-bound credentials](#whenunlockedthisdeviceonly-standard-device-bound-credentials)
+  - [`AfterFirstUnlockThisDeviceOnly`: Background operations (most common for services)](#afterfirstunlockthisdeviceonly-background-operations-most-common-for-services)
+  - [`AfterFirstUnlock`: Background + backup migration](#afterfirstunlock-background-backup-migration)
   - [Dual-Item Strategy for Mixed Contexts](#dual-item-strategy-for-mixed-contexts)
 - [Common AI-Generated Mistakes](#common-ai-generated-mistakes)
   - [Mistake 1: Omitting `kSecAttrAccessible` (inheriting the wrong default)](#mistake-1-omitting-ksecattraccessible-inheriting-the-wrong-default)
@@ -45,25 +45,25 @@ Sources: Apple Platform Security Guide (2024–2026 editions), Apple Keychain Se
 
 ## The "When" Layer: Seven Accessibility Constants
 
-Every keychain item is encrypted with a class key derived from the device's hardware UID and (for most classes) the user's passcode. The `kSecAttrAccessible` attribute selects which class key protects the item, determining when the system can decrypt it. **If you omit `kSecAttrAccessible`, the default is `kSecAttrAccessibleWhenUnlocked`** — confirmed by Apple documentation. This default breaks all background operations.
+Every keychain item is encrypted with a class key derived from the device's hardware UID and (for most classes) the user's passcode. The `kSecAttrAccessible` attribute selects which class key protects the item, determining when the system can decrypt it. **If you omit `kSecAttrAccessible`, the default is `kSecAttrAccessibleWhenUnlocked`**: confirmed by Apple documentation. This default breaks all background operations.
 
 ### The Protection Spectrum
 
 Listed from most restrictive to least:
 
-**`kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`** (iOS 8+) — the highest-security class. Items are accessible only while unlocked, and only if a device passcode is currently set. Two unique behaviors: (1) `SecItemAdd` fails on devices without a passcode, (2) **removing the passcode permanently deletes all items in this class** — class keys are discarded, data is unrecoverable. No non-`ThisDeviceOnly` variant exists. Items don't sync to iCloud Keychain, aren't backed up, and aren't in escrow keybags.
+**`kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`** (iOS 8+): the highest-security class. Items are accessible only while unlocked, and only if a device passcode is currently set. Two unique behaviors: (1) `SecItemAdd` fails on devices without a passcode, (2) **removing the passcode permanently deletes all items in this class**: class keys are discarded, data is unrecoverable. No non-`ThisDeviceOnly` variant exists. Items don't sync to iCloud Keychain, aren't backed up, and aren't in escrow keybags.
 
-**`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`** — Items decryptable only while unlocked. Device-bound: excluded from backups and device migration.
+**`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`**: Items decryptable only while unlocked. Device-bound: excluded from backups and device migration.
 
-**`kSecAttrAccessibleWhenUnlocked`** ⭐ (system default) — Same lock-state behavior as above, but items migrate with encrypted backups. Maps to `NSFileProtectionComplete`. Class key is discarded from memory shortly after the device locks (~10 seconds with Require Password set to Immediately).
+**`kSecAttrAccessibleWhenUnlocked`** ⭐ (system default): Same lock-state behavior as above, but items migrate with encrypted backups. Maps to `NSFileProtectionComplete`. Class key is discarded from memory shortly after the device locks (~10 seconds with Require Password set to Immediately).
 
-**`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`** — **The correct choice for background operations.** After the user unlocks the device once following a restart, the class key remains in memory until the next restart — even while locked. Device-bound.
+**`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`**: **The correct choice for background operations.** After the user unlocks the device once following a restart, the class key remains in memory until the next restart: even while locked. Device-bound.
 
-**`kSecAttrAccessibleAfterFirstUnlock`** — Same background accessibility, but items migrate with encrypted backups. Apple uses this for system Wi-Fi passwords, mail accounts, and iCloud tokens. Maps to `NSFileProtectionCompleteUntilFirstUserAuthentication`.
+**`kSecAttrAccessibleAfterFirstUnlock`**: Same background accessibility, but items migrate with encrypted backups. Apple uses this for system Wi-Fi passwords, mail accounts, and iCloud tokens. Maps to `NSFileProtectionCompleteUntilFirstUserAuthentication`.
 
-**`kSecAttrAccessibleAlwaysThisDeviceOnly`** ⚠️ DEPRECATED — Deprecated in iOS 12 / macOS 10.14. Apple announced intent at WWDC 2015 Session 706.
+**`kSecAttrAccessibleAlwaysThisDeviceOnly`** ⚠️ DEPRECATED: Deprecated in iOS 12 / macOS 10.14. Apple announced intent at WWDC 2015 Session 706.
 
-**`kSecAttrAccessibleAlways`** ⚠️ DEPRECATED — Same deprecation. Items encrypted with only the device UID (no passcode involvement), equivalent to `NSFileProtectionNone`.
+**`kSecAttrAccessibleAlways`** ⚠️ DEPRECATED: Same deprecation. Items encrypted with only the device UID (no passcode involvement), equivalent to `NSFileProtectionNone`.
 
 Deprecated "Always" constants have OS-version-specific behavior and should not be used for new or migrated code. **Migrate to `kSecAttrAccessibleAfterFirstUnlock` or a stricter class**, and block these constants in CI linting rather than relying on runtime behavior across OS versions.
 
@@ -72,8 +72,8 @@ Deprecated "Always" constants have OS-version-specific behavior and should not b
 | Constant                         | Accessible When         | Survives Lock | Migrates in Backup | Special                         |
 | -------------------------------- | ----------------------- | ------------- | ------------------ | ------------------------------- |
 | `WhenPasscodeSetThisDeviceOnly`  | Unlocked + passcode set | No            | No                 | **Deleted on passcode removal** |
-| `WhenUnlockedThisDeviceOnly`     | Unlocked                | No            | No                 | —                               |
-| `WhenUnlocked` ⭐ default        | Unlocked                | No            | Yes                | —                               |
+| `WhenUnlockedThisDeviceOnly`     | Unlocked                | No            | No                 |:                               |
+| `WhenUnlocked` ⭐ default        | Unlocked                | No            | Yes                |:                               |
 | `AfterFirstUnlockThisDeviceOnly` | After first unlock      | Yes           | No                 | Background-safe                 |
 | `AfterFirstUnlock`               | After first unlock      | Yes           | Yes                | Background-safe + migratable    |
 | `AlwaysThisDeviceOnly` ⚠️        | Always¹                 | Yes           | No                 | Deprecated iOS 12               |
@@ -87,7 +87,7 @@ After a device restart, the system is in **Before First Unlock (BFU)** state. On
 
 Once the user enters their passcode, the device enters **After First Unlock (AFU)** state. `AfterFirstUnlock` class keys load into memory and remain there through subsequent lock/unlock cycles until the next restart. `WhenUnlocked` class keys are available only during active unlocked periods and discarded each time the device locks.
 
-> **iOS 15+ caveat — app pre-warming:** iOS can launch your process before first unlock for faster app startup. This means even `AfterFirstUnlock` items may be temporarily unavailable during pre-warm. Check `UIApplication.shared.isProtectedDataAvailable` before accessing keychain items, and defer if it returns `false`.
+> **iOS 15+ caveat: app pre-warming:** iOS can launch your process before first unlock for faster app startup. This means even `AfterFirstUnlock` items may be temporarily unavailable during pre-warm. Check `UIApplication.shared.isProtectedDataAvailable` before accessing keychain items, and defer if it returns `false`.
 
 ---
 
@@ -108,20 +108,20 @@ func SecAccessControlCreateWithFlags(
 
 **Authentication constraints:**
 
-- **`.userPresence`** (iOS 8+) — Biometry OR passcode. Does not require biometry enrollment; auto-falls back to passcode. Equivalent to `[.biometryAny, .or, .devicePasscode]` but handles no-biometry gracefully.
-- **`.biometryAny`** (iOS 11.3+, was `.touchIDAny`) — Requires biometric authentication. Item **survives** enrollment changes (new fingerprints, Face ID re-enrollment).
-- **`.biometryCurrentSet`** (iOS 11.3+, was `.touchIDCurrentSet`) — Requires biometric authentication. Item **invalidated** on enrollment changes. Most secure biometric option — blocks an attacker who enrolls their own biometrics.
-- **`.devicePasscode`** (iOS 9+) — Requires device passcode entry only.
+- **`.userPresence`** (iOS 8+): Biometry OR passcode. Does not require biometry enrollment; auto-falls back to passcode. Equivalent to `[.biometryAny, .or, .devicePasscode]` but handles no-biometry gracefully.
+- **`.biometryAny`** (iOS 11.3+, was `.touchIDAny`): Requires biometric authentication. Item **survives** enrollment changes (new fingerprints, Face ID re-enrollment).
+- **`.biometryCurrentSet`** (iOS 11.3+, was `.touchIDCurrentSet`), Requires biometric authentication. Item **invalidated** on enrollment changes. Most secure biometric option, blocks an attacker who enrolls their own biometrics.
+- **`.devicePasscode`** (iOS 9+): Requires device passcode entry only.
 
 **Logical combinators:**
 
-- **`.or`** — At least one constraint must be satisfied.
-- **`.and`** — All constraints must be satisfied.
+- **`.or`**: At least one constraint must be satisfied.
+- **`.and`**: All constraints must be satisfied.
 
 **Additional:**
 
-- **`.privateKeyUsage`** (iOS 9+) — Required for Secure Enclave private key operations (signing, key agreement).
-- **`.applicationPassword`** (iOS 9+) — Adds an app-provided password to key derivation. Not a constraint — an additional encryption layer.
+- **`.privateKeyUsage`** (iOS 9+): Required for Secure Enclave private key operations (signing, key agreement).
+- **`.applicationPassword`** (iOS 9+), Adds an app-provided password to key derivation. Not a constraint, an additional encryption layer.
 
 ### Flag Compatibility Matrix
 
@@ -131,7 +131,7 @@ func SecAccessControlCreateWithFlags(
 | `.biometryAny`         | No                       | Foreground secrets                        | `errSecAuthFailed` if no biometrics enrolled |
 | `.biometryCurrentSet`  | No                       | `WhenPasscodeSetTDO` for highest security | Auth fails on enrollment change              |
 | `.devicePasscode`      | No                       | Compliance flows                          | `-25308` without UI                          |
-| `.privateKeyUsage`     | Yes (for key ops)        | Secure Enclave keys                       | —                                            |
+| `.privateKeyUsage`     | Yes (for key ops)        | Secure Enclave keys                       |:                                            |
 | `.applicationPassword` | Yes (if password cached) | Niche models                              | Password lifecycle management                |
 
 ### Composing Constraints
@@ -139,10 +139,10 @@ func SecAccessControlCreateWithFlags(
 Since `SecAccessControlCreateFlags` is an `OptionSet`, compose with array literal syntax:
 
 ```swift
-// Biometry OR passcode — most common pattern
+// Biometry OR passcode: most common pattern
 let flags: SecAccessControlCreateFlags = [.biometryCurrentSet, .or, .devicePasscode]
 
-// Biometry AND passcode — both required (rare, high security)
+// Biometry AND passcode: both required (rare, high security)
 let flags: SecAccessControlCreateFlags = [.biometryAny, .and, .devicePasscode]
 
 // Biometry OR passcode, plus application password encryption
@@ -158,7 +158,7 @@ let flags: SecAccessControlCreateFlags = [.biometryAny, .or, .devicePasscode, .a
 `kSecAttrAccessible` and `kSecAttrAccessControl` are **mutually exclusive** in the query dictionary. When you use `SecAccessControlCreateWithFlags`, the accessibility level is embedded inside the `SecAccessControl` object via the `protection` parameter. Setting both in the same `SecItemAdd` query causes **`errSecParam` (-50)**.
 
 ```swift
-// ❌ WRONG — sets accessibility twice, causes errSecParam (-50)
+// ❌ WRONG: sets accessibility twice, causes errSecParam (-50)
 var error: Unmanaged<CFError>?
 let access = SecAccessControlCreateWithFlags(
     nil,
@@ -178,7 +178,7 @@ let query: [String: Any] = [
 ```
 
 ```swift
-// ✅ CORRECT — accessibility set only inside SecAccessControl
+// ✅ CORRECT: accessibility set only inside SecAccessControl
 var error: Unmanaged<CFError>?
 guard let access = SecAccessControlCreateWithFlags(
     nil,
@@ -199,25 +199,25 @@ let query: [String: Any] = [
 
 ## Decision Matrix: Choosing the Right Accessibility Level
 
-### `WhenPasscodeSetThisDeviceOnly` — Data that should self-destruct
+### `WhenPasscodeSetThisDeviceOnly`: Data that should self-destruct
 
 Use for your most sensitive credentials. Pair with `.biometryCurrentSet` via `SecAccessControl`. Accept the tradeoff: items are permanently destroyed on passcode removal and never survive device migration. Your app **must** handle item absence gracefully and guide users through re-authentication.
 
 **Use cases:** Banking session tokens, password manager vault keys, healthcare credentials, E2E encryption private keys.
 
-### `WhenUnlockedThisDeviceOnly` — Standard device-bound credentials
+### `WhenUnlockedThisDeviceOnly`: Standard device-bound credentials
 
 Credentials that should be device-bound but don't need passcode-deletion behavior. Re-authenticate after device migration.
 
 **Use cases:** OAuth access tokens (refreshable), app-specific API keys, cached credentials, device registration tokens.
 
-### `AfterFirstUnlockThisDeviceOnly` — Background operations (most common for services)
+### `AfterFirstUnlockThisDeviceOnly`: Background operations (most common for services)
 
-The correct choice for **any keychain item accessed by background code** — push notification handlers, WidgetKit timeline providers, background fetch, VPN extensions, notification service extensions. Device-bound.
+The correct choice for **any keychain item accessed by background code**: push notification handlers, WidgetKit timeline providers, background fetch, VPN extensions, notification service extensions. Device-bound.
 
 **Use cases:** Push notification decryption keys, VPN credentials, background sync tokens, watch connectivity tokens.
 
-### `AfterFirstUnlock` — Background + backup migration
+### `AfterFirstUnlock`: Background + backup migration
 
 Same background accessibility, plus items migrate with encrypted backups. Use when background access and device-transfer continuity are both needed.
 
@@ -233,21 +233,21 @@ If a credential needs both background access (no UI) and foreground biometric pr
 
 ### Mistake 1: Omitting `kSecAttrAccessible` (inheriting the wrong default)
 
-The most pervasive error. AI code generators produce keychain wrappers that never set `kSecAttrAccessible`, inheriting `WhenUnlocked`. Works during development (device unlocked while testing), fails in production when background extensions execute while locked — `errSecInteractionNotAllowed` (-25308), often silently swallowed.
+The most pervasive error. AI code generators produce keychain wrappers that never set `kSecAttrAccessible`, inheriting `WhenUnlocked`. Works during development (device unlocked while testing), fails in production when background extensions execute while locked: `errSecInteractionNotAllowed` (-25308), often silently swallowed.
 
 ```swift
-// ❌ WRONG — omits kSecAttrAccessible, defaults to WhenUnlocked
+// ❌ WRONG: omits kSecAttrAccessible, defaults to WhenUnlocked
 let query: [String: Any] = [
     kSecClass as String: kSecClassGenericPassword,
     kSecAttrAccount as String: "authToken",
     kSecAttrService as String: "com.example.app",
     kSecValueData as String: tokenData
-    // Missing: kSecAttrAccessible — background extensions WILL fail with -25308
+    // Missing: kSecAttrAccessible: background extensions WILL fail with -25308
 ]
 ```
 
 ```swift
-// ✅ CORRECT — explicit accessibility for background use
+// ✅ CORRECT: explicit accessibility for background use
 let query: [String: Any] = [
     kSecClass as String: kSecClassGenericPassword,
     kSecAttrAccount as String: "authToken",
@@ -259,10 +259,10 @@ let query: [String: Any] = [
 
 ### Mistake 2: Using deprecated `kSecAttrAccessibleAlways`
 
-Compiles with a warning on iOS 12+, runs at runtime — arguably worse than a hard failure. No meaningful lock-state protection.
+Compiles with a warning on iOS 12+, runs at runtime: arguably worse than a hard failure. No meaningful lock-state protection.
 
 ```swift
-// ❌ WRONG — deprecated since iOS 12
+// ❌ WRONG: deprecated since iOS 12
 let query: [String: Any] = [
     kSecClass as String: kSecClassGenericPassword,
     kSecAttrAccessible as String: kSecAttrAccessibleAlways, // ⚠️ Deprecated
@@ -273,7 +273,7 @@ let query: [String: Any] = [
 
 ### Mistake 3: Not handling `ThisDeviceOnly` item loss after device migration
 
-Items with `ThisDeviceOnly` are cryptographically bound to the hardware UID. They are excluded from all backups, iCloud sync, and Quick Start device-to-device migration. After restoring to a new device, these items silently disappear — `errSecItemNotFound` (-25300). AI-generated code rarely implements re-authentication flows for this scenario.
+Items with `ThisDeviceOnly` are cryptographically bound to the hardware UID. They are excluded from all backups, iCloud sync, and Quick Start device-to-device migration. After restoring to a new device, these items silently disappear: `errSecItemNotFound` (-25300). AI-generated code rarely implements re-authentication flows for this scenario.
 
 ### Mistake 4: Biometric flags on background-accessible protection levels
 
@@ -284,7 +284,7 @@ Setting `.biometryCurrentSet` with `kSecAttrAccessibleAfterFirstUnlock` is techn
 Combining `.biometryCurrentSet` and `.devicePasscode` without `.or` or `.and` causes `SecAccessControlCreateWithFlags` to return `nil` / `errSecParam` (-50).
 
 ```swift
-// ❌ WRONG — missing logical operator
+// ❌ WRONG: missing logical operator
 let access = SecAccessControlCreateWithFlags(
     nil,
     kSecAttrAccessibleWhenUnlocked,
@@ -295,7 +295,7 @@ let access = SecAccessControlCreateWithFlags(
 ```
 
 ```swift
-// ✅ CORRECT — explicit .or between constraints
+// ✅ CORRECT: explicit .or between constraints
 let access = SecAccessControlCreateWithFlags(
     nil,
     kSecAttrAccessibleWhenUnlocked,
@@ -393,7 +393,7 @@ func saveBackgroundToken(_ token: Data, account: String, service: String) throws
 ### Accessing a `WhenUnlocked` item from a background extension
 
 ```swift
-// Runs in WidgetKit TimelineProvider or NotificationServiceExtension while locked — WILL fail
+// Runs in WidgetKit TimelineProvider or NotificationServiceExtension while locked: WILL fail
 func fetchTokenInBackground() -> String? {
     let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
@@ -401,14 +401,14 @@ func fetchTokenInBackground() -> String? {
         kSecAttrService as String: "com.example.app",
         kSecReturnData as String: true,
         kSecMatchLimit as String: kSecMatchLimitOne
-        // Item stored with default WhenUnlocked — inaccessible while locked
+        // Item stored with default WhenUnlocked: inaccessible while locked
     ]
 
     var result: AnyObject?
     let status = SecItemCopyMatching(query as CFDictionary, &result)
     // status == errSecInteractionNotAllowed (-25308) when device is locked
     guard status == errSecSuccess, let data = result as? Data else {
-        return nil // ❌ Silent failure — no logging, no error propagation
+        return nil // ❌ Silent failure: no logging, no error propagation
     }
     return String(data: data, encoding: .utf8)
 }
@@ -439,7 +439,7 @@ let query: [String: Any] = [
 ]
 ```
 
-On iOS, tvOS, and watchOS, this flag is ignored (those platforms always use Data Protection). The Data Protection keychain requires a user login context — `launchd` daemons running outside a user session must use the legacy keychain. Mac Catalyst and iOS-on-Mac apps automatically use Data Protection.
+On iOS, tvOS, and watchOS, this flag is ignored (those platforms always use Data Protection). The Data Protection keychain requires a user login context: `launchd` daemons running outside a user session must use the legacy keychain. Mac Catalyst and iOS-on-Mac apps automatically use Data Protection.
 
 ---
 
@@ -467,11 +467,11 @@ The keychain and file system share the same Data Protection architecture but exp
 | **-50**    | `errSecParam`                 | Invalid parameters                   | Both `kSecAttrAccessible` and `kSecAttrAccessControl` set; conflicting flags without `.or`/`.and`; missing `kSecUseDataProtectionKeychain` on macOS |
 | **-25293** | `errSecAuthFailed`            | Authentication failed                | Biometric auth failed; enrollment changed with `.biometryCurrentSet`; no biometrics enrolled                                                        |
 | **-25300** | `errSecItemNotFound`          | Item not in keychain                 | Item never stored; `ThisDeviceOnly` lost after migration; `WhenPasscodeSet` deleted on passcode removal                                             |
-| **-25299** | `errSecDuplicateItem`         | Item already exists                  | `SecItemAdd` when matching primary keys exist — use add-or-update pattern                                                                           |
+| **-25299** | `errSecDuplicateItem`         | Item already exists                  | `SecItemAdd` when matching primary keys exist: use add-or-update pattern                                                                           |
 | **-128**   | `errSecUserCanceled`          | User canceled prompt                 | User tapped Cancel on biometric/passcode dialog                                                                                                     |
 | **-34018** | `errSecMissingEntitlement`    | Missing entitlement                  | Keychain access group not in entitlements; common on iOS Simulator                                                                                  |
 
-The most insidious is `-25308` — it surfaces in production but rarely during development because developers test with unlocked devices. Always handle it by deferring the operation and retrying when `UIApplication.shared.isProtectedDataAvailable` is `true`.
+The most insidious is `-25308`: it surfaces in production but rarely during development because developers test with unlocked devices. Always handle it by deferring the operation and retrying when `UIApplication.shared.isProtectedDataAvailable` is `true`.
 
 ---
 
@@ -493,7 +493,7 @@ The most insidious is `-25308` — it surfaces in production but rarely during d
 
 **iOS 18 (2024):** Standalone Passwords app. No keychain data protection API changes.
 
-**iOS 26 (2025):** Stolen Device Protection enabled by default — requires biometric auth (no passcode fallback) for stored passwords when away from familiar locations. Secure passkey import/export via FIDO Alliance standard. No changes to `kSecAttrAccessible` constants.
+**iOS 26 (2025):** Stolen Device Protection enabled by default: requires biometric auth (no passcode fallback) for stored passwords when away from familiar locations. Secure passkey import/export via FIDO Alliance standard. No changes to `kSecAttrAccessible` constants.
 
 ---
 
@@ -503,9 +503,9 @@ All data protection testing **must** use physical devices with passcodes enabled
 
 **Critical test scenarios:**
 
-1. **Reboot / BFU state:** Reboot device, attempt keychain access before unlocking. `AfterFirstUnlock` items should return `-25308` or `-25300`. Unlock once, lock again, test background access — should succeed.
+1. **Reboot / BFU state:** Reboot device, attempt keychain access before unlocking. `AfterFirstUnlock` items should return `-25308` or `-25300`. Unlock once, lock again, test background access: should succeed.
 
-2. **Lock timing:** Store a `WhenUnlocked` item. Lock the device. Attempt read immediately — expect `-25308`.
+2. **Lock timing:** Store a `WhenUnlocked` item. Lock the device. Attempt read immediately: expect `-25308`.
 
 3. **Passcode removal:** Store a `WhenPasscodeSetThisDeviceOnly` item. Remove passcode in Settings. Verify item is deleted (`-25300`).
 
@@ -519,25 +519,25 @@ All data protection testing **must** use physical devices with passcodes enabled
 
 ## Cross-References
 
-- `keychain-fundamentals.md` — SecItem CRUD patterns, add-or-update, OSStatus handling
-- `biometric-authentication.md` — Biometric flag selection (`.biometryCurrentSet`, `.biometryAny`, `.userPresence`) and keychain-bound patterns
-- `secure-enclave.md` — Hardware-backed keys with `SecAccessControl` and `.privateKeyUsage`
-- `keychain-item-classes.md` — Class-specific accessibility considerations and primary key composition
-- `common-anti-patterns.md` — Anti-pattern #5 (missing `kSecAttrAccessible`), #3 (LAContext-only gate)
-- `compliance-owasp-mapping.md` — M9 (Insecure Data Storage) accessibility requirements
+- `keychain-fundamentals.md`: SecItem CRUD patterns, add-or-update, OSStatus handling
+- `biometric-authentication.md`: Biometric flag selection (`.biometryCurrentSet`, `.biometryAny`, `.userPresence`) and keychain-bound patterns
+- `secure-enclave.md`: Hardware-backed keys with `SecAccessControl` and `.privateKeyUsage`
+- `keychain-item-classes.md`: Class-specific accessibility considerations and primary key composition
+- `common-anti-patterns.md`: Anti-pattern #5 (missing `kSecAttrAccessible`), #3 (LAContext-only gate)
+- `compliance-owasp-mapping.md`: M9 (Insecure Data Storage) accessibility requirements
 
 ---
 
 ## Summary Checklist
 
-1. **Always set `kSecAttrAccessible` explicitly** — never rely on the `WhenUnlocked` default; choose the level matching your access context (foreground vs background)
-2. **Never set both `kSecAttrAccessible` and `kSecAttrAccessControl`** in the same query dictionary — accessibility belongs inside `SecAccessControlCreateWithFlags`
+1. **Always set `kSecAttrAccessible` explicitly**: never rely on the `WhenUnlocked` default; choose the level matching your access context (foreground vs background)
+2. **Never set both `kSecAttrAccessible` and `kSecAttrAccessControl`** in the same query dictionary: accessibility belongs inside `SecAccessControlCreateWithFlags`
 3. **Use `AfterFirstUnlockThisDeviceOnly`** for any item accessed by background extensions, widgets, VPN, or push notification handlers
 4. **Pair `WhenPasscodeSetThisDeviceOnly` with `.biometryCurrentSet`** for highest-security items, and handle item deletion on passcode removal gracefully
-5. **Include `.or` or `.and`** when combining multiple authentication flags — omitting the operator causes `errSecParam` (-50)
+5. **Include `.or` or `.and`** when combining multiple authentication flags: omitting the operator causes `errSecParam` (-50)
 6. **Set `kSecUseDataProtectionKeychain: true`** on all macOS keychain queries to target the modern Data Protection keychain
 7. **Implement re-authentication flows** for `ThisDeviceOnly` items that will be absent after device migration or backup restore
-8. **Check `isProtectedDataAvailable`** before keychain access in app launch paths — iOS 15+ pre-warming can start your process before first unlock
-9. **Delete and re-add** (not update) when changing `SecAccessControl` on an existing item — `SecItemUpdate` cannot modify access control attributes
-10. **Test on physical devices** across lock/unlock, reboot, passcode removal, and biometric enrollment change scenarios — the Simulator does not enforce data protection
+8. **Check `isProtectedDataAvailable`** before keychain access in app launch paths: iOS 15+ pre-warming can start your process before first unlock
+9. **Delete and re-add** (not update) when changing `SecAccessControl` on an existing item: `SecItemUpdate` cannot modify access control attributes
+10. **Test on physical devices** across lock/unlock, reboot, passcode removal, and biometric enrollment change scenarios: the Simulator does not enforce data protection
 11. **Block deprecated `kSecAttrAccessibleAlways` constants** in CI/CD linting and migrate existing items to `AfterFirstUnlock` on next foreground authentication

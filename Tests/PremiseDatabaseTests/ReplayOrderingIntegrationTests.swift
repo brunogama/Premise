@@ -104,11 +104,11 @@ struct ReplayOrderingIntegrationTests {
       line: 20
     )
 
-    // No existing traces -- start fresh. The runner will do fresh
+    // No existing traces: start fresh. The runner will do fresh
     // generation and find a failure, which the executor must persist.
     let executor = makeExecutor(database, for: propertyID, maxRuns: 10)
 
-    // Property that always fails -- guarantees a failure record.
+    // Property that always fails: guarantees a failure record.
     let result = try await executor.execute { _ in
       throw PropertyFailure(message: "always fails")
     }
@@ -141,7 +141,7 @@ struct ReplayOrderingIntegrationTests {
 
     let executor = makeExecutor(database, for: propertyID, maxRuns: 0)
 
-    // Property that never fails -- replay should pass.
+    // Property that never fails: replay should pass.
     let result = try await executor.execute { _ in
       return
     }

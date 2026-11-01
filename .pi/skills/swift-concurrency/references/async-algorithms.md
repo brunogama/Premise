@@ -30,12 +30,12 @@ for await (a, b) in combineLatest(streamA, streamB) {
     handle(a, b)
 }
 
-// Zip — pairs elements 1:1 (waits for both)
+// Zip: pairs elements 1:1 (waits for both)
 for await (a, b) in zip(streamA, streamB) {
     handle(a, b)
 }
 
-// Chain — concatenate sequences end-to-end
+// Chain: concatenate sequences end-to-end
 for await value in chain(streamA, streamB) {
     handle(value)
 }
@@ -44,7 +44,7 @@ for await value in chain(streamA, streamB) {
 ### Temporal
 
 ```swift
-// Debounce — emit after a quiet period (e.g., search-as-you-type)
+// Debounce: emit after a quiet period (e.g., search-as-you-type)
 let searchResults = searchTerms
     .debounce(for: .milliseconds(300))
 
@@ -52,7 +52,7 @@ for await term in searchResults {
     await performSearch(term)
 }
 
-// Throttle — emit at most once per interval
+// Throttle: emit at most once per interval
 let throttled = sensorReadings
     .throttle(for: .seconds(1))
 
@@ -60,7 +60,7 @@ for await reading in throttled {
     updateDisplay(reading)
 }
 
-// Chunks — collect elements into arrays by count or time
+// Chunks: collect elements into arrays by count or time
 for await batch in events.chunks(ofCount: 10) {
     await processBatch(batch) // [Event] with up to 10 elements
 }
@@ -78,7 +78,7 @@ for await value in stream.removeDuplicates() {
     handle(value)
 }
 
-// Compacted — remove nils (like compactMap without transform)
+// Compacted: remove nils (like compactMap without transform)
 let values: AsyncStream<Int?> = ...
 for await value in values.compacted() {
     // value is non-optional Int

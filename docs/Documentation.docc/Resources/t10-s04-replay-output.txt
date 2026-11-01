@@ -8,4 +8,4 @@ Build complete!
 ✗ Test cacheInsertionIsIdempotent() failed after 0.002 seconds
 
   Same counterexample as before: key = "a", value = 0
-  Stored trace was replayed — no fresh random generation needed.
+  Stored trace was replayed: no fresh random generation needed.

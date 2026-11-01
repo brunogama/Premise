@@ -152,7 +152,7 @@ extension Runner {
   /// Executes a single run from a provider, returning a failure or nil.
   ///
   /// Draw-phase errors (including ``StrategyError``) are treated as
-  /// "invalid input — skip this run" and return nil.  Only property-phase
+  /// "invalid input: skip this run" and return nil.  Only property-phase
   /// errors are reported as failures.
   func executeSingle(
     provider: some PrimitiveProvider,

@@ -57,7 +57,7 @@ public extension Strategy where Value == Character {
     Strategy<Character>(
       label: "character.unicode",
       draw: { data in
-        // BMP: 0x0000–0xFFFF, excluding surrogates 0xD800–0xDFFF.
+        // BMP: 0x0000-0xFFFF, excluding surrogates 0xD800-0xDFFF.
         return drawUnicodeCharacter(using: &data)
       },
       shrink: { character in

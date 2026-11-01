@@ -21,7 +21,7 @@ responding.
 Practical thresholds:
 
 - Under ~100 ms usually feels immediate.
-- Around 100–250 ms starts to feel sticky.
+- Around 100-250 ms starts to feel sticky.
 - Above ~250 ms is a likely hang candidate.
 - Multi-second stalls are usually obvious product bugs, not subtle perf issues.
 

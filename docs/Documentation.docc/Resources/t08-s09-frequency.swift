@@ -2,7 +2,7 @@ import PremiseStrategies
 
 // Payload sizes with weighted distribution:
 // empty (5x), small (3x), medium (1x), large (1x)
-// Bugs most often appear at boundaries — weight them heavily.
+// Bugs most often appear at boundaries: weight them heavily.
 let payloadStrategy = Strategy<[UInt8]>.frequency([
   (5, .just([])),  // empty: most likely to cause bugs
   (3, .bytes(length: 1...64)),  // small payloads

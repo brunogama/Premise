@@ -4,9 +4,9 @@ A guided tour of the choice-trace model that drives generation, shrinking, and r
 
 ## The Central Insight
 
-Most property-based testing frameworks generate values directly — they have a random number generator that knows how to produce integers, strings, lists, and so on. When a test fails, shrinking has to work at the value level, trying smaller integers or shorter strings one at a time.
+Most property-based testing frameworks generate values directly: they have a random number generator that knows how to produce integers, strings, lists, and so on. When a test fails, shrinking has to work at the value level, trying smaller integers or shorter strings one at a time.
 
-Premise works differently. It generates values *indirectly* through a **choice trace**: a recorded sequence of primitive random draws. Every integer, boolean, and byte that a strategy reads is recorded as an entry in the trace. Shrinking then works at the *trace level* — it tries removing or reducing entries in the trace and re-runs the strategy to see what value comes out.
+Premise works differently. It generates values *indirectly* through a **choice trace**: a recorded sequence of primitive random draws. Every integer, boolean, and byte that a strategy reads is recorded as an entry in the trace. Shrinking then works at the *trace level*: it tries removing or reducing entries in the trace and re-runs the strategy to see what value comes out.
 
 This separation is the key to Premise's shrinking power. The engine doesn't need to know the structure of your value to shrink it; it only needs to find a shorter or simpler trace that the strategy still accepts and that still fails your property.
 
@@ -36,7 +36,7 @@ The trace accumulates the complete sequence of decisions made to produce one gen
 `withSpan` is used by collection strategies to group the draw calls for one element together. Spans give the ``ShrinkMachine`` the structural information it needs to delete entire elements from a collection during shrinking.
 
 ```swift
-// From CollectionStrategies.swift — each element gets its own span
+// From CollectionStrategies.swift: each element gets its own span
 for _ in 0..<count {
     let value = try data.withSpan { spanData in
         try element.draw(&spanData)
@@ -191,13 +191,13 @@ enabled checks, such as empty search spaces or excessive filtering.
 
 The compact run loop:
 
-1. **Replay phase** — if `config.replayEnabled` is true, each stored trace is fed to a ``ReplayProvider`` and replayed against the property. If any replayed trace still fails, that failure is returned immediately (no fresh generation needed).
+1. **Replay phase**: if `config.replayEnabled` is true, each stored trace is fed to a ``ReplayProvider`` and replayed against the property. If any replayed trace still fails, that failure is returned immediately (no fresh generation needed).
 
-2. **Generation phase** — the runner iterates `config.maxRuns` times. Each iteration creates a ``PseudoRandomProvider`` from a derived seed, runs the strategy to draw a value, and passes the value to the property closure.
+2. **Generation phase**: the runner iterates `config.maxRuns` times. Each iteration creates a ``PseudoRandomProvider`` from a derived seed, runs the strategy to draw a value, and passes the value to the property closure.
 
-3. **Shrink phase** — when a fresh failure is found, the runner invokes ``ShrinkMachine/run()`` with the failing trace, collects the minimised trace, and re-runs the strategy with a ``ReplayProvider`` to obtain the minimised value.
+3. **Shrink phase**: when a fresh failure is found, the runner invokes ``ShrinkMachine/run()`` with the failing trace, collects the minimised trace, and re-runs the strategy with a ``ReplayProvider`` to obtain the minimised value.
 
-4. **Result** — the runner returns either `.passed(runs:)` or `.failure(_:value:)` containing the ``FailureRecord`` and the minimised counterexample value.
+4. **Result**: the runner returns either `.passed(runs:)` or `.failure(_:value:)` containing the ``FailureRecord`` and the minimised counterexample value.
 
 ## ShrinkMachine: Minimising Failures
 

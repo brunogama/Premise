@@ -2,24 +2,24 @@
 
 > **Domain scope:** SecAccessControl + LAContext integration, the LAContext-only bypass vulnerability, hardware-bound biometric gating, fallback behavior, UI customization, enrollment change detection, thread safety.
 >
-> **Risk level:** CRITICAL — #1 most dangerous AI-generated pattern. `LAContext.evaluatePolicy()` used alone is trivially bypassable at runtime.
+> **Risk level:** CRITICAL: #1 most dangerous AI-generated pattern. `LAContext.evaluatePolicy()` used alone is trivially bypassable at runtime.
 
 ---
 
 ## Contents
 
 - [The Boolean Gate Vulnerability](#the-boolean-gate-vulnerability)
-  - [The Dangerous Pattern — Boolean Gate](#the-dangerous-pattern-boolean-gate)
+  - [The Dangerous Pattern: Boolean Gate](#the-dangerous-pattern-boolean-gate)
   - [How Attackers Bypass It](#how-attackers-bypass-it)
-- [The Secure Pattern — Hardware-Bound Secrets](#the-secure-pattern-hardware-bound-secrets)
-  - [Step 1 — Create the Access Control Object](#step-1-create-the-access-control-object)
-  - [Step 2 — Store a Secret Bound to Biometric Auth](#step-2-store-a-secret-bound-to-biometric-auth)
-  - [Step 3 — Retrieve the Secret (Biometric Prompt Appears Automatically)](#step-3-retrieve-the-secret-biometric-prompt-appears-automatically)
+- [The Secure Pattern: Hardware-Bound Secrets](#the-secure-pattern-hardware-bound-secrets)
+  - [Step 1: Create the Access Control Object](#step-1-create-the-access-control-object)
+  - [Step 2: Store a Secret Bound to Biometric Auth](#step-2-store-a-secret-bound-to-biometric-auth)
+  - [Step 3: Retrieve the Secret (Biometric Prompt Appears Automatically)](#step-3-retrieve-the-secret-biometric-prompt-appears-automatically)
 - [`evaluatePolicy` vs `evaluateAccessControl`](#evaluatepolicy-vs-evaluateaccesscontrol)
 - [Biometric Flag Selection](#biometric-flag-selection)
-  - [`.biometryCurrentSet` — Banking, Payments, Credential Storage](#biometrycurrentset-banking-payments-credential-storage)
-  - [`.biometryAny` — Convenience Features, Moderate Sensitivity](#biometryany-convenience-features-moderate-sensitivity)
-  - [`.userPresence` — Maximum Device Compatibility](#userpresence-maximum-device-compatibility)
+  - [`.biometryCurrentSet`: Banking, Payments, Credential Storage](#biometrycurrentset-banking-payments-credential-storage)
+  - [`.biometryAny`: Convenience Features, Moderate Sensitivity](#biometryany-convenience-features-moderate-sensitivity)
+  - [`.userPresence`: Maximum Device Compatibility](#userpresence-maximum-device-compatibility)
   - [Combining Flags](#combining-flags)
 - [Biometric Availability Checks and Graceful Degradation](#biometric-availability-checks-and-graceful-degradation)
   - [Incomplete Availability Check](#incomplete-availability-check)
@@ -30,24 +30,24 @@
   - [Actor-Isolated Biometric Keychain (iOS 15+)](#actor-isolated-biometric-keychain-ios-15)
   - [SwiftUI ViewModel Integration](#swiftui-viewmodel-integration)
 - [Secure Enclave-Backed Keys with Biometric Protection](#secure-enclave-backed-keys-with-biometric-protection)
-- [SDLC Controls — Catching the Anti-Pattern in CI](#sdlc-controls-catching-the-anti-pattern-in-ci)
-- [Dynamic Verification — Proving Bypass Resistance](#dynamic-verification-proving-bypass-resistance)
+- [SDLC Controls: Catching the Anti-Pattern in CI](#sdlc-controls-catching-the-anti-pattern-in-ci)
+- [Dynamic Verification: Proving Bypass Resistance](#dynamic-verification-proving-bypass-resistance)
 - [Key References](#key-references)
 - [Cross-References](#cross-references)
 - [Summary Checklist](#summary-checklist)
 
 ## The Boolean Gate Vulnerability
 
-The most dangerous pattern AI coding assistants generate for iOS biometric authentication is `LAContext.evaluatePolicy()` used as a standalone authentication gate. This pattern appears in virtually every tutorial, Stack Overflow answer, and AI training corpus — and it is **trivially bypassable**.
+The most dangerous pattern AI coding assistants generate for iOS biometric authentication is `LAContext.evaluatePolicy()` used as a standalone authentication gate. This pattern appears in virtually every tutorial, Stack Overflow answer, and AI training corpus: and it is **trivially bypassable**.
 
 The attack requires no exploit. An attacker uses Frida or objection to hook the Objective-C callback and force `success = true`, bypassing Face ID or Touch ID entirely. The formal weakness classification is CWE-288: Authentication Bypass Using an Alternate Path or Channel.
 
 OWASP MASTG explicitly fails any app relying solely on `evaluatePolicy` (test MASTG-TEST-0266, requirements MSTG-AUTH-8 and MSTG-AUTH-12). The standard states: biometric authentication must not be event-bound (returning `true`/`false`); it must be based on unlocking the keychain/keystore.
 
-### The Dangerous Pattern — Boolean Gate
+### The Dangerous Pattern: Boolean Gate
 
 ```swift
-// ❌ DANGEROUS: Trivially bypassable with Frida — do NOT use for security
+// ❌ DANGEROUS: Trivially bypassable with Frida: do NOT use for security
 import LocalAuthentication
 
 func authenticateUser() {
@@ -84,7 +84,7 @@ ios ui biometrics_bypass
 The hook listens for invocations of `-[LAContext evaluatePolicy:localizedReason:reply:]`, intercepts the reply block, and replaces the `success` boolean with `true`. The equivalent raw Frida script:
 
 ```javascript
-// Frida script — forces evaluatePolicy success = true
+// Frida script: forces evaluatePolicy success = true
 if (ObjC.available) {
   var hook = ObjC.classes.LAContext["- evaluatePolicy:localizedReason:reply:"];
   Interceptor.attach(hook.implementation, {
@@ -106,18 +106,18 @@ The objection wiki confirms the attack boundary: this bypass **does not work** a
 
 ---
 
-## The Secure Pattern — Hardware-Bound Secrets
+## The Secure Pattern: Hardware-Bound Secrets
 
-The correct architecture stores a secret in the iOS keychain with biometric access control. The secret's encryption key is held by the Secure Enclave — a dedicated processor running its own microkernel (sepOS), with its own encrypted memory, completely isolated from the application processor.
+The correct architecture stores a secret in the iOS keychain with biometric access control. The secret's encryption key is held by the Secure Enclave: a dedicated processor running its own microkernel (sepOS), with its own encrypted memory, completely isolated from the application processor.
 
 When the app requests the secret, the Secure Enclave independently verifies the biometric match and only then releases the decryption key. There is no boolean to hook. The data physically cannot be read without valid biometric authentication.
 
 WWDC 2014 Session 711 ("Keychain and Authentication with Touch ID") drew the critical distinction:
 
-- **`evaluatePolicy`**: "Trust the OS" — vulnerable if runtime is compromised
-- **Keychain + SecAccessControl**: "Trust the Secure Enclave" — ACLs evaluated inside hardware
+- **`evaluatePolicy`**: "Trust the OS": vulnerable if runtime is compromised
+- **Keychain + SecAccessControl**: "Trust the Secure Enclave": ACLs evaluated inside hardware
 
-### Step 1 — Create the Access Control Object
+### Step 1: Create the Access Control Object
 
 ```swift
 import LocalAuthentication
@@ -144,7 +144,7 @@ func createBiometricAccessControl() throws -> SecAccessControl {
 }
 ```
 
-### Step 2 — Store a Secret Bound to Biometric Auth
+### Step 2: Store a Secret Bound to Biometric Auth
 
 ```swift
 // ✅ SECURE: Secret is encrypted by Secure Enclave, released only on biometric match
@@ -161,7 +161,7 @@ func storeSecretWithBiometric(secret: Data, account: String, service: String) th
     var addQuery = baseQuery
     addQuery[kSecValueData as String] = secret
     addQuery[kSecAttrAccessControl as String] = accessControl
-    // NOTE: Do NOT set kSecAttrAccessible — it conflicts with kSecAttrAccessControl
+    // NOTE: Do NOT set kSecAttrAccessible: it conflicts with kSecAttrAccessControl
 
     let status = SecItemAdd(addQuery as CFDictionary, nil)
     switch status {
@@ -179,13 +179,13 @@ func storeSecretWithBiometric(secret: Data, account: String, service: String) th
 }
 ```
 
-**Critical detail:** Do NOT set both `kSecAttrAccessible` and `kSecAttrAccessControl` in the same query. They conflict — `SecAccessControl` already encodes the accessibility level. Setting both causes `errSecParam`.
+**Critical detail:** Do NOT set both `kSecAttrAccessible` and `kSecAttrAccessControl` in the same query. They conflict: `SecAccessControl` already encodes the accessibility level. Setting both causes `errSecParam`.
 
 **Critical detail:** Always use `ThisDeviceOnly` accessibility for biometric-gated secrets. The `ThisDeviceOnly` suffix ensures the secret is hardware-bound and excluded from iCloud backups. Syncing biometric-gated secrets across devices expands the attack surface.
 
 **Migration note:** Updating the secret data preserves the existing access control. If you intentionally need to change the `SecAccessControl` policy, use an explicit migration path from `keychain-access-control.md`; do not hide delete/re-add inside the normal save path.
 
-### Step 3 — Retrieve the Secret (Biometric Prompt Appears Automatically)
+### Step 3: Retrieve the Secret (Biometric Prompt Appears Automatically)
 
 ```swift
 // ✅ SECURE: System presents biometric prompt; Secure Enclave gates decryption
@@ -237,7 +237,7 @@ These two `LAContext` methods represent the two trust models from WWDC 2014 Sess
 
 **In practice, you rarely call `evaluateAccessControl` directly.** The recommended flow: store data with `SecAccessControl` via `SecItemAdd`, then retrieve with `SecItemCopyMatching`. The system handles the biometric prompt automatically when the query encounters an ACL-protected item.
 
-The only legitimate use of `evaluatePolicy` is **non-security-critical UI gating** — deciding whether to show a "Sign in with Face ID" button. It must never protect sensitive data or gate access to secrets.
+The only legitimate use of `evaluatePolicy` is **non-security-critical UI gating**: deciding whether to show a "Sign in with Face ID" button. It must never protect sensitive data or gate access to secrets.
 
 ---
 
@@ -245,12 +245,12 @@ The only legitimate use of `evaluatePolicy` is **non-security-critical UI gating
 
 `SecAccessControlCreateFlags` provides three biometric-related flags. Choosing the wrong one is a common mistake even in otherwise-correct implementations.
 
-### `.biometryCurrentSet` — Banking, Payments, Credential Storage
+### `.biometryCurrentSet`: Banking, Payments, Credential Storage
 
 Ties the keychain item to the **exact biometric enrollment** at time of storage. If the user adds a fingerprint, re-enrolls Face ID, or removes a biometric entry, the item becomes **permanently inaccessible**.
 
 ```swift
-// ✅ Strongest biometric binding — invalidates on enrollment change
+// ✅ Strongest biometric binding: invalidates on enrollment change
 let access = SecAccessControlCreateWithFlags(
     nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
     .biometryCurrentSet, nil
@@ -259,12 +259,12 @@ let access = SecAccessControlCreateWithFlags(
 
 **Tradeoff:** Users who change biometrics must re-authenticate via your app's password flow. Detect enrollment changes via `LAContext.evaluatedPolicyDomainState` (see Enrollment Change Detection below) and present graceful re-enrollment.
 
-### `.biometryAny` — Convenience Features, Moderate Sensitivity
+### `.biometryAny`: Convenience Features, Moderate Sensitivity
 
 Survives biometric enrollment changes. An attacker who enrolls their own biometrics on a compromised device can access the data.
 
 ```swift
-// Survives re-enrollment — better UX, weaker security
+// Survives re-enrollment: better UX, weaker security
 let access = SecAccessControlCreateWithFlags(
     nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
     .biometryAny, nil
@@ -273,12 +273,12 @@ let access = SecAccessControlCreateWithFlags(
 
 **Use case:** "Remember me" features, non-critical app locks, preferences that benefit from biometric convenience without protecting financial data.
 
-### `.userPresence` — Maximum Device Compatibility
+### `.userPresence`: Maximum Device Compatibility
 
 Allows passcode fallback when biometrics are unavailable. Weaker because passcodes are susceptible to shoulder-surfing.
 
 ```swift
-// Broadest compatibility — biometric or passcode
+// Broadest compatibility: biometric or passcode
 let access = SecAccessControlCreateWithFlags(
     nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
     .userPresence, nil
@@ -299,7 +299,7 @@ let access = SecAccessControlCreateWithFlags(
 )
 ```
 
-This combination is practical for most production apps — strong biometric security with a recovery path when biometrics become unavailable.
+This combination is practical for most production apps: strong biometric security with a recovery path when biometrics become unavailable.
 
 ---
 
@@ -308,7 +308,7 @@ This combination is practical for most production apps — strong biometric secu
 ### Incomplete Availability Check
 
 ```swift
-// ❌ WRONG: Ignores WHY biometrics failed — user gets no guidance
+// ❌ WRONG: Ignores WHY biometrics failed: user gets no guidance
 func checkBiometrics() -> Bool {
     let context = LAContext()
     var error: NSError?
@@ -323,9 +323,9 @@ func checkBiometrics() -> Bool {
 enum BiometricAvailability {
     case available(type: LABiometryType)
     case notEnrolled          // Hardware exists, no biometrics registered
-    case lockedOut            // Too many failed attempts — passcode required
+    case lockedOut            // Too many failed attempts: passcode required
     case notAvailable         // No hardware or restricted by MDM
-    case passcodeNotSet       // No device passcode — biometrics require one
+    case passcodeNotSet       // No device passcode: biometrics require one
 }
 
 func evaluateBiometricAvailability() -> BiometricAvailability {
@@ -365,7 +365,7 @@ func authenticateWithGracefulDegradation() async throws -> Data {
         return try retrieveSecretWithBiometric(account: "user", service: "com.app.auth")
 
     case .lockedOut:
-        // Biometrics locked — use .userPresence item for passcode fallback
+        // Biometrics locked: use .userPresence item for passcode fallback
         return try retrieveSecretWithPasscodeFallback(account: "user", service: "com.app.auth")
 
     case .notEnrolled:
@@ -381,7 +381,7 @@ func authenticateWithGracefulDegradation() async throws -> Data {
 }
 ```
 
-**Critical:** Failing to handle `.biometryLockout` strands users. The app cannot bypass this lockout — the user must successfully enter their device passcode to re-enable the biometric sensor. If your app has no fallback, users are permanently locked out until they leave your app and unlock with passcode.
+**Critical:** Failing to handle `.biometryLockout` strands users. The app cannot bypass this lockout: the user must successfully enter their device passcode to re-enable the biometric sensor. If your app has no fallback, users are permanently locked out until they leave your app and unlock with passcode.
 
 **Important:** `canEvaluatePolicy()` is strictly for pre-flight UI decisions (showing or hiding a "Sign in with Face ID" button). It must never be used as a security control.
 
@@ -411,12 +411,12 @@ class BiometricEnrollmentMonitor {
     func hasEnrollmentChanged() -> Bool {
         let context = LAContext()
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
-            return true  // Can't evaluate — treat as changed
+            return true  // Can't evaluate: treat as changed
         }
 
         guard let currentState = context.evaluatedPolicyDomainState,
               let savedState = UserDefaults.standard.data(forKey: domainStateKey) else {
-            return true  // No saved state — first run or data cleared
+            return true  // No saved state: first run or data cleared
         }
 
         return currentState != savedState
@@ -424,7 +424,7 @@ class BiometricEnrollmentMonitor {
 }
 ```
 
-**Note:** `evaluatedPolicyDomainState` is an opaque `Data` blob. It changes whenever biometric enrollment changes but reveals no information about the biometrics themselves. Store it in `UserDefaults` (not keychain) since it is not sensitive — it's only used for change detection.
+**Note:** `evaluatedPolicyDomainState` is an opaque `Data` blob. It changes whenever biometric enrollment changes but reveals no information about the biometrics themselves. Store it in `UserDefaults` (not keychain) since it is not sensitive: it's only used for change detection.
 
 ---
 
@@ -503,13 +503,13 @@ class AuthViewModel: ObservableObject {
 }
 ```
 
-**Note on native async:** `LAContext` gained `evaluatePolicy(_:localizedReason:) async throws -> Bool` in iOS 15. However, this is only relevant for the non-security-critical UI gating use case. For the secure keychain pattern, you wrap `SecItemCopyMatching` as shown above — there is no native async overload for SecItem\* APIs.
+**Note on native async:** `LAContext` gained `evaluatePolicy(_:localizedReason:) async throws -> Bool` in iOS 15. However, this is only relevant for the non-security-critical UI gating use case. For the secure keychain pattern, you wrap `SecItemCopyMatching` as shown above: there is no native async overload for SecItem\* APIs.
 
 ---
 
 ## Secure Enclave-Backed Keys with Biometric Protection
 
-For asymmetric key operations (signing, key agreement), combine Secure Enclave key generation with biometric access control via CryptoKit. The private key **never leaves the Secure Enclave** — all operations happen in hardware.
+For asymmetric key operations (signing, key agreement), combine Secure Enclave key generation with biometric access control via CryptoKit. The private key **never leaves the Secure Enclave**: all operations happen in hardware.
 
 ```swift
 // ✅ Secure Enclave P-256 key with biometric protection (WWDC 2019-709)
@@ -532,7 +532,7 @@ Frida operates in user-space on the application processor and has zero access to
 
 ---
 
-## SDLC Controls — Catching the Anti-Pattern in CI
+## SDLC Controls: Catching the Anti-Pattern in CI
 
 Because AI coding assistants frequently generate the vulnerable `evaluatePolicy` pattern, teams should implement automated detection:
 
@@ -548,7 +548,7 @@ Because AI coding assistants frequently generate the vulnerable `evaluatePolicy`
 
 ---
 
-## Dynamic Verification — Proving Bypass Resistance
+## Dynamic Verification: Proving Bypass Resistance
 
 Static code review alone is insufficient. Verification requires dynamic testing:
 
@@ -562,39 +562,39 @@ Static code review alone is insufficient. Verification requires dynamic testing:
 
 ## Key References
 
-- **WWDC 2014 Session 711** — "Keychain and Authentication with Touch ID": Introduced the two trust models (evaluatePolicy vs keychain+ACL)
-- **WWDC 2019 Session 709** — "Cryptography and Your Apps": CryptoKit + Secure Enclave key generation with access control
-- **Apple Platform Security Guide** — Secure Enclave architecture, keychain encryption chain (metadata key + secret key), ACL evaluation in hardware
-- **OWASP MASTG MSTG-AUTH-8** — Biometric authentication must not be event-bound
-- **OWASP MASTG MSTG-AUTH-12** — Integrity of biometric mechanism must be verified
-- **OWASP MASTG MASTG-TEST-0266** — Test for local authentication bypass
-- **objection wiki** — "Understanding the iOS Biometrics Bypass": Confirms attack boundary at SecAccessControl
-- **TN3137** — "On Mac Keychain APIs and implementations" (macOS keychain unification)
+- **WWDC 2014 Session 711**: "Keychain and Authentication with Touch ID": Introduced the two trust models (evaluatePolicy vs keychain+ACL)
+- **WWDC 2019 Session 709**: "Cryptography and Your Apps": CryptoKit + Secure Enclave key generation with access control
+- **Apple Platform Security Guide**: Secure Enclave architecture, keychain encryption chain (metadata key + secret key), ACL evaluation in hardware
+- **OWASP MASTG MSTG-AUTH-8**: Biometric authentication must not be event-bound
+- **OWASP MASTG MSTG-AUTH-12**: Integrity of biometric mechanism must be verified
+- **OWASP MASTG MASTG-TEST-0266**: Test for local authentication bypass
+- **objection wiki**: "Understanding the iOS Biometrics Bypass": Confirms attack boundary at SecAccessControl
+- **TN3137**: "On Mac Keychain APIs and implementations" (macOS keychain unification)
 
 ---
 
 ## Cross-References
 
-- `keychain-fundamentals.md` — SecItem CRUD patterns used by the keychain-bound biometric flow
-- `keychain-access-control.md` — `SecAccessControlCreateWithFlags`, accessibility constants, and flag composition rules
-- `secure-enclave.md` — Hardware-backed keys with biometric gating via `SecAccessControl`
-- `common-anti-patterns.md` — Anti-pattern #3 (LAContext-only biometric gate)
-- `credential-storage-patterns.md` — Biometric protection for high-value credentials (OAuth tokens, API keys)
-- `testing-security-code.md` — Protocol-based mocking for biometric flows, LAContext test strategies
-- `compliance-owasp-mapping.md` — M3 (Insecure Authentication/Authorization) biometric requirements
+- `keychain-fundamentals.md`: SecItem CRUD patterns used by the keychain-bound biometric flow
+- `keychain-access-control.md`: `SecAccessControlCreateWithFlags`, accessibility constants, and flag composition rules
+- `secure-enclave.md`: Hardware-backed keys with biometric gating via `SecAccessControl`
+- `common-anti-patterns.md`: Anti-pattern #3 (LAContext-only biometric gate)
+- `credential-storage-patterns.md`: Biometric protection for high-value credentials (OAuth tokens, API keys)
+- `testing-security-code.md`: Protocol-based mocking for biometric flows, LAContext test strategies
+- `compliance-owasp-mapping.md`: M3 (Insecure Authentication/Authorization) biometric requirements
 
 ---
 
 ## Summary Checklist
 
-1. **No standalone boolean gates** — `LAContext.evaluatePolicy()` is NEVER the sole authentication mechanism for sensitive data; secrets are always bound to keychain + `SecAccessControl`
-2. **Hardware-gated secrets** — All sensitive data protected by biometrics uses `SecAccessControlCreateWithFlags` with the Secure Enclave enforcing the ACL
-3. **Correct flag selection** — `.biometryCurrentSet` for high-security (banking, payments); `.biometryAny` for convenience; `.userPresence` for broad compatibility or fallback
-4. **No kSecAttrAccessible conflict** — `kSecAttrAccessible` and `kSecAttrAccessControl` are never set on the same keychain item
-5. **ThisDeviceOnly accessibility** — Biometric-gated secrets use `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` or `WhenUnlockedThisDeviceOnly`; never syncable
-6. **Complete error handling** — All `LAError` codes handled: `.biometryNotEnrolled`, `.biometryLockout`, `.biometryNotAvailable`, `.passcodeNotSet`, `.userCancel`, `.userFallback`
-7. **Graceful degradation** — App provides fallback path (passcode or password) when biometrics are unavailable or locked out
-8. **Enrollment change detection** — `evaluatedPolicyDomainState` monitored when using `.biometryCurrentSet`; re-enrollment flow implemented
-9. **Thread safety** — `SecItemCopyMatching` with biometric ACL never runs on `@MainActor`; actor-isolated or dispatched to background queue
-10. **Dynamic verification** — objection/Frida bypass test confirms protected data remains inaccessible when `evaluatePolicy` callback is hooked
-11. **SAST/linting** — CI pipeline includes rule to flag standalone `evaluatePolicy` without corresponding `SecAccessControl` keychain operations
+1. **No standalone boolean gates**: `LAContext.evaluatePolicy()` is NEVER the sole authentication mechanism for sensitive data; secrets are always bound to keychain + `SecAccessControl`
+2. **Hardware-gated secrets**: All sensitive data protected by biometrics uses `SecAccessControlCreateWithFlags` with the Secure Enclave enforcing the ACL
+3. **Correct flag selection**: `.biometryCurrentSet` for high-security (banking, payments); `.biometryAny` for convenience; `.userPresence` for broad compatibility or fallback
+4. **No kSecAttrAccessible conflict**: `kSecAttrAccessible` and `kSecAttrAccessControl` are never set on the same keychain item
+5. **ThisDeviceOnly accessibility**: Biometric-gated secrets use `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` or `WhenUnlockedThisDeviceOnly`; never syncable
+6. **Complete error handling**: All `LAError` codes handled: `.biometryNotEnrolled`, `.biometryLockout`, `.biometryNotAvailable`, `.passcodeNotSet`, `.userCancel`, `.userFallback`
+7. **Graceful degradation**: App provides fallback path (passcode or password) when biometrics are unavailable or locked out
+8. **Enrollment change detection**: `evaluatedPolicyDomainState` monitored when using `.biometryCurrentSet`; re-enrollment flow implemented
+9. **Thread safety**: `SecItemCopyMatching` with biometric ACL never runs on `@MainActor`; actor-isolated or dispatched to background queue
+10. **Dynamic verification**: objection/Frida bypass test confirms protected data remains inaccessible when `evaluatePolicy` callback is hooked
+11. **SAST/linting**: CI pipeline includes rule to flag standalone `evaluatePolicy` without corresponding `SecAccessControl` keychain operations

@@ -16,7 +16,7 @@ Extended examples for argument label rules, edge cases, parameter naming, and de
 The base rule: when the first argument completes a prepositional phrase with the base name, use the preposition as the argument label.
 
 ```swift
-// Standard cases — preposition is the label
+// Standard cases: preposition is the label
 x.removeBoxes(havingLength: 12)
 view.fade(from: red)
 path.relativePath(from: root)
@@ -27,15 +27,15 @@ path.relativePath(from: root)
 When the first two arguments represent parts of a single abstraction, fold the preposition into the base name so each component gets its own label.
 
 ```swift
-// GOOD — x and y are parts of a single abstraction (a point)
+// GOOD: x and y are parts of a single abstraction (a point)
 a.moveTo(x: b, y: c)
 
-// BAD — forces x and y into a single prepositional phrase
+// BAD: forces x and y into a single prepositional phrase
 a.move(toX: b, y: c)
 ```
 
 ```swift
-// GOOD — row and column are parts of a single abstraction (a cell position)
+// GOOD: row and column are parts of a single abstraction (a cell position)
 table.cellAt(row: r, column: c)
 
 // BAD
@@ -59,10 +59,10 @@ view.transition(from: oldState, to: newState, duration: 0.3)
 When the first argument and base name form a grammatical phrase, omit the first label and absorb any leading words into the base name.
 
 ```swift
-// GOOD — "add subview"
+// GOOD: "add subview"
 view.addSubview(child)
 
-// GOOD — "contains element"
+// GOOD: "contains element"
 array.contains(element)
 ```
 
@@ -71,16 +71,16 @@ array.contains(element)
 If the label would start with words that belong in the base name, move them.
 
 ```swift
-// GOOD — "having length" absorbed into base name
+// GOOD: "having length" absorbed into base name
 removeBoxes(havingLength: 12)
 
-// BAD — should be part of the base name
+// BAD: should be part of the base name
 remove(boxesHavingLength: 12)
 ```
 
 ## Value-Preserving vs Narrowing Conversions
 
-**Value-preserving (widening)** — the conversion cannot lose information. Omit the first label.
+**Value-preserving (widening)**: the conversion cannot lose information. Omit the first label.
 
 ```swift
 Int64(someUInt32)           // UInt32 always fits in Int64
@@ -88,7 +88,7 @@ String(someCharacter)       // Character is always a valid String
 Double(someFloat)           // Float always fits in Double
 ```
 
-**Narrowing or lossy** — the conversion may lose information or change representation. Use a descriptive label.
+**Narrowing or lossy**: the conversion may lose information or change representation. Use a descriptive label.
 
 ```swift
 Int64(truncating: someDecimal)      // may lose precision
@@ -97,7 +97,7 @@ String(describing: someObject)      // uses debug representation
 Int(exactly: someDouble)            // may return nil
 ```
 
-**Representation change** — the conversion changes how the value is viewed. Use a label that describes the interpretation.
+**Representation change**: the conversion changes how the value is viewed. Use a label that describes the interpretation.
 
 ```swift
 String(utf8String: cString)         // interprets as UTF-8
@@ -145,7 +145,7 @@ Name parameters as complete English words. Single letters and abbreviations dama
 Prefer a single method with default parameter values over a family of methods.
 
 ```swift
-// GOOD — one method, sensible defaults
+// GOOD: one method, sensible defaults
 func decode(
     _ data: Data,
     encoding: String.Encoding = .utf8,
@@ -154,7 +154,7 @@ func decode(
 ```
 
 ```swift
-// BAD — method family that differs only in which parameters are present
+// BAD: method family that differs only in which parameters are present
 func decode(_ data: Data) -> String?
 func decode(_ data: Data, encoding: String.Encoding) -> String?
 func decode(_ data: Data, encoding: String.Encoding, allowLossyConversion: Bool) -> String?
@@ -165,7 +165,7 @@ func decode(_ data: Data, encoding: String.Encoding, allowLossyConversion: Bool)
 Place parameters with defaults at the end. Parameters without defaults typically carry more meaning and form the grammatical base of the call site.
 
 ```swift
-// GOOD — required parameters first
+// GOOD: required parameters first
 func search(
     query: String,
     in scope: SearchScope = .all,

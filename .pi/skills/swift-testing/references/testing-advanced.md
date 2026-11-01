@@ -19,13 +19,13 @@ ST-0013 adds a `severity` parameter to `Issue.record()` in Swift 6.3 / Xcode 26.
 @Test func dataIntegrity() {
     let result = loadData()
 
-    // Hard failure — test fails
+    // Hard failure: test fails
     #expect(result.isValid)
 
-    // Warning — logged but test still passes
+    // Warning: logged but test still passes
     if result.processingTime > 2.0 {
         Issue.record(
-            "Processing took \(result.processingTime)s — exceeds 2s target",
+            "Processing took \(result.processingTime)s: exceeds 2s target",
             severity: .warning
         )
     }
@@ -45,7 +45,7 @@ ST-0016 adds `try Test.cancel()` in Swift 6.3 / Xcode 26.4 and newer to stop a t
 ```swift
 @Test func requiresNetwork() async throws {
     guard NetworkMonitor.shared.isConnected else {
-        try Test.cancel("No network — skipping integration test")
+        try Test.cancel("No network: skipping integration test")
     }
 
     let response = try await APIClient.shared.healthCheck()
@@ -54,9 +54,9 @@ ST-0016 adds `try Test.cancel()` in Swift 6.3 / Xcode 26.4 and newer to stop a t
 ```
 
 Key differences from other mechanisms:
-- Throwing an error — marks the test as failed
-- `withKnownIssue` — marks a failure as expected (test still runs)
-- `try Test.cancel()` — marks the test as cancelled (neutral outcome, test stops)
+- Throwing an error: marks the test as failed
+- `withKnownIssue`: marks a failure as expected (test still runs)
+- `try Test.cancel()`: marks the test as cancelled (neutral outcome, test stops)
 
 ## Exit Test Value Capturing
 

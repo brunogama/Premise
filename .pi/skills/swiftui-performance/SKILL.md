@@ -123,7 +123,7 @@ See [references/optimizing-swiftui-performance-instruments.md](references/optimi
 Identity controls view lifetime and state. Use stable model IDs in repeated
 content and reserve `.id(_:)` changes for intentional resets. Prefer
 `@ViewBuilder` or generic composition over `AnyView` in profiled hot rows. Treat
-root conditional branches as suspects—not automatic defects—when evidence shows
+root conditional branches as suspects, not automatic defects, when evidence shows
 state churn or expensive recreation.
 
 ```swift
@@ -174,7 +174,7 @@ struct ProfileView: View {
 
 Cheap computed values can remain derived; expensive transformations need an
 explicit owner, input set, and refresh trigger. Do not add view models as a
-performance ritual—measure first and route general state design to
+performance ritual:measure first and route general state design to
 `swiftui-patterns`.
 
 ## Common Mistakes

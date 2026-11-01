@@ -135,7 +135,7 @@ NavigationSplitView explicitly models two-column and three-column layouts. Colum
 
 ## ObservableObject / `@Published` / `@StateObject` to `@Observable` / `@State`
 
-The Observation framework (iOS 17+) replaces Combine-based observation. Classes annotated with `@Observable` track property access automatically -- no `@Published` wrappers needed.
+The Observation framework (iOS 17+) replaces Combine-based observation. Classes annotated with `@Observable` track property access automatically: no `@Published` wrappers needed.
 
 ### Before (Superseded)
 
@@ -205,11 +205,11 @@ struct SettingsView: View {
 ### Migration Notes
 
 - Replace `ObservableObject` conformance with the `@Observable` macro.
-- Remove all `@Published` property wrappers -- observation is automatic.
+- Remove all `@Published` property wrappers: observation is automatic.
 - Replace `@StateObject` with `@State` for owned instances.
 - Computed properties that depend on stored properties are tracked automatically.
 - The view only re-evaluates when properties it actually reads change, so fine-grained observation is free.
-- **Requires iOS 17+ minimum deployment target.** `ObservableObject` is not formally deprecated (no compiler warning) -- it is superseded. Do not rewrite working `ObservableObject` code if the project targets iOS 16 or earlier.
+- **Requires iOS 17+ minimum deployment target.** `ObservableObject` is not formally deprecated (no compiler warning): it is superseded. Do not rewrite working `ObservableObject` code if the project targets iOS 16 or earlier.
 
 ---
 
@@ -325,7 +325,7 @@ struct ContentView: View {
 
 ## foregroundColor(_:) to foregroundStyle(_:)
 
-`foregroundColor(_:)` was deprecated in iOS 17. Its replacement, `foregroundStyle(_:)`, accepts any `ShapeStyle` -- not just `Color` -- enabling gradients, hierarchical styles, and materials directly.
+`foregroundColor(_:)` was deprecated in iOS 17. Its replacement, `foregroundStyle(_:)`, accepts any `ShapeStyle`, not just `Color`, enabling gradients, hierarchical styles, and materials directly.
 
 ### Before (Deprecated)
 
@@ -346,7 +346,7 @@ Text("Hello")
 Text("Secondary")
     .foregroundStyle(.secondary)
 
-// Gradient -- not possible with foregroundColor
+// Gradient: not possible with foregroundColor
 Text("Gradient")
     .foregroundStyle(
         .linearGradient(colors: [.blue, .purple],
@@ -358,7 +358,7 @@ Text("Gradient")
 
 `foregroundStyle(_:)` is a drop-in replacement when passing a `Color`. The broader `ShapeStyle` conformance also accepts gradients, `.tint`, `.selection`, and hierarchical styles (`.primary`, `.secondary`, `.tertiary`, `.quaternary`). Multi-level variants `foregroundStyle(_:_:)` and `foregroundStyle(_:_:_:)` set hierarchical styles for child content in one call.
 
-**Not to be confused with** `NSAttributedString.Key.foregroundColor` -- that is a UIKit/Foundation attributed-string key used for Core Text, `NSAttributedString`, and PDF rendering. It is not deprecated and has no SwiftUI equivalent.
+**Not to be confused with** `NSAttributedString.Key.foregroundColor`: that is a UIKit/Foundation attributed-string key used for Core Text, `NSAttributedString`, and PDF rendering. It is not deprecated and has no SwiftUI equivalent.
 
 ---
 
@@ -609,7 +609,7 @@ struct DetailView: View {
 
 ### Migration Notes
 
-`dismiss` is a callable `DismissAction`. Call it directly -- no `.wrappedValue` needed. Works for sheets, full-screen covers, and navigation push destinations.
+`dismiss` is a callable `DismissAction`. Call it directly: no `.wrappedValue` needed. Works for sheets, full-screen covers, and navigation push destinations.
 
 ---
 
@@ -630,7 +630,7 @@ GeometryReader { proxy in
 }
 ```
 
-### After (Modern) -- containerRelativeFrame (iOS 17+)
+### After (Modern): containerRelativeFrame (iOS 17+)
 
 ```swift
 HStack(spacing: 0) {
@@ -645,7 +645,7 @@ HStack(spacing: 0) {
 }
 ```
 
-### After (Modern) -- Custom Layout (iOS 16+)
+### After (Modern): Custom Layout (iOS 16+)
 
 ```swift
 struct ProportionalHStack: Layout {
@@ -1205,7 +1205,7 @@ TabView {
 }
 ```
 
-### After (Modern — iOS 18+)
+### After (Modern: iOS 18+)
 
 ```swift
 TabView {

@@ -255,7 +255,7 @@ func flatMap<NewValue: Sendable>(
 ) ) -> Strategy<NewValue>
 ```
 
-Generates a strategy from a generated value — useful when the shape of one value depends on another:
+Generates a strategy from a generated value: useful when the shape of one value depends on another:
 
 ```swift
 let countThenArray = Strategy<Int>.integers(in: 1...10)
@@ -273,7 +273,7 @@ func filter(
 ) -> Strategy<Value>
 ```
 
-Keeps only values that satisfy the predicate. Use sparingly — if the predicate rejects too many values, the engine will exhaust its draw budget.
+Keeps only values that satisfy the predicate. Use sparingly: if the predicate rejects too many values, the engine will exhaust its draw budget.
 
 ```swift
 let positiveOdd = Strategy<Int>.integers(in: 0...100)

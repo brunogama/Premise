@@ -49,7 +49,7 @@ func largeSearchSpace(n: Int) {
 
 ### Why @given and Not @Property?
 
-Hypothesis uses `@given` because the decorator says "given these data generators, run the test body with generated values." It does not imply the function is a mathematical property — just that it receives generated inputs. The name `@Property` is QuickCheck heritage; Premise follows the Hypothesis convention.
+Hypothesis uses `@given` because the decorator says "given these data generators, run the test body with generated values." It does not imply the function is a mathematical property: just that it receives generated inputs. The name `@Property` is QuickCheck heritage; Premise follows the Hypothesis convention.
 
 ## Multi-Arity forAll
 

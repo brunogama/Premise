@@ -14,4 +14,4 @@ Premise found a counterexample after 1 run.
   Failure  : Expected to catch ValidationError.consecutiveUnderscores,
              but no error was thrown.
 
-  The validator accepted "aab__z" — the consecutive-underscore check is missing.
+  The validator accepted "aab__z": the consecutive-underscore check is missing.

@@ -29,7 +29,7 @@
    @Section(title: "Valid Input Always Passes") {
       @ContentAndMedia {
          Build a strategy that generates usernames satisfying all rules by
-         construction — so the strategy can only produce valid inputs. Every
+         construction: so the strategy can only produce valid inputs. Every
          value it generates must pass validation.
       }
       @Steps {
@@ -53,7 +53,7 @@
          Build strategies for each kind of invalid input. Each one verifies
          a specific rule from the validator. Testing the "always fails" side
          is just as important: a validator that accepts everything trivially
-         satisfies "valid passes" — but catastrophically fails "invalid fails".
+         satisfies "valid passes": but catastrophically fails "invalid fails".
       }
       @Steps {
          @Step {

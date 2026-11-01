@@ -49,7 +49,7 @@ This means running with the same seed and the same `maxRuns` produces exactly th
 
 ## Result Ordering
 
-Even though runs complete in non-deterministic scheduling order, ``/PremiseParallel/ParallelRunner`` always reports the **lowest-index** failure — the same failure you would have seen from sequential execution with the same seed. This is achieved by a private `ResultCollector` actor that tracks the minimum run index seen so far:
+Even though runs complete in non-deterministic scheduling order, ``/PremiseParallel/ParallelRunner`` always reports the **lowest-index** failure: the same failure you would have seen from sequential execution with the same seed. This is achieved by a private `ResultCollector` actor that tracks the minimum run index seen so far:
 
 ```swift
 private actor ResultCollector<Value: Sendable> {
@@ -70,14 +70,14 @@ public struct ParallelConfig: Sendable {
     /// Max simultaneous tasks. nil = let the runtime decide.
     public var maxConcurrentRuns: Int?
 
-    public static let `default` = ParallelConfig()  // nil — uncapped
+    public static let `default` = ParallelConfig()  // nil: uncapped
 }
 ```
 
 When `maxConcurrentRuns` is `nil`, all runs are submitted to the task group immediately and the Swift runtime schedules them across available cores. Set a limit when you need to control resource usage:
 
 ```swift
-// Limit to 4 concurrent runs — useful if each run opens file handles
+// Limit to 4 concurrent runs: useful if each run opens file handles
 ParallelConfig(maxConcurrentRuns: 4)
 ```
 
@@ -98,14 +98,14 @@ let runner = ParallelRunner(
 let result = try await runner.run { value in ... }
 ```
 
-Replay is sequential by design — replaying in parallel would introduce non-determinism into the replay result.
+Replay is sequential by design: replaying in parallel would introduce non-determinism into the replay result.
 
 ## Shared State in Property Closures
 
-Because runs execute concurrently, your property closure *must not* use shared mutable state without synchronisation. Closures are `@Sendable` — the compiler will catch obvious violations — but actor-isolated state accessed from many concurrent tasks can become a bottleneck.
+Because runs execute concurrently, your property closure *must not* use shared mutable state without synchronisation. Closures are `@Sendable`, the compiler will catch obvious violations, but actor-isolated state accessed from many concurrent tasks can become a bottleneck.
 
 ```swift
-// Bad: race condition — counter is not concurrency-safe
+// Bad: race condition: counter is not concurrency-safe
 var counter = 0
 let result = try await runner.run { value in
     counter += 1  // ← compile error under Swift 6

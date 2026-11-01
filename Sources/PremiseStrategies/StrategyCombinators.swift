@@ -56,7 +56,7 @@ public extension Strategy {
     )
   }
 
-  /// Precondition filter — alias for ``filter(_:maxAttempts:)`` with
+  /// Precondition filter: alias for ``filter(_:maxAttempts:)`` with
   /// clearer intent for property-level assumptions.
   ///
   /// Use `assume` when restricting the generated domain, e.g.

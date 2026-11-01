@@ -363,7 +363,7 @@ locale-sensitive formatting review.
 ## Collection Patterns: Chunking and Windows
 
 ```swift
-// chunks(ofCount:) -- Swift Algorithms package
+// chunks(ofCount:): Swift Algorithms package
 import Algorithms
 
 let batches = items.chunks(ofCount: 10)
@@ -371,12 +371,12 @@ for batch in batches {
     try await upload(batch)
 }
 
-// windows(ofCount:) -- sliding window
+// windows(ofCount:): sliding window
 let movingAverages = values.windows(ofCount: 3).map { window in
     window.reduce(0, +) / Double(window.count)
 }
 
-// adjacentPairs() -- process consecutive elements
+// adjacentPairs(): process consecutive elements
 for (previous, current) in values.adjacentPairs() {
     if current > previous * 2 {
         print("Spike detected")
@@ -396,7 +396,7 @@ func processResponse(_ data: Data) throws -> User {
         throw ParseError.invalidFormat
     }
 
-    // Use Codable instead when practical -- this is for mixed/dynamic JSON
+    // Use Codable instead when practical: this is for mixed/dynamic JSON
     return User(id: id, name: name)
 }
 
@@ -486,6 +486,6 @@ extension Door where State == Unlocked {
 
 // Generic constraint meaning "this case cannot happen"
 func absurd<T>(_ never: Never) -> T {
-    // No body needed -- Never has no values, so this is never called
+    // No body needed: Never has no values, so this is never called
 }
 ```

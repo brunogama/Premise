@@ -5,7 +5,7 @@ import PremiseStrategies
 let validator = UsernameValidator()
 let safe = Array("abcdefghijklmnopqrstuvwxyz")
 
-// Usernames shorter than 3 characters — always invalid.
+// Usernames shorter than 3 characters: always invalid.
 let tooShortStrategy = Strategy<String>.strings(from: safe, length: 0...2)
 
 @Test

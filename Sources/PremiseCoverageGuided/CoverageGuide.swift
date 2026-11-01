@@ -4,7 +4,7 @@ import PremiseCore
 ///
 /// A coverage guide evaluates a single-run coverage snapshot against a
 /// cumulative baseline and reports how many new edges were discovered.
-/// Guides are purely observational sidecar components -- they MUST NOT
+/// Guides are purely observational sidecar components: they MUST NOT
 /// mutate trace content or affect replay semantics.
 public protocol CoverageGuide: Sendable {
   /// Evaluates a coverage snapshot against a known baseline.
