@@ -210,6 +210,39 @@ if sh "$root/scripts/lint_staged_swift.sh" docs/Documentation.docc/Resources/exa
   exit 1
 fi
 grep -F 'tutorial_marker' "$work/output" >/dev/null
+cat > .swiftlint.yml <<'YAML'
+only_rules:
+  - function_parameter_count
+function_parameter_count:
+  warning: 3
+  error: 3
+YAML
+for area in PremiseCore PremiseTesting PremiseXCTest; do
+  mkdir -p "Sources/$area"
+  cat > "Sources/$area/.swiftlint.yml" <<'YAML'
+parent_config: ../../.swiftlint.yml
+function_parameter_count:
+  warning: 12
+  error: 12
+YAML
+  printf 'func example(a: Int, b: Int, c: Int, d: Int) {}\n' > "Sources/$area/Example.swift"
+  git add "Sources/$area/.swiftlint.yml" "Sources/$area/Example.swift"
+done
+git add .swiftlint.yml
+for area in PremiseCore PremiseTesting PremiseXCTest; do
+  if sh "$root/scripts/lint_staged_swift.sh" "Sources/$area/Example.swift" >"$work/output" 2>&1; then
+    echo "Expected the root parameter limit in $area." >&2
+    exit 1
+  fi
+  grep -F 'Function Parameter Count Violation' "$work/output" >/dev/null
+  printf 'func example(a: Int, b: Int, c: Int) {}\n' > "Sources/$area/Example.swift"
+  git add "Sources/$area/Example.swift"
+  if ! sh "$root/scripts/lint_staged_swift.sh" "Sources/$area/Example.swift" >"$work/output" 2>&1; then
+    cat "$work/output" >&2
+    echo "Expected the root parameter limit to accept three parameters in $area." >&2
+    exit 1
+  fi
+done
 git update-index --force-remove Tests/MacroRegression/.swiftlint.yml
 git update-index --force-remove .swiftlint.yml
 if sh "$root/scripts/lint_staged_swift.sh" \
