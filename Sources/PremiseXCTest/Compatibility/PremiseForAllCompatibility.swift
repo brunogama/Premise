@@ -13,6 +13,8 @@ import PremiseStrategies
 /// caller's source location with the minimized counterexample, run/shrink
 /// counts, and a replay instruction.
 public func premise_forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -41,6 +43,8 @@ public func premise_forAll<Value: Sendable>(
 // swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs an async property test through the Premise engine inside XCTest.
 public func premise_forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -71,6 +75,8 @@ public func premise_forAll<Value: Sendable>(
 // swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs a property test over two independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
@@ -102,6 +108,8 @@ public func premise_forAll<A: Sendable, B: Sendable>(
 // swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs an async property test over two independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
@@ -135,11 +143,17 @@ public func premise_forAll<A: Sendable, B: Sendable>(
 // swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs a property test over three independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   explicitExamples: [(A, B, C)] = [],
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
@@ -147,7 +161,12 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (A, B, C) throws -> Void
 ) async throws {
-  let combined = syncTripleStrategy(strategyA, strategyB, strategyC)
+  let zipped = zip(strategyA, strategyB, strategyC)
+  let combined = Strategy(
+    label: "(\(strategyA.label), \(strategyB.label), \(strategyC.label))",
+    draw: zipped.draw,
+    shrink: zipped.shrink
+  )
   try await runXCTestForAll(
     strategy: combined,
     options: XCTestRunOptions(
@@ -167,11 +186,17 @@ public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
 // swift-format-ignore: AlwaysUseLowerCamelCase
 /// Runs an async property test over three independently generated values in XCTest.
 public func premise_forAll<A: Sendable, B: Sendable, C: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   explicitExamples: [(A, B, C)] = [],
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   file: StaticString = #filePath,
@@ -210,21 +235,4 @@ private func syncPairStrategy<A: Sendable, B: Sendable>(
   )
 }
 
-private func syncTripleStrategy<A: Sendable, B: Sendable, C: Sendable>(
-  _ first: Strategy<A>,
-  _ second: Strategy<B>,
-  _ third: Strategy<C>
-) -> Strategy<(A, B, C)> {
-  Strategy(
-    label: "(\(first.label), \(second.label), \(third.label))",
-    draw: { data in
-      (try first.draw(&data), try second.draw(&data), try third.draw(&data))
-    },
-    shrink: { triple in
-      first.shrink(triple.0).map { ($0, triple.1, triple.2) }
-        + second.shrink(triple.1).map { (triple.0, $0, triple.2) }
-        + third.shrink(triple.2).map { (triple.0, triple.1, $0) }
-    }
-  )
-}
 #endif

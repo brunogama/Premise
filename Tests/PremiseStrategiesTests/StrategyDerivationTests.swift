@@ -8,7 +8,9 @@ private struct UserID: Sendable, Equatable {
 }
 
 extension UserID: StrategyProviding {
-  static func premiseStrategy(in registry: StrategyRegistry) -> Strategy<UserID> {
+  static func premiseStrategy(
+    in registry: StrategyRegistry
+  ) -> Strategy<UserID> {
     registry.strategy(for: Int.self)
       .map { UserID(rawValue: $0) }
       .shrinking { id in

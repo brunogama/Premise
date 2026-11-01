@@ -1,6 +1,8 @@
 import Foundation
 import SQLite3
 
+// The SQLite handle requires one shared lifetime and lock.
+// swiftlint:disable prefer_struct
 /// Source-compatible SQLite connection wrapper used by ``SQLiteBackedDatabase``
 /// to manage a single SQLite database connection with WAL-mode pragmas and
 /// automatic schema creation.
@@ -20,6 +22,7 @@ import SQLite3
 ///
 /// On deallocation the database handle is closed via `sqlite3_close_v2`.
 public final class SQLiteConnection: @unchecked Sendable {
+  // swiftlint:enable prefer_struct
   private let handleLock = NSLock()
 
   /// The raw SQLite database handle.

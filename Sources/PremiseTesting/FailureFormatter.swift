@@ -3,6 +3,7 @@ import PremiseCore
 /// Formats a property failure into a human-readable diagnostic string
 /// containing the counterexample, run/shrink counts, and replay instructions.
 enum FailureFormatter {
+  // swiftlint:disable function_parameter_count - Value, record, identity, report, and blob policy are independent diagnostic inputs.
   /// Builds a diagnostic message from a property failure.
   ///
   /// - Parameters:
@@ -51,6 +52,7 @@ enum FailureFormatter {
 
     return lines.joined(separator: "\n")
   }
+  // swiftlint:enable function_parameter_count
 
   private static func location(for propertyID: PropertyIdentity) -> String {
     if let function = propertyID.functionName {

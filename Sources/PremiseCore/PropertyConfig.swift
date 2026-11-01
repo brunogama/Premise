@@ -144,8 +144,10 @@ extension PropertyConfig {
   )
 
 
+  // Keep the established convenience signature for source compatibility.
   /// Bounded test configuration with explicit run and shrink budgets.
   public static func bounded(
+    // swiftlint:disable:previous function_parameter_count
     runs: Int,
     shrinks: Int = 100,
     drawBudget: Int? = nil,

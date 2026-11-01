@@ -18,7 +18,8 @@ func dataStrategyRespectsFixedAndRangedLengths() throws {
 @Test("ASCII identifier strategy respects identifier shape")
 func asciiIdentifierStrategyRespectsIdentifierShape() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 62, maxDraws: 64))
-  let identifier = try Strategy<String>.asciiIdentifiers(length: 1...12).draw(&data)
+  let strategy = Strategy<String>.asciiIdentifiers(length: 1...12)
+  let identifier = try strategy.draw(&data)
   let first = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")
   let rest = first.union(Set("0123456789"))
 

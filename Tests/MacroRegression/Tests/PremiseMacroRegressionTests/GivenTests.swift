@@ -15,6 +15,8 @@ func oneValue(value: Int) {
   Strategy<Int>.integers(in: 3...3),
   Strategy<Int>.integers(in: 4...4)
 )
+// Four parameters exercise macro arity and value mapping.
+// swiftlint:disable:next function_parameter_count
 func fourValues(first: Int, second: Int, third: Int, fourth: Int) {
   #expect(first == 1)
   #expect(second == 2)
@@ -30,6 +32,8 @@ private let premiseGeneratedValues = 123
   Strategy<Int>.integers(in: 3...3),
   Strategy<Int>.integers(in: 4...4)
 )
+// Four parameters exercise capture avoidance at this arity.
+// swiftlint:disable:next function_parameter_count
 func avoidsCapturingGlobals(first: Int, second: Int, third: Int, fourth: Int) {
   #expect(premiseGeneratedValues == 123)
   #expect(first + second + third + fourth == 10)

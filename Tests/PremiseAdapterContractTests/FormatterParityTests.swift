@@ -59,6 +59,25 @@ struct FormatterParityTests {
     )
   }
 
+  private static func makeReproductionRecord(
+    propertyID: PropertyIdentity
+  ) -> FailureRecord {
+    FailureRecord(
+      propertyID: propertyID,
+      trace: ChoiceTrace(entries: [.integer(7)]),
+      errorMessage: "value 7 failed",
+      runCount: 1,
+      shrinkCount: 0
+    )
+  }
+
+  private static func makeContext(
+    record: FailureRecord,
+    propertyID: PropertyIdentity,
+    report: RunReport
+  ) -> XCTestFailureContext {
+    XCTestFailureContext(record: record, propertyID: propertyID, report: report)
+  }
   @Test("Both formatters produce identical output for integer counterexample")
   func integerCounterexampleParity() {
     let pid = Self.makePropertyID()
@@ -76,7 +95,9 @@ struct FormatterParityTests {
 
     #expect(swiftTestingOutput == xcTestOutput)
   }
+}
 
+extension FormatterParityTests {
   @Test("Both formatters produce identical output for string counterexample")
   func stringCounterexampleParity() {
     let pid = Self.makePropertyID(label: "strings")
@@ -177,13 +198,7 @@ extension FormatterParityTests {
   @Test("Both formatters produce identical reproduction blob output")
   func reproductionBlobParity() {
     let pid = Self.makePropertyID()
-    let record = FailureRecord(
-      propertyID: pid,
-      trace: ChoiceTrace(entries: [.integer(7)]),
-      errorMessage: "value 7 failed",
-      runCount: 1,
-      shrinkCount: 0
-    )
+    let record = Self.makeReproductionRecord(propertyID: pid)
 
     let swiftTestingOutput = FailureFormatter.format(
       value: 7,
@@ -206,20 +221,20 @@ extension FormatterParityTests {
 
   @Test("Both formatters produce identical output with report statistics")
   func reportStatisticsParity() {
-    let pid = Self.makePropertyID()
+    let id = Self.makePropertyID()
     let statistics = Self.makeStatistics()
-    let record = Self.makeRecord(propertyID: pid, statistics: statistics)
+    let record = Self.makeRecord(propertyID: id, statistics: statistics)
     let report = Self.makeReport(statistics: statistics)
 
     let swiftTestingOutput = FailureFormatter.format(
       value: 1,
       record: record,
-      propertyID: pid,
+      propertyID: id,
       report: report
     )
     let xcTestOutput = XCTestFailureFormatter.format(
       value: 1,
-      context: XCTestFailureContext(record: record, propertyID: pid, report: report)
+      context: Self.makeContext(record: record, propertyID: id, report: report)
     )
 
     #expect(swiftTestingOutput == xcTestOutput)

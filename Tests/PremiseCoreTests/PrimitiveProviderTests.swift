@@ -20,7 +20,8 @@ func equalSeedsProduceEqualTraces() {
 
 @Test("ReplayProvider reproduces the same draw sequence")
 func replayProviderReproducesSequence() {
-  var source = PremiseData(provider: PseudoRandomProvider(seed: 21, maxDraws: 32))
+  let provider = PseudoRandomProvider(seed: 21, maxDraws: 32)
+  var source = PremiseData(provider: provider)
   let original = drawSample(using: &source)
   let trace = source.snapshot()
 

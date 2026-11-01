@@ -18,6 +18,8 @@ public struct PropertyPredicateFailed:
 
 /// Runs a Boolean predicate property through the Swift Testing adapter.
 public func expectForAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the synchronous predicate API and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -48,6 +50,8 @@ public func expectForAll<Value: Sendable>(
 
 /// Runs an async Boolean predicate property through the Swift Testing adapter.
 public func expectForAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the async predicate API and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -78,6 +82,8 @@ public func expectForAll<Value: Sendable>(
 
 /// Runs a data-aware Boolean predicate property through the Swift Testing adapter.
 public func expectForAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the data-aware predicate API and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],

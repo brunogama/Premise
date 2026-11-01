@@ -1,3 +1,5 @@
+// Preserve this public signature for source compatibility.
+// swiftlint:disable function_parameter_count
 /// Runs stateful commands against a lightweight model and a system under test.
 public func checkStateMachine<Command: StatefulCommand>(
   commands: [Command],
@@ -7,6 +9,7 @@ public func checkStateMachine<Command: StatefulCommand>(
     @escaping @Sendable (Command.Model, Command.System) async throws ->
     Void
 ) async throws {
+  // swiftlint:enable function_parameter_count
   var model = initialModel
   let system = try await makeSystem()
   try await assertEquivalent(model, system)

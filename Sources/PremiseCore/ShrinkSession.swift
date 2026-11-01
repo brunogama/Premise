@@ -51,13 +51,7 @@ extension ShrinkSession {
     replay: () -> ExecutionFailure<Value>?
   ) -> (record: FailureRecord, value: Value)? {
     runner.flakinessFailureIfNeeded(
-      initialTrace: context.trace,
-      errorMessage: context.errorMessage,
-      initialValue: context.value,
-      runCount: context.runCount,
-      seed: context.seed,
-      statistics: context.statistics,
-      discovery: context.discovery,
+      context: context,
       replay: replay
     )
   }
@@ -66,13 +60,7 @@ extension ShrinkSession {
     replay: () async -> ExecutionFailure<Value>?
   ) async -> (record: FailureRecord, value: Value)? {
     await runner.flakinessFailureIfNeededAsync(
-      initialTrace: context.trace,
-      errorMessage: context.errorMessage,
-      initialValue: context.value,
-      runCount: context.runCount,
-      seed: context.seed,
-      statistics: context.statistics,
-      discovery: context.discovery,
+      context: context,
       replay: replay
     )
   }

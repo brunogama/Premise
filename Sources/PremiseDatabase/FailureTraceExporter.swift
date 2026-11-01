@@ -3,6 +3,7 @@ import Foundation
 
 /// Writes JSON failure trace artifacts for CI systems and local replay.
 public enum FailureTraceExporter {
+  /// Writes an artifact as JSON and returns its destination URL.
   public static func export(
     _ artifact: FailureTraceArtifact,
     to directory: URL

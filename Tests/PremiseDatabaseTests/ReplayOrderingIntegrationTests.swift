@@ -48,40 +48,39 @@ struct ReplayOrderingIntegrationTests {
     }
   }
 
+  private func makeExecutor(
+    _ database: FileBackedDatabase,
+    for propertyID: PropertyIdentity,
+    maxRuns: Int
+  ) -> ReplayFirstExecutor<Int> {
+    let config = PropertyConfig(maxRuns: maxRuns, seed: 0, replayEnabled: true)
+    let runner = Runner(
+      strategy: integerStrategy(in: 0...100),
+      config: config,
+      propertyID: propertyID
+    )
+    return ReplayFirstExecutor(runner: runner, database: database)
+  }
+
   // MARK: - Tests
 
   @Test("Persisted trace replays before fresh generation when maxRuns is 0")
   func replayBeforeFreshWithZeroMaxRuns() async throws {
-    let tempDir = try makeTempDirectory()
-    let database = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: try makeTempDirectory())
     let propertyID = makePropertyID()
 
-    // Build a trace that will draw the value 5 when replayed.
-    let failingTrace = ChoiceTrace(entries: [.integer(5)])
-
     // Persist the failure record manually so it exists before execution.
-    let seedRecord = FailureRecord(
-      propertyID: propertyID,
-      trace: failingTrace,
-      errorMessage: "value was 5"
+    try await database.save(
+      FailureRecord(
+        propertyID: propertyID,
+        trace: ChoiceTrace(entries: [.integer(5)]),
+        errorMessage: "value was 5"
+      )
     )
-    try await database.save(seedRecord)
 
     // Configure runner with maxRuns: 0 so no fresh generation occurs.
     // The only way a failure can surface is through replay.
-    let config = PropertyConfig(
-      maxRuns: 0,
-      seed: 0,
-      replayEnabled: true
-    )
-    let strategy = integerStrategy(in: 0...100)
-    let runner = Runner(
-      strategy: strategy,
-      config: config,
-      propertyID: propertyID
-    )
-
-    let executor = ReplayFirstExecutor(runner: runner, database: database)
+    let executor = makeExecutor(database, for: propertyID, maxRuns: 0)
     let result = try await executor.execute { value in
       if value == 5 {
         throw PropertyFailure(message: "value was 5")
@@ -107,19 +106,7 @@ struct ReplayOrderingIntegrationTests {
 
     // No existing traces -- start fresh. The runner will do fresh
     // generation and find a failure, which the executor must persist.
-    let config = PropertyConfig(
-      maxRuns: 10,
-      seed: 0,
-      replayEnabled: true
-    )
-    let strategy = integerStrategy(in: 0...100)
-    let runner = Runner(
-      strategy: strategy,
-      config: config,
-      propertyID: propertyID
-    )
-
-    let executor = ReplayFirstExecutor(runner: runner, database: database)
+    let executor = makeExecutor(database, for: propertyID, maxRuns: 10)
 
     // Property that always fails -- guarantees a failure record.
     let result = try await executor.execute { _ in
@@ -141,33 +128,18 @@ struct ReplayOrderingIntegrationTests {
   func passingReplayDoesNotPersist() async throws {
     let tempDir = try makeTempDirectory()
     let database = FileBackedDatabase(rootDirectory: tempDir)
-    let propertyID = makePropertyID(
-      fileID: "PassTest.swift",
-      line: 30
-    )
+    let propertyID = makePropertyID(fileID: "PassTest.swift", line: 30)
 
     // Seed a trace that draws 3, then run a property that accepts all.
-    let passingTrace = ChoiceTrace(entries: [.integer(3)])
-    let seedRecord = FailureRecord(
-      propertyID: propertyID,
-      trace: passingTrace,
-      errorMessage: "prior failure"
-    )
-    try await database.save(seedRecord)
-
-    let config = PropertyConfig(
-      maxRuns: 0,
-      seed: 0,
-      replayEnabled: true
-    )
-    let strategy = integerStrategy(in: 0...100)
-    let runner = Runner(
-      strategy: strategy,
-      config: config,
-      propertyID: propertyID
+    try await database.save(
+      FailureRecord(
+        propertyID: propertyID,
+        trace: ChoiceTrace(entries: [.integer(3)]),
+        errorMessage: "prior failure"
+      )
     )
 
-    let executor = ReplayFirstExecutor(runner: runner, database: database)
+    let executor = makeExecutor(database, for: propertyID, maxRuns: 0)
 
     // Property that never fails -- replay should pass.
     let result = try await executor.execute { _ in

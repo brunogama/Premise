@@ -155,7 +155,9 @@ func propertyBodyAssumptionsRejectExamples() async {
   }
 
   guard case .passed(let report) = result else {
-    Issue.record("Expected all rejected examples to produce a passing empty search")
+    Issue.record(
+      "Expected all rejected examples to produce a passing empty search"
+    )
     return
   }
 
@@ -164,8 +166,7 @@ func propertyBodyAssumptionsRejectExamples() async {
   #expect(report.rejectionCounts[.property] == 5)
 }
 
-@Test("Derandomized config derives a stable seed from property identity")
-func derandomizedConfigUsesStablePropertySeed() async {
+private func makeDerandomizedRunners() -> (Runner<Int>, Runner<Int>) {
   let propertyID = PropertyIdentity(
     fileID: "PhaseAndReportTests.swift",
     line: 123,
@@ -173,8 +174,22 @@ func derandomizedConfigUsesStablePropertySeed() async {
     functionName: "derandomizedConfigUsesStablePropertySeed"
   )
   let config = PropertyConfig(maxRuns: 1).derandomize()
-  let first = Runner(strategy: Strategy<Int>.just(1), config: config, propertyID: propertyID)
-  let second = Runner(strategy: Strategy<Int>.just(1), config: config, propertyID: propertyID)
+  let first = Runner(
+    strategy: Strategy<Int>.just(1),
+    config: config,
+    propertyID: propertyID
+  )
+  let second = Runner(
+    strategy: Strategy<Int>.just(1),
+    config: config,
+    propertyID: propertyID
+  )
+  return (first, second)
+}
+
+@Test("Derandomized config derives a stable seed from property identity")
+func derandomizedConfigUsesStablePropertySeed() async {
+  let (first, second) = makeDerandomizedRunners()
 
   let firstResult = await first.runDetailed { _ in
     throw PhaseTestError.failed("fail")

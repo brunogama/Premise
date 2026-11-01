@@ -14,11 +14,7 @@ func jsonlRunOutputWritesStructuredRunEvents() async throws {
     strategyLabel: "just(1)",
     functionName: "jsonlRunOutputWritesStructuredRunEvents"
   )
-  let runner = Runner(
-    strategy: Strategy<Int>.just(1),
-    config: PropertyConfig(maxRuns: 1, seed: 1).writingJSONLines(to: outputURL),
-    propertyID: propertyID
-  )
+  let runner = makeJSONLRunner(outputURL: outputURL, propertyID: propertyID)
 
   let result = await runner.runDetailed { _ in
     // The passing run writes its event.
@@ -32,9 +28,27 @@ func jsonlRunOutputWritesStructuredRunEvents() async throws {
   let lines = output.split(separator: "\n")
   #expect(lines.count == 1)
 
+  try verifyPassedEvent(lines[0], propertyID: propertyID)
+}
+
+private func makeJSONLRunner(
+  outputURL: URL,
+  propertyID: PropertyIdentity
+) -> Runner<Int> {
+  Runner(
+    strategy: Strategy<Int>.just(1),
+    config: PropertyConfig(maxRuns: 1, seed: 1).writingJSONLines(to: outputURL),
+    propertyID: propertyID
+  )
+}
+
+private func verifyPassedEvent(
+  _ line: Substring,
+  propertyID: PropertyIdentity
+) throws {
   let decoder = JSONDecoder()
   decoder.dateDecodingStrategy = .iso8601
-  let event = try decoder.decode(RunJSONLEvent.self, from: Data(lines[0].utf8))
+  let event = try decoder.decode(RunJSONLEvent.self, from: Data(line.utf8))
   #expect(event.event == "premise.run")
   #expect(event.propertyID == propertyID)
   #expect(event.outcome == .passed)

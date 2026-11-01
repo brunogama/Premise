@@ -73,6 +73,16 @@ visit = lambda do |config|
   rescue Psych::Exception => e
     abort "Invalid staged config #{config}: #{e.message}"
   end
+  if yaml.key?('strict') && ![true, false].include?(yaml['strict'])
+    abort "Invalid staged config #{config}: strict must be a boolean"
+  end
+  %w[included excluded].each do |key|
+    next unless yaml.key?(key)
+    value = yaml[key]
+    unless value.is_a?(Array) && value.all? { |entry| entry.is_a?(String) }
+      abort "Invalid staged config #{config}: #{key} must be a list of paths"
+    end
+  end
   abort "Invalid staged config: #{config}" unless yaml.is_a?(Hash)
   abort "Unsupported child_config in staged config: #{config}" if yaml.key?('child_config')
   if yaml.key?('parent_config')
@@ -92,7 +102,12 @@ visit = lambda do |config|
   visited[config] = :done
 end
 configs.each { |config| visit.call(config) }
-File.write(File.join(destination, 'selected-config'), configs.first)
+visited.each_key do |config|
+  _, warnings, status = Open3.capture3('swiftlint', 'rules', '--config', File.join(destination, config))
+  next if status.success? && warnings.empty?
+  abort "Invalid staged SwiftLint config #{config}: #{warnings}"
+end
+File.write(File.join(destination, 'selected-config'), path.start_with?('docs/Documentation.docc/Resources/') ? configs.first : '.swiftlint.yml')
 RUBY
 	config=$(cat "$file_dir/selected-config")
 	lint_status=0

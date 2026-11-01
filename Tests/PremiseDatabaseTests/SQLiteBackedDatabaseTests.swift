@@ -11,55 +11,12 @@ import Testing
 /// boundary.
 @Suite(
   "SQLiteBackedDatabase round-trip persistence",
-  .enabled(if: SQLiteRuntimeGate.isWALSafe(), "SQLite runtime below WAL-safe boundary")
+  .enabled(
+    if: SQLiteRuntimeGate.isWALSafe(),
+    "SQLite runtime below WAL-safe boundary"
+  )
 )
 struct SQLiteBackedDatabaseTests {
-
-  // MARK: - Helpers
-
-  /// Creates a temporary SQLite database path inside a unique directory.
-  private func makeTempDBPath() throws -> (path: String, cleanup: @Sendable () -> Void) {
-    let dir = NSTemporaryDirectory() + UUID().uuidString + "/"
-    try FileManager.default.createDirectory(
-      atPath: dir,
-      withIntermediateDirectories: true
-    )
-    let path = dir + "test.sqlite"
-    let cleanup: @Sendable () -> Void = {
-      try? FileManager.default.removeItem(atPath: dir)
-    }
-    return (path, cleanup)
-  }
-
-  /// Builds a ``PropertyIdentity`` for testing.
-  private func makePropertyID(
-    fileID: String = "TestFile.swift",
-    line: UInt = 42,
-    strategyLabel: String = "Int"
-  ) -> PropertyIdentity {
-    PropertyIdentity(
-      fileID: fileID,
-      line: line,
-      strategyLabel: strategyLabel
-    )
-  }
-
-  /// Builds a ``FailureRecord`` with a given property identity and trace.
-  private func makeRecord(
-    propertyID: PropertyIdentity,
-    entries: [ChoiceTrace.Entry] = [.integer(7)],
-    timestamp: Date = Date(timeIntervalSince1970: 1_000_000)
-  ) -> FailureRecord {
-    FailureRecord(
-      propertyID: propertyID,
-      trace: ChoiceTrace(entries: entries),
-      errorMessage: "test failure",
-      runCount: 3,
-      shrinkCount: 1,
-      timestamp: timestamp,
-      engineVersion: "0.2.0"
-    )
-  }
 
   // MARK: - Tests
 
@@ -140,13 +97,70 @@ struct SQLiteBackedDatabaseTests {
     let (path, cleanup) = try makeTempDBPath()
     defer { cleanup() }
 
-    let id = makePropertyID(fileID: "Fields.swift", line: 77, strategyLabel: "String")
+    let id = makePropertyID(
+      fileID: "Fields.swift",
+      line: 77,
+      strategyLabel: "String"
+    )
     let timestamp = Date(timeIntervalSince1970: 1_234_567)
     let record = makeRecord(propertyID: id, timestamp: timestamp)
 
     let storage = try SQLiteBackedDatabase(path: path)
     try await storage.save(record)
+    verifySavedRow(path: path, timestamp: timestamp)
+  }
+}
 
+private extension SQLiteBackedDatabaseTests {
+  // MARK: - Helpers
+
+  /// Creates a temporary SQLite database path inside a unique directory.
+  func makeTempDBPath() throws -> (
+    path: String, cleanup: @Sendable () -> Void
+  ) {
+    let dir = NSTemporaryDirectory() + UUID().uuidString + "/"
+    try FileManager.default.createDirectory(
+      atPath: dir,
+      withIntermediateDirectories: true
+    )
+    let path = dir + "test.sqlite"
+    let cleanup: @Sendable () -> Void = {
+      try? FileManager.default.removeItem(atPath: dir)
+    }
+    return (path, cleanup)
+  }
+
+  /// Builds a ``PropertyIdentity`` for testing.
+  func makePropertyID(
+    fileID: String = "TestFile.swift",
+    line: UInt = 42,
+    strategyLabel: String = "Int"
+  ) -> PropertyIdentity {
+    PropertyIdentity(
+      fileID: fileID,
+      line: line,
+      strategyLabel: strategyLabel
+    )
+  }
+
+  /// Builds a ``FailureRecord`` with a given property identity and trace.
+  func makeRecord(
+    propertyID: PropertyIdentity,
+    entries: [ChoiceTrace.Entry] = [.integer(7)],
+    timestamp: Date = Date(timeIntervalSince1970: 1_000_000)
+  ) -> FailureRecord {
+    FailureRecord(
+      propertyID: propertyID,
+      trace: ChoiceTrace(entries: entries),
+      errorMessage: "test failure",
+      runCount: 3,
+      shrinkCount: 1,
+      timestamp: timestamp,
+      engineVersion: "0.2.0"
+    )
+  }
+
+  func verifySavedRow(path: String, timestamp: Date) {
     // Open a second raw connection to verify column values directly.
     var rawDB: OpaquePointer?
     let openResult = sqlite3_open_v2(path, &rawDB, SQLITE_OPEN_READONLY, nil)
@@ -156,12 +170,18 @@ struct SQLiteBackedDatabaseTests {
       return
     }
     defer { sqlite3_close(handle) }
+    verifySavedRow(handle: handle, timestamp: timestamp)
+  }
 
+  func verifySavedRow(handle: OpaquePointer, timestamp: Date) {
     var stmt: OpaquePointer?
     let sql =
       "SELECT property_file_id, property_line, strategy_label, "
-      + "trace_format_version, record_format_version, created_at_unix_ms FROM failures LIMIT 1;"
-    guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK, let statement = stmt else {
+      + "trace_format_version, record_format_version, "
+      + "created_at_unix_ms FROM failures LIMIT 1;"
+    guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK,
+      let statement = stmt
+    else {
       Issue.record("Failed to prepare verification query")
       return
     }
@@ -171,7 +191,10 @@ struct SQLiteBackedDatabaseTests {
       Issue.record("No rows found in failures table")
       return
     }
+    verifyColumnValues(statement: statement, timestamp: timestamp)
+  }
 
+  func verifyColumnValues(statement: OpaquePointer, timestamp: Date) {
     let fileIDValue = String(cString: sqlite3_column_text(statement, 0))
     let lineValue = sqlite3_column_int64(statement, 1)
     let strategyValue = String(cString: sqlite3_column_text(statement, 2))

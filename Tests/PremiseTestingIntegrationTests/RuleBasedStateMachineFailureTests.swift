@@ -7,24 +7,21 @@ import Testing
 @testable import PremiseStrategies
 
 @Test("State machine failures include minimized programs and replay traces")
-func stateMachineFailuresIncludeMinimizedProgramsAndReplayTraces() async throws {
-  var machine = RuleBasedStateMachine(initialState: CounterMachine())
+func stateMachineFailuresIncludeMinimizedProgramsAndReplayTraces()
+  async throws
+{
+  let machine = badCounterMachine()
 
-  machine.rule("set bad", argument: Strategy<Int>.integers(in: 1...5)) { state, value in
-    state.model = value
-    state.system = value + 1
-  }
-
-  machine.invariant("model matches system") { state in
-    guard state.model == state.system else {
-      throw StateMachineTestError.invariantFailure
-    }
-  }
 
   do {
     try await checkRuleBasedStateMachine(
       machine,
-      config: StateMachineConfig(maxExamples: 1, maxSteps: 3, seed: 15, maxShrinkIterations: 10)
+      config: StateMachineConfig(
+        maxExamples: 1,
+        maxSteps: 3,
+        seed: 15,
+        maxShrinkIterations: 10
+      )
     )
     #expect(Bool(false))
   } catch let failure as StateMachineFailure {
@@ -35,14 +32,26 @@ func stateMachineFailuresIncludeMinimizedProgramsAndReplayTraces() async throws 
   }
 }
 
+
+private func badCounterMachine() -> RuleBasedStateMachine<CounterMachine> {
+  var machine = RuleBasedStateMachine(initialState: CounterMachine())
+  machine.rule(
+    "set bad",
+    argument: Strategy<Int>.integers(in: 1...5)
+  ) { state, value in
+    state.model = value
+    state.system = value + 1
+  }
+  machine.invariant("model matches system") { state in
+    guard state.model == state.system else {
+      throw StateMachineTestError.invariantFailure
+    }
+  }
+  return machine
+}
 @Test("State machine failures persist and replay traces")
 func stateMachineFailuresPersistAndReplayTraces() async throws {
-  let propertyID = PropertyIdentity(
-    fileID: "RuleBasedStateMachineTests.swift",
-    line: 500,
-    strategyLabel: "state-machine-persistence",
-    functionName: "stateMachineFailuresPersistAndReplayTraces"
-  )
+  let propertyID = persistencePropertyID()
   let directory = FileManager.default.temporaryDirectory
     .appendingPathComponent(UUID().uuidString, isDirectory: true)
   var machine = RuleBasedStateMachine(initialState: CounterMachine())
@@ -51,24 +60,64 @@ func stateMachineFailuresPersistAndReplayTraces() async throws {
     throw StateMachineTestError.ruleFailure
   }
 
-  do {
-    try await checkRuleBasedStateMachine(
-      machine,
-      config: persistenceConfig(maxExamples: 1, propertyID: propertyID, directory: directory)
-    )
-    #expect(Bool(false))
-  } catch is StateMachineFailure {
-    // The failure is persisted for the replay assertion below.
-  }
+  try await persistFailure(
+    machine,
+    propertyID: propertyID,
+    directory: directory
+  )
 
   let database = FileBackedDatabase(rootDirectory: directory)
   let traces = try await database.loadTraces(for: propertyID)
   #expect(!traces.isEmpty)
 
+  try await assertPersistedReplay(
+    machine,
+    propertyID: propertyID,
+    directory: directory
+  )
+}
+
+private func persistencePropertyID() -> PropertyIdentity {
+  PropertyIdentity(
+    fileID: "RuleBasedStateMachineTests.swift",
+    line: 500,
+    strategyLabel: "state-machine-persistence",
+    functionName: "stateMachineFailuresPersistAndReplayTraces"
+  )
+}
+
+private func persistFailure(
+  _ machine: RuleBasedStateMachine<CounterMachine>,
+  propertyID: PropertyIdentity,
+  directory: URL
+) async throws {
   do {
     try await checkRuleBasedStateMachine(
       machine,
-      config: persistenceConfig(maxExamples: 0, propertyID: propertyID, directory: directory)
+      config: persistenceConfig(
+        maxExamples: 1,
+        propertyID: propertyID,
+        directory: directory
+      )
+    )
+    #expect(Bool(false))
+  } catch is StateMachineFailure {
+    // The failure is persisted for the replay assertion below.
+  }
+}
+private func assertPersistedReplay(
+  _ machine: RuleBasedStateMachine<CounterMachine>,
+  propertyID: PropertyIdentity,
+  directory: URL
+) async throws {
+  do {
+    try await checkRuleBasedStateMachine(
+      machine,
+      config: persistenceConfig(
+        maxExamples: 0,
+        propertyID: propertyID,
+        directory: directory
+      )
     )
     #expect(Bool(false))
   } catch let failure as StateMachineFailure {
@@ -76,7 +125,6 @@ func stateMachineFailuresPersistAndReplayTraces() async throws {
     #expect(failure.ruleName == "fail")
   }
 }
-
 private func persistenceConfig(
   maxExamples: Int,
   propertyID: PropertyIdentity,
@@ -142,15 +190,7 @@ func invariantFailuresIncludeStateMachineMetadata() async throws {
 
 @Test("Unexpected strategy errors are propagated")
 func unexpectedStrategyErrorsArePropagated() async throws {
-  let throwing = Strategy<Int>(
-    label: "throws",
-    draw: { _ in throw StateMachineTestError.unexpectedDraw }
-  )
-  var machine = RuleBasedStateMachine(initialState: CounterMachine())
-
-  machine.rule("draw fails", argument: throwing) { _, _ in
-    #expect(Bool(false))
-  }
+  let machine = unexpectedDrawMachine()
 
   do {
     try await checkRuleBasedStateMachine(
@@ -168,12 +208,28 @@ func unexpectedStrategyErrorsArePropagated() async throws {
   }
 }
 
+
+private func unexpectedDrawMachine() -> RuleBasedStateMachine<CounterMachine> {
+  let throwing = Strategy<Int>(
+    label: "throws",
+    draw: { _ in throw StateMachineTestError.unexpectedDraw }
+  )
+  var machine = RuleBasedStateMachine(initialState: CounterMachine())
+  machine.rule("draw fails", argument: throwing) { _, _ in
+    #expect(Bool(false))
+  }
+  return machine
+}
 @Test("Bundles pass values between rules")
 func bundlesPassValuesBetweenRules() async throws {
   let ids = StateMachineBundle<Int>("ids")
   var machine = RuleBasedStateMachine(initialState: CounterMachine())
 
-  machine.rule("create id", argument: Strategy<Int>.integers(in: 1...5), target: ids) { state, id in
+  machine.rule(
+    "create id",
+    argument: Strategy<Int>.integers(in: 1...5),
+    target: ids
+  ) { state, id in
     state.saved.append(id)
     return id
   }

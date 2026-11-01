@@ -3,6 +3,8 @@ import XCTest
 @testable import PremiseCore
 @testable import PremiseXCTest
 
+// XCTest integration requires XCTestCase inheritance.
+// swiftlint:disable:next prefer_struct
 final class PremiseForAllIntegrationTests: XCTestCase {
 
   func testPassingProperty() async throws {

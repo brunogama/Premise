@@ -1,6 +1,8 @@
 import Foundation
 import PremiseCore
 
+// Rule closures share this lock-protected mutable context.
+// swiftlint:disable:next prefer_struct
 final class StateMachineRunContext: @unchecked Sendable {
   // TaskLocal values must be Sendable and rule closures are @Sendable.
   // The unchecked conformance is valid only because every access

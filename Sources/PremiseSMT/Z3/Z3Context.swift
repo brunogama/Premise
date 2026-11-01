@@ -1,6 +1,8 @@
 #if PREMISE_SMT
 import CZ3
 
+// The owned Z3 handles require one reference-counted lifetime.
+// swiftlint:disable prefer_struct
 /// RAII-style wrapper around a Z3 context and solver pair.
 ///
 /// Each `Z3Context` owns an isolated Z3 context and solver with
@@ -8,6 +10,7 @@ import CZ3
 /// underlying Z3 context is not thread-safe; keep each instance confined
 /// to one actor or task, or add explicit synchronization before sharing.
 public final class Z3Context {
+  // swiftlint:enable prefer_struct
   private let context: Z3_context
   private let solver: Z3_solver
 

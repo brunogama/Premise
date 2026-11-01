@@ -1,3 +1,5 @@
+// Copy-on-write storage requires a shared reference and subclassing.
+// swiftlint:disable:next prefer_struct
 final class PrimitiveProviderBox<Provider: PrimitiveProvider>:
   PrimitiveProviderBoxBase, @unchecked Sendable
 {

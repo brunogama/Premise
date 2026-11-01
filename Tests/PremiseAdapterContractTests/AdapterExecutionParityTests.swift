@@ -72,6 +72,13 @@ struct AdapterExecutionParityTests {
       }
     })
 
+    Self.expectMatchingResults(result1, result2)
+  }
+
+  private static func expectMatchingResults(
+    _ result1: RunResult<Int>,
+    _ result2: RunResult<Int>
+  ) {
     switch (result1, result2) {
     case (.passed(let firstRuns), .passed(let secondRuns)):
       #expect(firstRuns == secondRuns)
@@ -89,7 +96,9 @@ struct AdapterExecutionParityTests {
       Issue.record("Results diverged: \(result1) vs \(result2)")
     }
   }
+}
 
+extension AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor passes through Runner result for passing property")
   func executorPassingProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10))
@@ -142,7 +151,8 @@ struct AdapterExecutionParityTests {
 
     let result = try await executor.executeDetailed(property)
 
-    guard case .failure(let record, value: _, report: let report) = result else {
+    guard case .failure(let record, value: _, report: let report) = result
+    else {
       Issue.record("Expected detailed async failure from executor")
       return
     }

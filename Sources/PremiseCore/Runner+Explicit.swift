@@ -13,28 +13,25 @@ extension Runner {
     let start = Date()
 
     let outcome = evaluateExplicit(
-      example.value,
+      (value: example.value, start: start),
       data: &data,
-      property: property,
-      start: start
+      property: property
     )
     return finishExplicit(
-      example,
+      (example: example, outcome: outcome),
       data: &data,
-      report: &report,
-      outcome: outcome
+      report: &report
     )
   }
 
   private func evaluateExplicit(
-    _ value: Value,
+    _ execution: (value: Value, start: Date),
     data: inout PremiseData,
-    property: @Sendable (Value, inout PremiseData) throws -> Void,
-    start: Date
+    property: @Sendable (Value, inout PremiseData) throws -> Void
   ) -> ExplicitOutcome {
     do {
-      try property(value, &data)
-      if let message = deadlineFailure(since: start) {
+      try property(execution.value, &data)
+      if let message = deadlineFailure(since: execution.start) {
         return .deadline(message)
       }
       return .passed
@@ -46,21 +43,20 @@ extension Runner {
   }
 
   private func finishExplicit(
-    _ example: ExplicitExample<Value>,
+    _ execution: (example: ExplicitExample<Value>, outcome: ExplicitOutcome),
     data: inout PremiseData,
-    report: inout RunReport,
-    outcome: ExplicitOutcome
+    report: inout RunReport
   ) -> ExecutionFailure<Value>? {
-    if case .rejected = outcome { report.recordRejected(.property) }
+    if case .rejected = execution.outcome { report.recordRejected(.property) }
     report.merge(data.statistics)
-    switch outcome {
+    switch execution.outcome {
     case .passed, .rejected:
-      return expectedFailureIfNeeded(example: example, data: &data)
+      return expectedFailureIfNeeded(example: execution.example, data: &data)
     case .failure(let message):
-      guard !isExpectedToFail(example) else { return nil }
-      return explicitFailure(example, data: &data, message: message)
+      guard !isExpectedToFail(execution.example) else { return nil }
+      return explicitFailure(execution.example, data: &data, message: message)
     case .deadline(let message):
-      return explicitFailure(example, data: &data, message: message)
+      return explicitFailure(execution.example, data: &data, message: message)
     }
   }
 
@@ -70,9 +66,8 @@ extension Runner {
     message: String
   ) -> ExecutionFailure<Value> {
     makeFailure(
-      value: example.value,
+      failure: (example.value, message),
       data: &data,
-      errorMessage: message,
       runCount: 0
     )
   }
@@ -94,10 +89,9 @@ extension Runner {
       start: start
     )
     return finishExplicit(
-      example,
+      (example: example, outcome: outcome),
       data: &data,
-      report: &report,
-      outcome: outcome
+      report: &report
     )
   }
 

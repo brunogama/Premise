@@ -1,16 +1,15 @@
 extension Runner {
   func runDetailedPhase(
-    _ phase: PropertyPhase,
-    examples: [ExplicitExample<Value>],
-    traces: [ChoiceTrace],
+    _ input: DetailedPhaseInput<Value>,
     report: inout RunReport,
     property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
   ) -> ExecutionFailure<Value>? {
-    switch phase {
+    let cases = input.cases
+    switch input.phase {
     case .explicit:
-      return explicitPhase(examples, report: &report, property: property)
+      return explicitPhase(cases.examples, report: &report, property: property)
     case .replay:
-      return replayPhase(traces, report: &report, property: property)
+      return replayPhase(cases.traces, report: &report, property: property)
     case .generate:
       return asFailure(runGeneratePhase(report: &report, property: property))
     case .target:
@@ -21,28 +20,24 @@ extension Runner {
   }
 
   func runDetailedPhaseAsync(
-    _ phase: PropertyPhase,
-    examples: [ExplicitExample<Value>],
-    traces: [ChoiceTrace],
+    _ input: DetailedPhaseInput<Value>,
     report: inout RunReport,
-    property: @escaping @Sendable (Value) async throws -> Void
+    property body: @escaping @Sendable (Value) async throws -> Void
   ) async -> ExecutionFailure<Value>? {
-    switch phase {
+    let examples = input.cases.examples
+    let traces = input.cases.traces
+    switch input.phase {
     case .explicit:
-      return await explicitPhaseAsync(
-        examples,
-        report: &report,
-        property: property
-      )
+      return await explicitPhaseAsync(examples, report: &report, property: body)
     case .replay:
-      return await replayPhaseAsync(traces, report: &report, property: property)
+      return await replayPhaseAsync(traces, report: &report, property: body)
     case .generate:
       return asFailure(
-        await runGeneratePhaseAsync(report: &report, property: property)
+        await runGeneratePhaseAsync(report: &report, property: body)
       )
     case .target:
       return asFailure(
-        await runTargetPhaseAsync(report: &report, property: property)
+        await runTargetPhaseAsync(report: &report, property: body)
       )
     case .shrink:
       return nil
@@ -162,10 +157,13 @@ extension Runner {
   ) -> ExecutionFailure<Value> {
     let minimized = minimizeIfNeeded(
       failure: failure,
-      runCount: 1,
-      property: property,
-      seed: failure.record.seed,
-      discovery: .knownFailure
+      context: .from(
+        failure: failure,
+        runCount: 1,
+        seed: failure.record.seed,
+        discovery: .knownFailure
+      ),
+      property: property
     )
     recordReplayFailure(minimized.record, report: &report)
     return ExecutionFailure(record: minimized.record, value: minimized.value)
@@ -178,10 +176,13 @@ extension Runner {
   ) async -> ExecutionFailure<Value> {
     let minimized = await minimizeIfNeeded(
       failure: failure,
-      runCount: 1,
-      property: property,
-      seed: failure.record.seed,
-      discovery: .knownFailure
+      context: .from(
+        failure: failure,
+        runCount: 1,
+        seed: failure.record.seed,
+        discovery: .knownFailure
+      ),
+      property: property
     )
     recordReplayFailure(minimized.record, report: &report)
     return ExecutionFailure(record: minimized.record, value: minimized.value)

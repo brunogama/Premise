@@ -24,34 +24,31 @@ private func draw<Value: Sendable>(
 }
 
 private func draw<Value: Sendable>(
-  _ strategy: Strategy<Value>,
-  name: String,
+  _ source: StateMachineRuleSource<Value>,
   using data: inout PremiseData,
   context: StateMachineRunContext
 ) throws -> Value? {
-  try data.withSpan(name) { spanData in
-    try draw(strategy, using: &spanData, context: context)
+  try data.withSpan(source.name) { spanData in
+    try draw(source.argument, using: &spanData, context: context)
   }
 }
 func makeRule<State: Sendable, Argument: Sendable>(
-  name: String,
-  argument arg: Strategy<Argument>,
-  precondition: @escaping @Sendable (State) async throws -> Bool,
+  _ input: StateMachineRuleInput<State, Argument>,
   _ body: @escaping @Sendable (inout State, Argument) async throws -> Void
 ) -> StateMachineRule<State> {
   StateMachineRule(
-    name: name,
-    isEnabled: precondition,
+    name: input.source.name,
+    isEnabled: input.precondition,
     run: { state, context, data in
       guard
-        let value = try draw(arg, name: name, using: &data, context: context)
+        let value = try draw(input.source, using: &data, context: context)
       else {
         return nil
       }
 
       try await body(&state, value)
       return StateMachineStepExecution(
-        ruleName: name,
+        ruleName: input.source.name,
         argumentDescription: String(describing: value)
       )
     }
@@ -59,18 +56,16 @@ func makeRule<State: Sendable, Argument: Sendable>(
 }
 
 func makeRule<State: Sendable, Argument: Sendable, Element: Sendable>(
-  name: String,
-  argument arg: Strategy<Argument>,
-  precondition: @escaping @Sendable (State) async throws -> Bool,
+  _ input: StateMachineRuleInput<State, Argument>,
   target: StateMachineBundle<Element>,
   _ body: @escaping @Sendable (inout State, Argument) async throws -> Element
 ) -> StateMachineRule<State> {
   StateMachineRule(
-    name: name,
-    isEnabled: precondition,
+    name: input.source.name,
+    isEnabled: input.precondition,
     run: { state, context, data in
       guard
-        let value = try draw(arg, name: name, using: &data, context: context)
+        let value = try draw(input.source, using: &data, context: context)
       else {
         return nil
       }
@@ -78,7 +73,7 @@ func makeRule<State: Sendable, Argument: Sendable, Element: Sendable>(
       let element = try await body(&state, value)
       context.append(element, to: target)
       return StateMachineStepExecution(
-        ruleName: name,
+        ruleName: input.source.name,
         argumentDescription: String(describing: value),
         outputs: ["\(target.label)=\(String(describing: element))"]
       )
@@ -92,9 +87,7 @@ func makeRule<
   First: Sendable,
   Second: Sendable
 >(
-  name: String,
-  argument arg: Strategy<Argument>,
-  precondition: @escaping @Sendable (State) async throws -> Bool,
+  _ input: StateMachineRuleInput<State, Argument>,
   targets: (StateMachineBundle<First>, StateMachineBundle<Second>),
   _ body:
     @escaping @Sendable (inout State, Argument) async throws -> (
@@ -102,18 +95,18 @@ func makeRule<
     )
 ) -> StateMachineRule<State> {
   StateMachineRule(
-    name: name,
-    isEnabled: precondition,
+    name: input.source.name,
+    isEnabled: input.precondition,
     run: { state, context, data in
       guard
-        let value = try draw(arg, name: name, using: &data, context: context)
+        let value = try draw(input.source, using: &data, context: context)
       else { return nil }
 
       let output = try await body(&state, value)
       context.append(output.0, to: targets.0)
       context.append(output.1, to: targets.1)
       return StateMachineStepExecution(
-        ruleName: name,
+        ruleName: input.source.name,
         argumentDescription: String(describing: value),
         outputs: [
           "\(targets.0.label)=\(String(describing: output.0))",

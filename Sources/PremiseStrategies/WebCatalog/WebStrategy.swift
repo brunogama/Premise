@@ -3,6 +3,8 @@ import PremiseCore
 // MARK: - URL strategies
 
 public extension Strategy where Value == URL {
+  // Keep the published URL options source-compatible.
+  // swiftlint:disable function_parameter_count
   /// Generates web URLs with optional ports, paths, and query items.
   static func web(
     schemes: [String] = ["http", "https"],
@@ -10,6 +12,7 @@ public extension Strategy where Value == URL {
     maxPathSegments: Int = 4,
     maxQueryItems: Int = 3
   ) -> Strategy<URL> {
+    // swiftlint:enable function_parameter_count
     precondition(!schemes.isEmpty, "URL strategy requires at least one scheme")
     return Strategy<URL>(
       label: "url.web",

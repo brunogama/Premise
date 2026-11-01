@@ -17,7 +17,8 @@ func choiceTraceBinaryCompatibility() throws {
   ]
   let trace = ChoiceTrace(
     entries: [
-      .bits(.init(count: 5, value: 17)), .integer(42), .boolean(true), .bytes([1, 2, 3]),
+      .bits(.init(count: 5, value: 17)), .integer(42),
+      .boolean(true), .bytes([1, 2, 3]),
     ],
     spans: [.init(label: "payload", start: 1, end: 4)]
   )

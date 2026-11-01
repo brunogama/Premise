@@ -18,6 +18,7 @@ public func checkRuleBasedStateMachine<State: Sendable>(
   try await runner.run()
 }
 
+// swiftlint:disable:next function_parameter_count - Machine, configuration, provider, and run metadata have separate owners.
 func runOnce<State: Sendable, Provider: PrimitiveProvider>(
   _ machine: RuleBasedStateMachine<State>,
   config: StateMachineConfig,
@@ -45,6 +46,7 @@ func runOnce<State: Sendable, Provider: PrimitiveProvider>(
   try await execution.run()
 }
 
+// swiftlint:disable:next function_parameter_count - Rules and state are evaluated at a specific run and step.
 func enabledRules<State: Sendable>(
   _ rules: [StateMachineRule<State>],
   state: State,
@@ -71,6 +73,7 @@ func enabledRules<State: Sendable>(
   return enabled
 }
 
+// swiftlint:disable:next function_parameter_count - Invariants, state, run, step, and initialization phase are independent inputs.
 func checkInvariants<State: Sendable>(
   _ invariants: [StateMachineInvariant<State>],
   state: State,
@@ -114,6 +117,7 @@ func executeTeardowns<State: Sendable>(
 }
 
 
+// swiftlint:disable:next function_parameter_count - Error, run, step, phase, rule, and invariant identify distinct failure details.
 func stateMachineFailure(
   wrapping error: any Error,
   metadata: StateMachineRunMetadata,

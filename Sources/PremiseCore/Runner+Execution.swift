@@ -23,30 +23,28 @@ extension Runner {
     }
 
     return executePropertyAttempt(
-      drawnValue,
+      (value: drawnValue, start: Date()),
       data: &data,
-      property: property,
-      start: Date()
+      property: property
     )
   }
 
   private func executePropertyAttempt(
-    _ value: Value,
+    _ execution: (value: Value, start: Date),
     data: inout PremiseData,
-    property: @Sendable (Value, inout PremiseData) throws -> Void,
-    start: Date
+    property: @Sendable (Value, inout PremiseData) throws -> Void
   ) -> ExecutionAttempt<Value> {
     do {
-      try property(value, &data)
-      if let message = deadlineFailure(since: start) {
-        return attemptFailure(value, data: &data, message: message)
+      try property(execution.value, &data)
+      if let message = deadlineFailure(since: execution.start) {
+        return attemptFailure(execution.value, data: &data, message: message)
       }
       return .passed(data.statistics, data.snapshot())
     } catch is PremiseRejection {
       return .rejected(.property, data.statistics, data.snapshot())
     } catch {
       return attemptFailure(
-        value,
+        execution.value,
         data: &data,
         message: String(describing: error)
       )
@@ -60,9 +58,8 @@ extension Runner {
   ) -> ExecutionAttempt<Value> {
     .failure(
       makeFailure(
-        value: value,
+        failure: (value, message),
         data: &data,
-        errorMessage: message,
         runCount: 1
       )
     )
@@ -91,30 +88,28 @@ extension Runner {
     }
 
     return await executePropertyAttemptAsync(
-      drawnValue,
+      (value: drawnValue, start: Date()),
       data: &data,
-      property: property,
-      start: Date()
+      property: property
     )
   }
 
   private func executePropertyAttemptAsync(
-    _ value: Value,
+    _ execution: (value: Value, start: Date),
     data: inout PremiseData,
-    property: @Sendable (Value) async throws -> Void,
-    start: Date
+    property: @Sendable (Value) async throws -> Void
   ) async -> ExecutionAttempt<Value> {
     do {
-      try await property(value)
-      if let message = deadlineFailure(since: start) {
-        return attemptFailure(value, data: &data, message: message)
+      try await property(execution.value)
+      if let message = deadlineFailure(since: execution.start) {
+        return attemptFailure(execution.value, data: &data, message: message)
       }
       return .passed(data.statistics, data.snapshot())
     } catch is PremiseRejection {
       return .rejected(.property, data.statistics, data.snapshot())
     } catch {
       return attemptFailure(
-        value,
+        execution.value,
         data: &data,
         message: String(describing: error)
       )
@@ -199,9 +194,8 @@ extension Runner {
       )
     else { return nil }
     return makeFailure(
-      value: drawnValue,
+      failure: (drawnValue, errorMessage),
       data: &data,
-      errorMessage: errorMessage,
       runCount: 1
     )
   }

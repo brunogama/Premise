@@ -28,11 +28,11 @@ func variadicForAllAsync() async throws {
     Strategy<Double>.just(1.5),
     Strategy<Int>.just(7),
     config: PropertyConfig(maxRuns: 1, seed: 1)
-  ) { (number: Int, text: String, flag: Bool, decimal: Double, extra: Int) async throws in
-    #expect(number == 42)
+  ) { (x: Int, text: String, flag: Bool, val: Double, end: Int) async throws in
+    #expect(x == 42)
     #expect(text == "hello")
     #expect(flag)
-    #expect(decimal == 1.5)
-    #expect(extra == 7)
+    #expect(val == 1.5)
+    #expect(end == 7)
   }
 }

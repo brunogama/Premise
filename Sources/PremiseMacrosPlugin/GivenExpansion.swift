@@ -9,7 +9,10 @@ struct GivenExpansion {
     let strategies = Self.strategies(in: arguments)
     let parameters = function.signature.parameterClause.parameters
     guard strategies.count == parameters.count else {
-      throw MacroError.arityMismatch(strategies: strategies.count, params: parameters.count)
+      throw MacroError.arityMismatch(
+        strategies: strategies.count,
+        params: parameters.count
+      )
     }
     guard function.body != nil else { throw MacroError.missingBody }
     self.function = function
@@ -19,7 +22,9 @@ struct GivenExpansion {
   func declaration() -> DeclSyntax {
     let generated = StructDeclSyntax(
       name: .identifier(function.name.text.filter { $0 != "`" } + "_Given"),
-      memberBlock: MemberBlockSyntax(members: [MemberBlockItemSyntax(decl: testMethod())])
+      memberBlock: MemberBlockSyntax(
+        members: [MemberBlockItemSyntax(decl: testMethod())]
+      )
     )
     return generated.formatted().cast(DeclSyntax.self)
   }
@@ -35,7 +40,11 @@ struct GivenExpansion {
     let statement = CodeBlockItemSyntax(item: .expr(ExprSyntax(propertyCall())))
     return FunctionDeclSyntax(
       attributes: [
-        .attribute(AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("Test"))))
+        .attribute(
+          AttributeSyntax(
+            attributeName: IdentifierTypeSyntax(name: .identifier("Test"))
+          )
+        )
       ],
       name: .identifier("test"),
       signature: signature,
@@ -48,55 +57,88 @@ struct GivenExpansion {
     let zipped = strategies.count > 3
     let valueName = uniqueValueName()
     let passedStrategies =
-      zipped ? [LabeledExprSyntax(expression: zipCall(strategies))] : strategies
+      zipped
+      ? [LabeledExprSyntax(expression: zipCall(strategies))] : strategies
     let call = FunctionCallExprSyntax(
-      calledExpression: DeclReferenceExprSyntax(baseName: .identifier("forAll")),
+      calledExpression: DeclReferenceExprSyntax(
+        baseName: .identifier("forAll")
+      ),
       leftParen: .leftParenToken(),
-      arguments: LabeledExprListSyntax(Self.commaSeparated(passedStrategies + metadata())),
+      arguments: LabeledExprListSyntax(
+        Self.commaSeparated(passedStrategies + metadata())
+      ),
       rightParen: .rightParenToken(),
       trailingClosure: closure(zipped: zipped, valueName: valueName)
     )
     return TryExprSyntax(expression: AwaitExprSyntax(expression: call))
   }
 
-  private func closure(zipped: Bool, valueName: TokenSyntax) -> ClosureExprSyntax {
+}
+
+extension GivenExpansion {
+  private func closure(
+    zipped: Bool,
+    valueName: TokenSyntax
+  ) -> ClosureExprSyntax {
     let params = parameterNames()
     let names = zipped ? [valueName] : params
-    let closureParameters = names.enumerated().map { index, name in
+    let closureParameters = makeClosureParameters(names)
+    let signature = ClosureSignatureSyntax(
+      parameterClause: .parameterClause(
+        ClosureParameterClauseSyntax(
+          parameters: ClosureParameterListSyntax(closureParameters)
+        )
+      )
+    )
+    var statements = Array(function.body?.statements ?? [])
+    if zipped {
+      statements.insert(tupleBinding(params, valueName: valueName), at: 0)
+    }
+    return ClosureExprSyntax(
+      signature: signature,
+      statements: CodeBlockItemListSyntax(statements)
+    )
+  }
+
+  private func makeClosureParameters(
+    _ names: [TokenSyntax]
+  ) -> [ClosureParameterSyntax] {
+    names.enumerated().map { index, name in
       ClosureParameterSyntax(
         firstName: name,
         trailingComma: index < names.count - 1 ? .commaToken() : nil
       )
     }
-    let signature = ClosureSignatureSyntax(
-      parameterClause: .parameterClause(
-        ClosureParameterClauseSyntax(parameters: ClosureParameterListSyntax(closureParameters))
-      )
-    )
-    var statements = Array(function.body?.statements ?? [])
-    if zipped { statements.insert(tupleBinding(params, valueName: valueName), at: 0) }
-    return ClosureExprSyntax(signature: signature, statements: CodeBlockItemListSyntax(statements))
   }
-
-  private func tupleBinding(_ names: [TokenSyntax], valueName: TokenSyntax) -> CodeBlockItemSyntax {
+  private func tupleBinding(
+    _ names: [TokenSyntax],
+    valueName: TokenSyntax
+  ) -> CodeBlockItemSyntax {
     let elements = names.enumerated().map { index, name in
       TuplePatternElementSyntax(
         pattern: IdentifierPatternSyntax(identifier: name),
         trailingComma: index < names.count - 1 ? .commaToken() : nil
       )
     }
-    let pattern = TuplePatternSyntax(elements: TuplePatternElementListSyntax(elements))
+    let pattern = TuplePatternSyntax(
+      elements: TuplePatternElementListSyntax(elements)
+    )
     let value = DeclReferenceExprSyntax(baseName: valueName)
     let binding = PatternBindingSyntax(
       pattern: pattern,
       initializer: InitializerClauseSyntax(value: value)
     )
-    let declaration = VariableDeclSyntax(bindingSpecifier: .keyword(.let), bindings: [binding])
+    let declaration = VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: [binding]
+    )
     return CodeBlockItemSyntax(item: .decl(DeclSyntax(declaration)))
   }
 
   private func parameterNames() -> [TokenSyntax] {
-    function.signature.parameterClause.parameters.map { $0.secondName ?? $0.firstName }
+    function.signature.parameterClause.parameters.map {
+      $0.secondName ?? $0.firstName
+    }
   }
 
   private func uniqueValueName() -> TokenSyntax {
@@ -112,15 +154,20 @@ struct GivenExpansion {
     }
   }
 
-  private static func strategies(in arguments: LabeledExprListSyntax) -> [LabeledExprSyntax] {
+  private static func strategies(
+    in arguments: LabeledExprListSyntax
+  ) -> [LabeledExprSyntax] {
     Array(
       arguments.filter { argument in
-        !["config", "explicitExamples", "examples"].contains(argument.label?.text ?? "")
+        !["config", "explicitExamples", "examples"]
+          .contains(argument.label?.text ?? "")
       }
     )
   }
 
-  private func zipCall(_ strategies: [LabeledExprSyntax]) -> FunctionCallExprSyntax {
+  private func zipCall(
+    _ strategies: [LabeledExprSyntax]
+  ) -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
       calledExpression: DeclReferenceExprSyntax(baseName: .identifier("zip")),
       leftParen: .leftParenToken(),
@@ -129,9 +176,14 @@ struct GivenExpansion {
     )
   }
 
-  private static func commaSeparated(_ arguments: [LabeledExprSyntax]) -> [LabeledExprSyntax] {
+  private static func commaSeparated(
+    _ arguments: [LabeledExprSyntax]
+  ) -> [LabeledExprSyntax] {
     arguments.enumerated().map { index, argument in
-      argument.with(\.trailingComma, index < arguments.count - 1 ? .commaToken() : nil)
+      argument.with(
+        \.trailingComma,
+        index < arguments.count - 1 ? .commaToken() : nil
+      )
     }
   }
 }

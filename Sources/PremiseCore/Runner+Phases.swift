@@ -34,21 +34,20 @@ extension Runner {
     report: inout RunReport,
     property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
   ) -> (record: FailureRecord, value: Value)? {
-    var state = makePhaseState(phase)
+    var state = (phase: makePhaseState(phase), report: report)
+    defer { report = state.report }
     for index in 0..<config.maxRuns {
-      if let deadline = state.deadline, Date() > deadline { break }
-      let attempt = phaseAttempt(state, index: index, property: property)
+      if let deadline = state.phase.deadline, Date() > deadline { break }
+      let attempt = phaseAttempt(state.phase, index: index, property: property)
       if let failure = processPhaseAttempt(
-        attempt,
-        index: index,
+        (attempt: attempt, index: index),
         state: &state,
-        report: &report,
         property: property
       ) {
         return failure
       }
     }
-    return state.firstFailure
+    return state.phase.firstFailure
   }
 
   private func runPhaseAsync(
@@ -56,25 +55,24 @@ extension Runner {
     report: inout RunReport,
     property: @escaping @Sendable (Value) async throws -> Void
   ) async -> (record: FailureRecord, value: Value)? {
-    var state = makePhaseState(phase)
+    var state = (phase: makePhaseState(phase), report: report)
+    defer { report = state.report }
     for index in 0..<config.maxRuns {
-      if let deadline = state.deadline, Date() > deadline { break }
+      if let deadline = state.phase.deadline, Date() > deadline { break }
       let attempt = await phaseAttemptAsync(
-        state,
+        state.phase,
         index: index,
         property: property
       )
       if let failure = await processPhaseAttemptAsync(
-        attempt,
-        index: index,
+        (attempt: attempt, index: index),
         state: &state,
-        report: &report,
         property: property
       ) {
         return failure
       }
     }
-    return state.firstFailure
+    return state.phase.firstFailure
   }
 
   private func makePhaseState(_ phase: PropertyPhase) -> PhaseRunState<Value> {
@@ -114,45 +112,55 @@ extension Runner {
   }
 
   private func processPhaseAttempt(
-    _ attempt: ExecutionAttempt<Value>,
-    index: Int,
-    state: inout PhaseRunState<Value>,
-    report: inout RunReport,
+    _ execution: (attempt: ExecutionAttempt<Value>, index: Int),
+    state: inout (phase: PhaseRunState<Value>, report: RunReport),
     property: @escaping @Sendable (Value, inout PremiseData) throws -> Void
   ) -> (record: FailureRecord, value: Value)? {
-    guard case .failure(let failure) = attempt else {
-      state.record(attempt, report: &report)
+    guard case .failure(let failure) = execution.attempt else {
+      state.phase.record(execution.attempt, report: &state.report)
       return nil
     }
     let minimized = minimizeIfNeeded(
       failure: failure,
-      runCount: index + 1,
-      property: property,
-      seed: state.seed,
-      discovery: .newFailure
+      context: .from(
+        failure: failure,
+        runCount: execution.index + 1,
+        seed: state.phase.seed,
+        discovery: .newFailure
+      ),
+      property: property
     )
-    return recordPhaseFailure(minimized, state: &state, report: &report)
+    return recordPhaseFailure(
+      minimized,
+      state: &state.phase,
+      report: &state.report
+    )
   }
 
   private func processPhaseAttemptAsync(
-    _ attempt: ExecutionAttempt<Value>,
-    index: Int,
-    state: inout PhaseRunState<Value>,
-    report: inout RunReport,
+    _ execution: (attempt: ExecutionAttempt<Value>, index: Int),
+    state: inout (phase: PhaseRunState<Value>, report: RunReport),
     property: @escaping @Sendable (Value) async throws -> Void
   ) async -> (record: FailureRecord, value: Value)? {
-    guard case .failure(let failure) = attempt else {
-      state.record(attempt, report: &report)
+    guard case .failure(let failure) = execution.attempt else {
+      state.phase.record(execution.attempt, report: &state.report)
       return nil
     }
     let minimized = await minimizeIfNeeded(
       failure: failure,
-      runCount: index + 1,
-      property: property,
-      seed: state.seed,
-      discovery: .newFailure
+      context: .from(
+        failure: failure,
+        runCount: execution.index + 1,
+        seed: state.phase.seed,
+        discovery: .newFailure
+      ),
+      property: property
     )
-    return recordPhaseFailure(minimized, state: &state, report: &report)
+    return recordPhaseFailure(
+      minimized,
+      state: &state.phase,
+      report: &state.report
+    )
   }
 
   private func recordPhaseFailure(

@@ -1,6 +1,8 @@
 import PremiseCore
 
 public extension Strategy where Value == Double {
+  // Keep the published floating-point options source-compatible.
+  // swiftlint:disable function_parameter_count
   /// Edge-biased `Double` generation with opt-in exceptional values.
   ///
   /// Finite edge candidates are constrained to `range`. When enabled,
@@ -14,6 +16,7 @@ public extension Strategy where Value == Double {
     includeDenormals: Bool = false,
     epsilonAround pivot: Double? = nil
   ) -> Strategy<Double> {
+    // swiftlint:enable function_parameter_count
     let options = FloatingEdgeOptions(
       includeNaN: includeNaN,
       includeInfinity: includeInfinity,

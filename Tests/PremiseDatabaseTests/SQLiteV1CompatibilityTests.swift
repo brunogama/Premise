@@ -9,14 +9,19 @@ import Testing
 /// versions are rejected.
 @Suite(
   "SQLite v1 compatibility",
-  .enabled(if: SQLiteRuntimeGate.isWALSafe(), "SQLite runtime below WAL-safe boundary")
+  .enabled(
+    if: SQLiteRuntimeGate.isWALSafe(),
+    "SQLite runtime below WAL-safe boundary"
+  )
 )
 struct SQLiteV1CompatibilityTests {
 
   // MARK: - Helpers
 
   /// Creates a temporary SQLite database path inside a unique directory.
-  private func makeTempDBPath() throws -> (path: String, cleanup: @Sendable () -> Void) {
+  private func makeTempDBPath() throws -> (
+    path: String, cleanup: @Sendable () -> Void
+  ) {
     let dir = NSTemporaryDirectory() + UUID().uuidString + "/"
     try FileManager.default.createDirectory(
       atPath: dir,
@@ -50,63 +55,6 @@ struct SQLiteV1CompatibilityTests {
     )
   }
 
-  // Manually inserts a row into the failures table using raw SQLite C API.
-  // swiftlint:disable:next function_parameter_count
-  private func insertRawRow(
-    database: OpaquePointer,
-    propertyID: PropertyIdentity,
-    traceFormatVersion: Int32,
-    recordFormatVersion: Int32,
-    traceJSON: Data,
-    recordJSON: Data,
-    createdAtMs: Int64
-  ) throws {
-    let sql = """
-      INSERT INTO failures \
-      (property_file_id, property_line, strategy_label, \
-      trace_format_version, record_format_version, \
-      trace_json, record_json, created_at_unix_ms) \
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      """
-
-    var stmt: OpaquePointer?
-    let prepResult = sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
-    guard prepResult == SQLITE_OK, let statement = stmt else {
-      let msg = String(cString: sqlite3_errmsg(database))
-      throw SQLiteError.resultCode(prepResult, context: msg)
-    }
-    defer { sqlite3_finalize(statement) }
-
-    let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-
-    _ = propertyID.fileID.withCString { cstr in
-      sqlite3_bind_text(statement, 1, cstr, -1, transient)
-    }
-    sqlite3_bind_int64(statement, 2, Int64(propertyID.line))
-    _ = propertyID.strategyLabel.withCString { cstr in
-      sqlite3_bind_text(statement, 3, cstr, -1, transient)
-    }
-    sqlite3_bind_int(statement, 4, traceFormatVersion)
-    sqlite3_bind_int(statement, 5, recordFormatVersion)
-
-    traceJSON.withUnsafeBytes { buffer in
-      guard let base = buffer.baseAddress else { return }
-      sqlite3_bind_blob(statement, 6, base, Int32(buffer.count), transient)
-    }
-    recordJSON.withUnsafeBytes { buffer in
-      guard let base = buffer.baseAddress else { return }
-      sqlite3_bind_blob(statement, 7, base, Int32(buffer.count), transient)
-    }
-
-    sqlite3_bind_int64(statement, 8, createdAtMs)
-
-    let stepResult = sqlite3_step(statement)
-    guard stepResult == SQLITE_DONE else {
-      let msg = String(cString: sqlite3_errmsg(database))
-      throw SQLiteError.resultCode(stepResult, context: msg)
-    }
-  }
-
 }
 
 extension SQLiteV1CompatibilityTests {
@@ -133,6 +81,19 @@ extension SQLiteV1CompatibilityTests {
     }
     defer { sqlite3_close(rawDatabase) }
 
+    try await verifyV1Import(
+      database,
+      rawDatabase: rawDatabase,
+      input: (record, envelope)
+    )
+  }
+
+  private func verifyV1Import(
+    _ database: SQLiteBackedDatabase,
+    rawDatabase: OpaquePointer,
+    input: (FailureRecord, PersistedFailureRecordV1)
+  ) async throws {
+    let (record, envelope) = input
     let traceJSON = try JSONEncoder().encode(envelope.trace)
     let recordJSON = try JSONEncoder().encode(envelope)
 
@@ -169,6 +130,18 @@ extension SQLiteV1CompatibilityTests {
     }
     defer { sqlite3_close(rawDatabase) }
 
+    try await verifyUnsupportedTrace(
+      database,
+      rawDatabase: rawDatabase,
+      record: record
+    )
+  }
+
+  private func verifyUnsupportedTrace(
+    _ database: SQLiteBackedDatabase,
+    rawDatabase: OpaquePointer,
+    record: FailureRecord
+  ) async throws {
     let traceJSON = try JSONEncoder().encode(record.trace)
     let envelope = PersistenceCodec.encode(record)
     let recordJSON = try JSONEncoder().encode(envelope)
@@ -193,7 +166,9 @@ extension SQLiteV1CompatibilityTests {
     }
   }
 
-  @Test("Unsupported future record version throws PersistenceCompatibilityError")
+  @Test(
+    "Unsupported future record version throws PersistenceCompatibilityError"
+  )
   func unsupportedFutureRecordVersionThrows() async throws {
 
     let (path, cleanup) = try makeTempDBPath()
@@ -211,6 +186,18 @@ extension SQLiteV1CompatibilityTests {
     }
     defer { sqlite3_close(rawDatabase) }
 
+    try await verifyUnsupportedRecord(
+      database,
+      rawDatabase: rawDatabase,
+      record: record
+    )
+  }
+
+  private func verifyUnsupportedRecord(
+    _ database: SQLiteBackedDatabase,
+    rawDatabase: OpaquePointer,
+    record: FailureRecord
+  ) async throws {
     let traceJSON = try JSONEncoder().encode(record.trace)
     let envelope = PersistenceCodec.encode(record)
     let recordJSON = try JSONEncoder().encode(envelope)

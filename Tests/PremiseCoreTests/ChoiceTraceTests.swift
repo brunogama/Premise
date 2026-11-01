@@ -21,6 +21,14 @@ func choiceTraceRecordsAndRoundTrips() throws {
   #expect(trace == decoded)
   #expect(trace.entries.count >= 4)
   #expect(integer >= 0)
+  verifyRecordedEntries(in: trace, boolean: boolean)
+  #expect(bytes.count == 3)
+  #expect(spanValue >= 1)
+  #expect(trace.spans.count == 1)
+  #expect(trace.spans.first?.label == "payload")
+}
+
+private func verifyRecordedEntries(in trace: ChoiceTrace, boolean: Bool) {
   #expect(
     trace.entries.contains { entry in
       if case .integer = entry {
@@ -39,10 +47,6 @@ func choiceTraceRecordsAndRoundTrips() throws {
       return false
     }
   )
-  #expect(bytes.count == 3)
-  #expect(spanValue >= 1)
-  #expect(trace.spans.count == 1)
-  #expect(trace.spans.first?.label == "payload")
 }
 
 @Test("ChoiceTrace stable binary blobs round-trip")

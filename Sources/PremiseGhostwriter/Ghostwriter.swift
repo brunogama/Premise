@@ -16,6 +16,8 @@ public enum PremiseGhostwriter {
     }
   }
 
+  // Keep the published fuzz helper signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Generates a no-crash fuzzing skeleton.
   public static func fuzzNoCrash(
     moduleName: String,
@@ -24,6 +26,7 @@ public enum PremiseGhostwriter {
     subjectExpression: String? = nil,
     testName: String? = nil
   ) -> String {
+    // swiftlint:enable function_parameter_count
     renderFuzzNoCrash(
       GhostwriterRequest(
         kind: .fuzzNoCrash,
@@ -36,6 +39,8 @@ public enum PremiseGhostwriter {
     )
   }
 
+  // Keep the published round-trip helper signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Generates an encode/decode round-trip skeleton.
   /// - Throws: `GhostwriterError.missingExpression` for an empty encode or decode expression.
   public static func roundtrip(
@@ -46,6 +51,7 @@ public enum PremiseGhostwriter {
     decodeExpression: String,
     testName: String? = nil
   ) throws -> String {
+    // swiftlint:enable function_parameter_count
     try render(
       GhostwriterRequest(
         kind: .roundtrip,
@@ -59,6 +65,8 @@ public enum PremiseGhostwriter {
     )
   }
 
+  // Keep the published equivalence helper signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Generates a differential/equivalence skeleton.
   /// - Throws: `GhostwriterError.missingExpression` for an empty subject or alternate expression.
   public static func equivalence(
@@ -69,6 +77,7 @@ public enum PremiseGhostwriter {
     alternateExpression: String,
     testName: String? = nil
   ) throws -> String {
+    // swiftlint:enable function_parameter_count
     try render(
       GhostwriterRequest(
         kind: .equivalence,
@@ -82,6 +91,8 @@ public enum PremiseGhostwriter {
     )
   }
 
+  // Keep the published idempotence helper signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Generates an idempotence skeleton.
   /// - Throws: `GhostwriterError.missingExpression` for an empty subject expression.
   public static func idempotence(
@@ -91,6 +102,7 @@ public enum PremiseGhostwriter {
     subjectExpression: String,
     testName: String? = nil
   ) throws -> String {
+    // swiftlint:enable function_parameter_count
     try render(
       GhostwriterRequest(
         kind: .idempotence,
@@ -103,6 +115,8 @@ public enum PremiseGhostwriter {
     )
   }
 
+  // Keep the published binary laws helper signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Generates a binary operation law skeleton.
   /// - Throws: `GhostwriterError.missingExpression` for an empty operation expression.
   public static func binaryOperationLaws(
@@ -113,6 +127,7 @@ public enum PremiseGhostwriter {
     identityExpression: String? = nil,
     testName: String? = nil
   ) throws -> String {
+    // swiftlint:enable function_parameter_count
     try render(
       GhostwriterRequest(
         kind: .binaryOperationLaws,

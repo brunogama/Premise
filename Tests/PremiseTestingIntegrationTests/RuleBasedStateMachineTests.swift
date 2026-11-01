@@ -11,21 +11,7 @@ import Testing
 func ruleMachineExecutesRulesAndInvariants() async throws {
   var machine = RuleBasedStateMachine(initialState: CounterMachine())
 
-  machine.rule("increment", argument: Strategy<Int>.integers(in: 1...3)) { state, amount in
-    state.model += amount
-    state.system += amount
-  }
-
-  machine.rule(
-    "decrement",
-    argument: Strategy<Int>.integers(in: 1...3),
-    precondition: { $0.system > 0 },
-    { state, amount in
-      state.model -= min(amount, state.model)
-      state.system -= min(amount, state.system)
-    }
-  )
-
+  addCounterRules(to: &machine)
   machine.invariant("model matches system") { state in
     #expect(state.model == state.system)
   }
@@ -35,6 +21,7 @@ func ruleMachineExecutesRulesAndInvariants() async throws {
     config: StateMachineConfig(maxExamples: 5, maxSteps: 10, seed: 1)
   )
 }
+
 
 @Test("State factory resets reference-backed state between examples")
 func stateFactoryResetsReferenceBackedStateBetweenExamples() async throws {
@@ -62,31 +49,13 @@ func bundlesWithSameLabelStayIsolated() async throws {
   let second = StateMachineBundle<Int>("ids")
   var machine = RuleBasedStateMachine(initialState: BundleIsolationMachine())
 
-  machine.rule(
-    "create second",
-    argument: Strategy<Int>.just(2),
-    precondition: { $0.phase == 0 },
-    target: second,
-    { state, value in
-      state.phase = 1
-      return value
-    }
-  )
-
-  machine.rule(
-    "consume missing first",
-    argument: first.strategy(),
-    precondition: { $0.phase == 1 },
-    { _, _ in
-      throw StateMachineTestError.bundleLeak
-    }
-  )
-
+  addIsolationRules(to: &machine, first: first, second: second)
   try await checkRuleBasedStateMachine(
     machine,
     config: StateMachineConfig(maxExamples: 1, maxSteps: 2, seed: 1)
   )
 }
+
 
 @Test("Empty bundle consumers are skipped")
 func emptyBundleConsumersAreSkipped() async throws {
@@ -96,39 +65,7 @@ func emptyBundleConsumersAreSkipped() async throws {
     initialState: EmptyBundleMachine(recorder: recorder)
   )
 
-  machine.rule(
-    "consume empty",
-    argument: ids.strategy(),
-    precondition: { !$0.created },
-    { _, _ in
-      throw StateMachineTestError.bundleLeak
-    }
-  )
-
-  machine.rule(
-    "create id",
-    argument: Strategy<Int>.just(1),
-    precondition: { !$0.created },
-    target: ids,
-    { state, value in
-      let recorder = state.recorder
-      state.created = true
-      await recorder.record("created")
-      return value
-    }
-  )
-
-  machine.rule(
-    "consume id",
-    argument: ids.strategy(),
-    precondition: { $0.created && !$0.consumed },
-    { state, value in
-      let recorder = state.recorder
-      state.consumed = true
-      await recorder.record("consumed-\(value)")
-    }
-  )
-
+  addEmptyBundleRules(to: &machine, ids: ids)
   try await checkRuleBasedStateMachine(
     machine,
     config: StateMachineConfig(maxExamples: 1, maxSteps: 2, seed: 1)
@@ -137,13 +74,14 @@ func emptyBundleConsumersAreSkipped() async throws {
   #expect(await recorder.snapshot() == ["created", "consumed-1"])
 }
 
+
 @Test("Initialize rules run before invariants and normal rules")
 func initializeRulesRunBeforeInvariantsAndNormalRules() async throws {
-  var machine = RuleBasedStateMachine(initialState: PhaseMachine(initialized: false, recorder: nil))
+  var machine = RuleBasedStateMachine(
+    initialState: PhaseMachine(initialized: false, recorder: nil)
+  )
 
-  machine.initialize("seed", argument: Strategy<Int>.just(1)) { state, _ in
-    state.initialized = true
-  }
+  addInitializationRule(to: &machine)
 
   machine.invariant("initialized", checkDuringInit: false) { state in
     guard state.initialized else {
@@ -162,6 +100,14 @@ func initializeRulesRunBeforeInvariantsAndNormalRules() async throws {
     machine,
     config: StateMachineConfig(maxExamples: 2, maxSteps: 2, seed: 11)
   )
+}
+
+private func addInitializationRule(
+  to machine: inout RuleBasedStateMachine<PhaseMachine>
+) {
+  machine.initialize("seed", argument: Strategy<Int>.just(1)) { state, _ in
+    state.initialized = true
+  }
 }
 
 @Test("Teardown runs after normal rule execution")
@@ -194,81 +140,27 @@ func teardownRunsAfterNormalRuleExecution() async throws {
 @Test("Consuming bundles remove selected values")
 func consumingBundlesRemoveSelectedValues() async throws {
   let ids = StateMachineBundle<Int>("ids")
-  var machine = RuleBasedStateMachine(initialState: PhaseMachine(initialized: true, recorder: nil))
-
-  machine.rule(
-    "create",
-    argument: Strategy<Int>.just(7),
-    precondition: { $0.phase == 0 },
-    target: ids,
-    { state, value in
-      state.phase = 1
-      return value
-    }
+  var machine = RuleBasedStateMachine(
+    initialState: PhaseMachine(initialized: true, recorder: nil)
   )
 
-  machine.rule(
-    "consume",
-    argument: ids.consumingStrategy(),
-    precondition: { $0.phase == 1 },
-    { state, value in
-      state.phase = 2
-      state.consumed.append(value)
-    }
-  )
-
-  machine.rule(
-    "consume again",
-    argument: ids.consumingStrategy(),
-    precondition: { $0.phase == 2 },
-    { _, _ in
-      throw StateMachineTestError.bundleLeak
-    }
-  )
-
+  addConsumingBundleRules(to: &machine, ids: ids)
   try await checkRuleBasedStateMachine(
     machine,
     config: StateMachineConfig(maxExamples: 1, maxSteps: 3, seed: 13)
   )
 }
 
+
 @Test("Rules can emit multiple bundle outputs")
 func rulesCanEmitMultipleBundleOutputs() async throws {
   let ids = StateMachineBundle<Int>("ids")
   let labels = StateMachineBundle<String>("labels")
-  var machine = RuleBasedStateMachine(initialState: PhaseMachine(initialized: true, recorder: nil))
-
-  machine.rule(
-    "create pair",
-    argument: Strategy<Int>.just(3),
-    precondition: { $0.phase == 0 },
-    targets: (ids, labels),
-    { state, value in
-      state.phase = 1
-      return (value, "id-\(value)")
-    }
+  var machine = RuleBasedStateMachine(
+    initialState: PhaseMachine(initialized: true, recorder: nil)
   )
 
-  machine.rule(
-    "consume id",
-    argument: ids.strategy(),
-    precondition: { $0.phase == 1 },
-    { state, value in
-      state.consumed.append(value)
-      state.phase = 2
-    }
-  )
-
-  machine.rule(
-    "consume label",
-    argument: labels.strategy(),
-    precondition: { $0.phase == 2 },
-    { state, value in
-      state.text.append(value)
-      state.phase = 3
-    }
-  )
-
+  addMultipleOutputRules(to: &machine, ids: ids, labels: labels)
   try await checkRuleBasedStateMachine(
     machine,
     config: StateMachineConfig(maxExamples: 1, maxSteps: 3, seed: 14)

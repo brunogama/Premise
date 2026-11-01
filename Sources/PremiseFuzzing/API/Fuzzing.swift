@@ -10,6 +10,8 @@ import PremiseCore
 /// ``FuzzConfig`` and rethrown as ``FuzzFailure``.
 @discardableResult
 public func fuzzOneInput<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Keep the async overload's four arguments for source and binary compatibility.
   _ input: Data,
   strategy: Strategy<Value>,
   config: FuzzConfig = FuzzConfig(),
@@ -25,6 +27,8 @@ public func fuzzOneInput<Value: Sendable>(
 /// Synchronous-property overload of ``fuzzOneInput(_:strategy:config:_:)``.
 @discardableResult
 public func fuzzOneInput<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Keep the synchronous overload's four arguments for source and binary compatibility.
   _ input: Data,
   strategy: Strategy<Value>,
   config: FuzzConfig = FuzzConfig(),
@@ -41,6 +45,8 @@ public func fuzzOneInput<Value: Sendable>(
 /// Byte-array overload for fuzzer integrations that do not use `Data`.
 @discardableResult
 public func fuzzOneInput<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Keep the byte-array overload's four arguments for source and binary compatibility.
   bytes: [UInt8],
   strategy: Strategy<Value>,
   config: FuzzConfig = FuzzConfig(),

@@ -9,6 +9,7 @@ struct ShrinkContext<Value: Sendable> {
 }
 
 extension ShrinkContext {
+  // swiftlint:disable:next function_parameter_count - Failure, run count, seed, and discovery have independent origins.
   static func from(
     failure: ExecutionFailure<Value>,
     runCount: Int,

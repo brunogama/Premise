@@ -21,6 +21,8 @@ import PremiseStrategies
 /// }
 /// ```
 public func forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -49,6 +51,8 @@ public func forAll<Value: Sendable>(
 /// Runs an async property test through the Premise engine inside a
 /// swift-testing context.
 public func forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -86,6 +90,8 @@ public func forAll<Value: Sendable>(
 /// }
 /// ```
 public func forAll<A: Sendable, B: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
@@ -116,6 +122,8 @@ public func forAll<A: Sendable, B: Sendable>(
 
 /// Runs an async property test over two independently generated values.
 public func forAll<A: Sendable, B: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
@@ -160,11 +168,17 @@ public func forAll<A: Sendable, B: Sendable>(
 /// }
 /// ```
 public func forAll<A: Sendable, B: Sendable, C: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   explicitExamples: [(A, B, C)] = [],
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
@@ -191,11 +205,17 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
 
 /// Runs an async property test over three independently generated values.
 public func forAll<A: Sendable, B: Sendable, C: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   explicitExamples: [(A, B, C)] = [],
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
@@ -236,6 +256,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
 /// }
 /// ```
 public func forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],

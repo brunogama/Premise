@@ -20,13 +20,14 @@ struct ParallelDeterminismTests {
     let seed: UInt64 = 42
     let config = PropertyConfig(maxRuns: 50, seed: seed)
 
-    // Sequential run via core Runner.
-    let sequentialRunner = Runner(strategy: intStrategy, config: config)
-    let sequentialResult = await sequentialRunner.run { value in
+    let property: @Sendable (Int) throws -> Void = { value in
       if value > 900 {
         throw PropertyFailure(message: "too large: \(value)")
       }
     }
+    // Sequential run via core Runner.
+    let sequentialRunner = Runner(strategy: intStrategy, config: config)
+    let sequentialResult = await sequentialRunner.run(property)
 
     // Parallel run via ParallelRunner.
     let parallelRunner = ParallelRunner(
@@ -34,25 +35,14 @@ struct ParallelDeterminismTests {
       config: config,
       parallelConfig: ParallelConfig(maxConcurrentRuns: 4)
     )
-    let parallelResult = try await parallelRunner.run { value in
-      if value > 900 {
-        throw PropertyFailure(message: "too large: \(value)")
-      }
-    }
+    let parallelResult = try await parallelRunner.run(property)
 
     // Both must agree on pass/fail.
-    switch (sequentialResult, parallelResult) {
-    case (.passed, .passed):
-      break  // Both passed, expected.
-
-    case (.failure(let seqRec, value: let seqVal), .failure(let parRec, value: let parVal)):
-      // Both must find the same error message (from the same seed+index).
-      #expect(seqRec.errorMessage == parRec.errorMessage)
-      #expect(seqVal == parVal)
-
-    default:
-      Issue.record("Sequential and parallel results disagree")
-    }
+    expectMatchingResults(
+      sequentialResult,
+      parallelResult,
+      disagreement: "Sequential and parallel results disagree"
+    )
   }
 
   @Test("Parallel runner returns lowest-index failure regardless of scheduling")
@@ -77,15 +67,7 @@ struct ParallelDeterminismTests {
         }
       }
 
-      if case .failure(let record, value: let value) = result {
-        let current = (record.errorMessage, value)
-        if let prev = firstResult {
-          #expect(prev.0 == current.0, "Error message must be stable across runs")
-          #expect(prev.1 == current.1, "Failing value must be stable across runs")
-        } else {
-          firstResult = current
-        }
-      }
+      recordFirstFailure(result, firstResult: &firstResult)
     }
 
     // At least one run should have failed (even values are common).
@@ -162,46 +144,37 @@ extension ParallelDeterminismTests {
     #expect(record.errorMessage.contains("replayed failure"))
   }
 
-  @Test("Seed-per-index mapping matches sequential Runner for failure detection")
+  @Test(
+    "Seed-per-index mapping matches sequential Runner for failure detection"
+  )
   func seedPerIndexMatchesSequential() async throws {
     // Use a deterministic property that fails on specific seed-derived values.
     // Both runners use the same seed formula: baseSeed + UInt64(runIndex).
-    let seed: UInt64 = 77
-    let maxRuns = 20
-    let config = PropertyConfig(maxRuns: maxRuns, seed: seed)
+    let config = PropertyConfig(maxRuns: 20, seed: 77)
 
     // A property that fails when the drawn value exceeds a threshold.
     let threshold = 800
-    let seqRunner = Runner(strategy: intStrategy, config: config)
-    let seqResult = await seqRunner.run { value in
+    let property: @Sendable (Int) throws -> Void = { value in
       if value > threshold {
         throw PropertyFailure(message: "over \(threshold): \(value)")
       }
     }
+    let seqRunner = Runner(strategy: intStrategy, config: config)
+    let seqResult = await seqRunner.run(property)
 
     let parRunner = ParallelRunner(
       strategy: intStrategy,
       config: config,
       parallelConfig: ParallelConfig(maxConcurrentRuns: 4)
     )
-    let parResult = try await parRunner.run { value in
-      if value > threshold {
-        throw PropertyFailure(message: "over \(threshold): \(value)")
-      }
-    }
+    let parResult = try await parRunner.run(property)
 
     // Both runners must agree on pass/fail outcome.
-    switch (seqResult, parResult) {
-    case (.passed, .passed):
-      break
-
-    case (.failure(let seqRec, value: let seqVal), .failure(let parRec, value: let parVal)):
-      #expect(seqRec.errorMessage == parRec.errorMessage)
-      #expect(seqVal == parVal)
-
-    default:
-      Issue.record("Sequential and parallel results disagree on pass/fail")
-    }
+    expectMatchingResults(
+      seqResult,
+      parResult,
+      disagreement: "Sequential and parallel results disagree on pass/fail"
+    )
   }
 
   @Test("Parallel runner persists failures to shared database")
@@ -210,15 +183,12 @@ extension ParallelDeterminismTests {
       .appendingPathComponent("parallel-persist-\(UUID().uuidString)")
     let database = FileBackedDatabase(rootDirectory: tmpDir)
 
-    let pid = PropertyIdentity(fileID: "persist-test", line: 1, strategyLabel: "int")
-    let config = PropertyConfig(maxRuns: 20, seed: 42)
-    let runner = ParallelRunner(
-      strategy: intStrategy,
-      config: config,
-      parallelConfig: ParallelConfig(maxConcurrentRuns: 4),
-      propertyID: pid,
-      database: database
+    let pid = PropertyIdentity(
+      fileID: "persist-test",
+      line: 1,
+      strategyLabel: "int"
     )
+    let runner = persistentRunner(database: database, propertyID: pid)
 
     let result = try await runner.run { value in
       if value > 500 {
@@ -233,6 +203,56 @@ extension ParallelDeterminismTests {
     }
 
     try? FileManager.default.removeItem(at: tmpDir)
+  }
+}
+
+private extension ParallelDeterminismTests {
+  func expectMatchingResults(
+    _ sequential: RunResult<Int>,
+    _ parallel: RunResult<Int>,
+    disagreement: String
+  ) {
+    switch (sequential, parallel) {
+    case (.passed, .passed):
+      break
+    case (
+      .failure(let seqRec, value: let seqVal),
+      .failure(let parRec, value: let parVal)
+    ):
+      #expect(seqRec.errorMessage == parRec.errorMessage)
+      #expect(seqVal == parVal)
+    default:
+      Issue.record(Comment(rawValue: disagreement))
+    }
+  }
+
+  func recordFirstFailure(
+    _ result: RunResult<Int>,
+    firstResult: inout (String, Int)?
+  ) {
+    if case .failure(let record, value: let value) = result {
+      let current = (record.errorMessage, value)
+      if let prev = firstResult {
+        #expect(prev.0 == current.0, "Error message must be stable across runs")
+        #expect(prev.1 == current.1, "Failing value must be stable across runs")
+      } else {
+        firstResult = current
+      }
+    }
+  }
+
+  func persistentRunner(
+    database: FileBackedDatabase,
+    propertyID: PropertyIdentity
+  ) -> ParallelRunner<Int> {
+    let config = PropertyConfig(maxRuns: 20, seed: 42)
+    return ParallelRunner(
+      strategy: intStrategy,
+      config: config,
+      parallelConfig: ParallelConfig(maxConcurrentRuns: 4),
+      propertyID: propertyID,
+      database: database
+    )
   }
 }
 

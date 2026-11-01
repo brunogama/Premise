@@ -1,4 +1,6 @@
 import PremiseCore
+// Preserve the public builder's existing struct type.
+// swiftlint:disable convenience_type
 /// A result builder that composes weighted strategies into a `frequency`
 /// strategy.
 ///
@@ -10,6 +12,7 @@ import PremiseCore
 /// ```
 @resultBuilder
 public struct WeightedStrategyBuilder<Value: Sendable> {
+  // swiftlint:enable convenience_type
   /// Combines weighted strategies into a frequency choice.
   public static func buildBlock(
     _ components: WeightedStrategy<Value>...

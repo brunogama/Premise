@@ -1,5 +1,6 @@
 import PremiseCore
 
+// swiftlint:disable:next function_parameter_count - Failure, machine, configuration, and run metadata have separate owners.
 func shrinkFailure<State: Sendable>(
   _ failure: StateMachineFailure,
   machine: RuleBasedStateMachine<State>,

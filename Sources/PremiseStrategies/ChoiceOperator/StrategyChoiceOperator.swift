@@ -1,4 +1,6 @@
 import PremiseCore
+// A free operator preserves existing lookup and overload resolution.
+// swiftlint:disable static_operator
 /// Combines two strategies into a `oneOf` choice.
 ///
 /// This is syntactic sugar for ``/PremiseCore/Strategy/oneOf(_:)``.
@@ -17,5 +19,6 @@ public func ||| <Value: Sendable>(
   lhs: Strategy<Value>,
   rhs: Strategy<Value>
 ) -> Strategy<Value> {
+  // swiftlint:enable static_operator
   .oneOf([lhs, rhs])
 }

@@ -3,6 +3,7 @@ import Testing
 import PremiseCore
 import PremiseDatabase
 
+// swiftlint:disable function_parameter_count - Strategy, configuration, examples, source coordinates, and property originate independently.
 /// Shared implementation for all forAll variants.
 func runForAll<Value: Sendable>(
   strategy: Strategy<Value>,
@@ -37,7 +38,9 @@ func runForAll<Value: Sendable>(
     location: makeLocation(fileID, filePath, line, column)
   )
 }
+// swiftlint:enable function_parameter_count
 
+// swiftlint:disable:next function_parameter_count - Async execution preserves independent examples, source coordinates, strategy, and property.
 func runForAllAsync<Value: Sendable>(
   strategy: Strategy<Value>,
   config: PropertyConfig,
@@ -88,6 +91,7 @@ func makeExecutor<Value: Sendable>(
   )
 }
 
+// swiftlint:disable:next function_parameter_count - Result, identity, configuration, and reporting location have distinct roles.
 func reportForAllResult<Value: Sendable>(
   _ result: DetailedRunResult<Value>,
   propertyID: PropertyIdentity,
@@ -113,6 +117,7 @@ func reportForAllResult<Value: Sendable>(
   Issue.record(Comment(rawValue: message), sourceLocation: location)
 }
 
+// swiftlint:disable:next function_parameter_count - SourceLocation requires the independent file ID, path, line, and column.
 func makeLocation(
   _ fileID: String,
   _ filePath: String,

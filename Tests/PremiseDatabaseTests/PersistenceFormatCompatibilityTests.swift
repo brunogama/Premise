@@ -40,6 +40,38 @@ struct PersistenceFormatCompatibilityTests {
     )
   }
 
+  private func oldEnvelope(
+    from original: FailureRecord
+  ) -> PersistedFailureRecordV1 {
+    PersistedFailureRecordV1(
+      propertyID: original.propertyID,
+      trace: original.trace,
+      errorMessage: original.errorMessage,
+      runCount: original.runCount,
+      shrinkCount: original.shrinkCount,
+      timestamp: original.timestamp,
+      engineVersion: original.engineVersion
+    )
+  }
+
+  private func envelope(
+    from original: FailureRecord,
+    recordVersion: Int,
+    traceVersion: Int
+  ) -> PersistedFailureRecordV1 {
+    PersistedFailureRecordV1(
+      propertyID: original.propertyID,
+      trace: original.trace,
+      errorMessage: original.errorMessage,
+      runCount: original.runCount,
+      shrinkCount: original.shrinkCount,
+      timestamp: original.timestamp,
+      engineVersion: original.engineVersion,
+      recordFormatVersion: recordVersion,
+      traceFormatVersion: traceVersion
+    )
+  }
+
   // MARK: - Tests
 
   @Test("Envelope round-trip preserves all FailureRecord fields")
@@ -78,15 +110,7 @@ struct PersistenceFormatCompatibilityTests {
   @Test("Decode old envelope without statistics defaults to empty statistics")
   func oldEnvelopeWithoutStatisticsDefaultsToEmptyStatistics() throws {
     let original = sampleRecord(statistics: sampleStatistics())
-    let envelope = PersistedFailureRecordV1(
-      propertyID: original.propertyID,
-      trace: original.trace,
-      errorMessage: original.errorMessage,
-      runCount: original.runCount,
-      shrinkCount: original.shrinkCount,
-      timestamp: original.timestamp,
-      engineVersion: original.engineVersion
-    )
+    let envelope = oldEnvelope(from: original)
     let data = try JSONEncoder().encode(envelope)
     let json = try #require(String(bytes: data, encoding: .utf8))
 
@@ -113,21 +137,13 @@ struct PersistenceFormatCompatibilityTests {
     #expect(blob.hasPrefix(ChoiceTrace.reproductionBlobPrefix))
     #expect(decoded == trace)
   }
+}
 
+extension PersistenceFormatCompatibilityTests {
   @Test("Decode rejects unsupported trace format version")
   func unsupportedTraceVersionThrows() throws {
     let original = sampleRecord()
-    let envelope = PersistedFailureRecordV1(
-      propertyID: original.propertyID,
-      trace: original.trace,
-      errorMessage: original.errorMessage,
-      runCount: original.runCount,
-      shrinkCount: original.shrinkCount,
-      timestamp: original.timestamp,
-      engineVersion: original.engineVersion,
-      recordFormatVersion: 1,
-      traceFormatVersion: 2
-    )
+    let envelope = envelope(from: original, recordVersion: 1, traceVersion: 2)
 
     #expect(throws: PersistenceCompatibilityError.self) {
       try PersistenceCodec.decode(envelope)
@@ -149,17 +165,7 @@ struct PersistenceFormatCompatibilityTests {
   @Test("Decode rejects unsupported record format version")
   func unsupportedRecordVersionThrows() throws {
     let original = sampleRecord()
-    let envelope = PersistedFailureRecordV1(
-      propertyID: original.propertyID,
-      trace: original.trace,
-      errorMessage: original.errorMessage,
-      runCount: original.runCount,
-      shrinkCount: original.shrinkCount,
-      timestamp: original.timestamp,
-      engineVersion: original.engineVersion,
-      recordFormatVersion: 2,
-      traceFormatVersion: 1
-    )
+    let envelope = envelope(from: original, recordVersion: 2, traceVersion: 1)
 
     #expect(throws: PersistenceCompatibilityError.self) {
       try PersistenceCodec.decode(envelope)

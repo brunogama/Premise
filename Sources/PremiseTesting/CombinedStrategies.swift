@@ -21,7 +21,11 @@ func combinedStrategy<A: Sendable, B: Sendable, C: Sendable>(
   _ first: Strategy<A>,
   _ second: Strategy<B>,
   _ third: Strategy<C>
+  // Three-value forAll preserves its existing tuple input.
+  // swiftlint:disable:next large_tuple
 ) -> Strategy<(A, B, C)> {
+  // The strategy must retain the caller's three-value tuple.
+  // swiftlint:disable:next large_tuple
   Strategy<(A, B, C)>(
     label: "(\(first.label), \(second.label), \(third.label))",
     draw: { data in

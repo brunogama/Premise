@@ -9,23 +9,9 @@ private enum StructuralFailure: Error {
 
 @Test("ShrinkMachine reduces a failing integer to the smallest failing bound")
 func shrinkMachineReducesAFailingIntegerToTheSmallestFailingBound() async {
-  let strategy = Strategy<Int>.integers(in: 2...9)
-  let propertyID = PropertyIdentity(
-    fileID: "StructuralShrinkingTests",
-    line: 1,
-    strategyLabel: strategy.label
-  )
-  let runner = Runner(
-    strategy: strategy,
-    config: PropertyConfig(maxRuns: 1, maxShrinkIterations: 16, maxDrawsPerRun: 8, seed: 1),
-    propertyID: propertyID
-  )
+  let runner = structuralShrinkRunner()
 
-  let property: @Sendable (Int) throws -> Void = { value in
-    if value >= 2 {
-      throw StructuralFailure.boom
-    }
-  }
+  let property: @Sendable (Int) throws -> Void = structuralProperty
 
   let result = await runner.run(property)
   guard case .failure(let record, _) = result else {
@@ -33,13 +19,11 @@ func shrinkMachineReducesAFailingIntegerToTheSmallestFailingBound() async {
     return
   }
 
-  var shrinkMachine = ShrinkMachine(
+  let shrunkTrace = shrinkTrace(
+    record.trace,
     runner: runner,
-    property: property,
-    bestTrace: record.trace,
-    maxIterations: 16
+    property: property
   )
-  let shrunkTrace = shrinkMachine.run()
 
   let replayResult = await runner.run(property, replayTraces: [shrunkTrace])
   guard case .failure(_, let value) = replayResult else {
@@ -48,4 +32,42 @@ func shrinkMachineReducesAFailingIntegerToTheSmallestFailingBound() async {
   }
 
   #expect(value == 2)
+}
+
+private func structuralProperty(_ value: Int) throws {
+  if value >= 2 {
+    throw StructuralFailure.boom
+  }
+}
+private func structuralShrinkRunner() -> Runner<Int> {
+  let strategy = Strategy<Int>.integers(in: 2...9)
+  let propertyID = PropertyIdentity(
+    fileID: "StructuralShrinkingTests",
+    line: 1,
+    strategyLabel: strategy.label
+  )
+  return Runner(
+    strategy: strategy,
+    config: PropertyConfig(
+      maxRuns: 1,
+      maxShrinkIterations: 16,
+      maxDrawsPerRun: 8,
+      seed: 1
+    ),
+    propertyID: propertyID
+  )
+}
+
+private func shrinkTrace(
+  _ trace: ChoiceTrace,
+  runner: Runner<Int>,
+  property: @escaping @Sendable (Int) throws -> Void
+) -> ChoiceTrace {
+  var shrinkMachine = ShrinkMachine(
+    runner: runner,
+    property: property,
+    bestTrace: trace,
+    maxIterations: 16
+  )
+  return shrinkMachine.run()
 }

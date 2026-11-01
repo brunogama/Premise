@@ -40,6 +40,7 @@ public struct CoverageScore: Sendable, Comparable, Equatable {
     self.value = max(0, value)
   }
 
+  /// Orders scores by their numeric values.
   public static func < (lhs: Self, rhs: Self) -> Bool {
     lhs.value < rhs.value
   }

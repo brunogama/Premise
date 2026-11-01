@@ -31,6 +31,8 @@ public struct RuleBasedStateMachine<State: Sendable>: Sendable {
 }
 
 extension RuleBasedStateMachine {
+  // Preserve the published initializer rule signature.
+  // swiftlint:disable function_parameter_count
   /// Adds an initialization rule that runs before normal rules.
   public mutating func initialize<Argument: Sendable>(
     _ name: String,
@@ -40,16 +42,20 @@ extension RuleBasedStateMachine {
     },
     _ body: @escaping @Sendable (inout State, Argument) async throws -> Void
   ) {
+    // swiftlint:enable function_parameter_count
     initializers.append(
       makeRule(
-        name: name,
-        argument: argument,
-        precondition: precondition,
+        StateMachineRuleInput(
+          source: StateMachineRuleSource(name: name, argument: argument),
+          precondition: precondition
+        ),
         body
       )
     )
   }
 
+  // Preserve the published bundled initializer signature.
+  // swiftlint:disable function_parameter_count
   /// Adds an initialization rule that saves its result into a bundle.
   public mutating func initialize<Argument: Sendable, Element: Sendable>(
     _ name: String,
@@ -60,17 +66,21 @@ extension RuleBasedStateMachine {
     target: StateMachineBundle<Element>,
     _ body: @escaping @Sendable (inout State, Argument) async throws -> Element
   ) {
+    // swiftlint:enable function_parameter_count
     initializers.append(
       makeRule(
-        name: name,
-        argument: argument,
-        precondition: precondition,
+        StateMachineRuleInput(
+          source: StateMachineRuleSource(name: name, argument: argument),
+          precondition: precondition
+        ),
         target: target,
         body
       )
     )
   }
 
+  // Preserve the published rule signature.
+  // swiftlint:disable function_parameter_count
   /// Adds a rule that draws an argument and mutates the state when enabled.
   public mutating func rule<Argument: Sendable>(
     _ name: String,
@@ -80,16 +90,20 @@ extension RuleBasedStateMachine {
     },
     _ body: @escaping @Sendable (inout State, Argument) async throws -> Void
   ) {
+    // swiftlint:enable function_parameter_count
     rules.append(
       makeRule(
-        name: name,
-        argument: argument,
-        precondition: precondition,
+        StateMachineRuleInput(
+          source: StateMachineRuleSource(name: name, argument: argument),
+          precondition: precondition
+        ),
         body
       )
     )
   }
 
+  // Preserve the published bundled rule signature.
+  // swiftlint:disable function_parameter_count
   /// Adds a rule that saves its result into a bundle for later rules.
   public mutating func rule<Argument: Sendable, Element: Sendable>(
     _ name: String,
@@ -100,17 +114,21 @@ extension RuleBasedStateMachine {
     target: StateMachineBundle<Element>,
     _ body: @escaping @Sendable (inout State, Argument) async throws -> Element
   ) {
+    // swiftlint:enable function_parameter_count
     rules.append(
       makeRule(
-        name: name,
-        argument: argument,
-        precondition: precondition,
+        StateMachineRuleInput(
+          source: StateMachineRuleSource(name: name, argument: argument),
+          precondition: precondition
+        ),
         target: target,
         body
       )
     )
   }
 
+  // Preserve the published multi-output rule signature.
+  // swiftlint:disable function_parameter_count
   /// Adds a rule that saves multiple outputs into bundles.
   public mutating func rule<
     Argument: Sendable,
@@ -128,11 +146,13 @@ extension RuleBasedStateMachine {
         First, Second
       )
   ) {
+    // swiftlint:enable function_parameter_count
     rules.append(
       makeRule(
-        name: name,
-        argument: argument,
-        precondition: precondition,
+        StateMachineRuleInput(
+          source: StateMachineRuleSource(name: name, argument: argument),
+          precondition: precondition
+        ),
         targets: targets,
         body
       )

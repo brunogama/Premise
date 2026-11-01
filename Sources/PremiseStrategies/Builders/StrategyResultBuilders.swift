@@ -1,4 +1,6 @@
 import PremiseCore
+// Preserve the public builder's existing struct type.
+// swiftlint:disable convenience_type
 /// A result builder that composes multiple strategies into a single
 /// `oneOf` strategy, with optional support for `if`/`else` branches.
 ///
@@ -13,6 +15,7 @@ import PremiseCore
 /// ```
 @resultBuilder
 public struct StrategyBuilder<Value: Sendable> {
+  // swiftlint:enable convenience_type
   /// Combines the supplied strategies into a choice.
   public static func buildBlock(
     _ components: Strategy<Value>...

@@ -27,7 +27,11 @@ func ghostwriterRendersRoundtripSkeleton() throws {
   )
 
   #expect(source.contains("let encoded = try JSONEncoder().encode(value)"))
-  #expect(source.contains("let decoded = try JSONDecoder().decode(Payload.self, from: encoded)"))
+  #expect(
+    source.contains(
+      "let decoded = try JSONDecoder().decode(Payload.self, from: encoded)"
+    )
+  )
   #expect(source.contains("#expect(decoded == value)"))
 }
 
@@ -90,7 +94,9 @@ func ghostwriterReportsMissingRequiredExpressions() throws {
   }
 }
 
-@Test("Ghostwriter binary operation helper reports an empty operation expression")
+@Test(
+  "Ghostwriter binary operation helper reports an empty operation expression"
+)
 func ghostwriterBinaryOperationHelperRejectsEmptyOperationExpression() {
   #expect(throws: GhostwriterError.missingExpression("operationExpression")) {
     _ = try PremiseGhostwriter.binaryOperationLaws(

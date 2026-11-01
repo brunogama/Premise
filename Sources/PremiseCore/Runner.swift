@@ -31,6 +31,8 @@ public struct Runner<Value: Sendable>: Sendable {
 extension Runner {
   // MARK: - Public run
 
+  // Preserve the existing public runDetailed signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Executes a data-aware property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
@@ -38,13 +40,15 @@ extension Runner {
     _ property: @escaping @Sendable (Value, inout PremiseData) throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
+    // swiftlint:enable function_parameter_count
     var report = RunReport()
     let allExamples = explicitExamples.map { ExplicitExample($0) } + examples
     for phase in config.phases {
       if let failure = runDetailedPhase(
-        phase,
-        examples: allExamples,
-        traces: replayTraces,
+        DetailedPhaseInput(
+          phase: phase,
+          cases: (examples: allExamples, traces: replayTraces)
+        ),
         report: &report,
         property: property
       ) {
@@ -54,6 +58,8 @@ extension Runner {
     return finishDetailed(report: report, failure: nil)
   }
 
+  // Preserve the existing public runDetailed signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Executes a property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
@@ -61,6 +67,7 @@ extension Runner {
     _ property: @escaping @Sendable (Value) throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
+    // swiftlint:enable function_parameter_count
     await runDetailed(
       explicitExamples: explicitExamples,
       examples: examples,
@@ -71,6 +78,8 @@ extension Runner {
     )
   }
 
+  // Preserve the existing public runDetailed signature for source compatibility.
+  // swiftlint:disable function_parameter_count
   /// Executes an async property and returns diagnostics-rich results.
   public func runDetailed(
     explicitExamples: [Value] = [],
@@ -78,13 +87,15 @@ extension Runner {
     _ property: @escaping @Sendable (Value) async throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async -> DetailedRunResult<Value> {
+    // swiftlint:enable function_parameter_count
     var report = RunReport()
     let allExamples = explicitExamples.map { ExplicitExample($0) } + examples
     for phase in config.phases {
       if let failure = await runDetailedPhaseAsync(
-        phase,
-        examples: allExamples,
-        traces: replayTraces,
+        DetailedPhaseInput(
+          phase: phase,
+          cases: (examples: allExamples, traces: replayTraces)
+        ),
         report: &report,
         property: property
       ) {
@@ -203,20 +214,19 @@ extension Runner {
   }
 
   func makeFailure(
-    value: Value,
+    failure: (value: Value, message: String),
     data: inout PremiseData,
-    errorMessage: String,
     runCount: Int
   ) -> ExecutionFailure<Value> {
     let record = FailureRecord(
       propertyID: propertyID,
       trace: data.snapshot(),
-      errorMessage: errorMessage,
+      errorMessage: failure.message,
       runCount: runCount,
       shrinkCount: 0,
       statistics: data.statistics
     )
-    return ExecutionFailure(record: record, value: value)
+    return ExecutionFailure(record: record, value: failure.value)
   }
 
   func expectedFailureIfNeeded(
@@ -228,9 +238,8 @@ extension Runner {
     }
     let suffix = reason.map { $0.isEmpty ? "" : ": \($0)" } ?? ""
     return makeFailure(
-      value: example.value,
+      failure: (example.value, "Expected explicit example to fail\(suffix)"),
       data: &data,
-      errorMessage: "Expected explicit example to fail\(suffix)",
       runCount: 0
     )
   }

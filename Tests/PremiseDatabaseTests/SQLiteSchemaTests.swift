@@ -23,7 +23,10 @@ struct SQLiteSchemaTests {
   }
 
   /// Reads a single Int32 value from a PRAGMA query.
-  private func pragmaInt32(_ database: OpaquePointer, _ pragma: String) throws -> Int32 {
+  private func pragmaInt32(
+    _ database: OpaquePointer,
+    _ pragma: String
+  ) throws -> Int32 {
     var stmt: OpaquePointer?
     let sql = "PRAGMA \(pragma);"
     let prepareResult = sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
@@ -36,7 +39,10 @@ struct SQLiteSchemaTests {
   }
 
   /// Queries whether a table exists in sqlite_master.
-  private func tableExists(_ database: OpaquePointer, name: String) throws -> Bool {
+  private func tableExists(
+    _ database: OpaquePointer,
+    name: String
+  ) throws -> Bool {
     var stmt: OpaquePointer?
     let sql = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='\(name)';"
     let result = sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
@@ -104,34 +110,49 @@ struct SQLiteSchemaTests {
   @Test("SQLiteConnection either opens with WAL or throws on unsafe runtime")
   func connectionWALGate() throws {
     if SQLiteRuntimeGate.isWALSafe() {
-      let tempDir = NSTemporaryDirectory()
-      let path = tempDir + "premise_test_\(ProcessInfo.processInfo.processIdentifier).sqlite"
-      defer {
-        try? FileManager.default.removeItem(atPath: path)
-        try? FileManager.default.removeItem(atPath: path + "-wal")
-        try? FileManager.default.removeItem(atPath: path + "-shm")
-      }
-
-      let connection = try SQLiteConnection(path: path)
-
-      // Verify WAL is active.
-      var stmt: OpaquePointer?
-      let result = sqlite3_prepare_v2(connection.handle, "PRAGMA journal_mode;", -1, &stmt, nil)
-      guard result == SQLITE_OK, let statement = stmt else {
-        throw SQLiteError.resultCode(result, context: "pragma check")
-      }
-      defer { sqlite3_finalize(statement) }
-      guard sqlite3_step(statement) == SQLITE_ROW else {
-        Issue.record("Expected SQLITE_ROW from PRAGMA journal_mode")
-        return
-      }
-      let mode = String(cString: sqlite3_column_text(statement, 0))
-      #expect(mode == "wal")
+      try verifyWALConnection()
     } else {
       let version = sqlite3_libversion_number()
-      #expect(throws: SQLiteError.unsupportedWALRuntime(versionNumber: version)) {
+      #expect(
+        throws: SQLiteError.unsupportedWALRuntime(versionNumber: version)
+      ) {
         _ = try SQLiteConnection(path: ":memory:")
       }
     }
+  }
+
+  private func verifyWALConnection() throws {
+    let tempDir = NSTemporaryDirectory()
+    let path = tempDir + "premise_test_\(ProcessInfo.processInfo.processIdentifier).sqlite"
+    defer {
+      try? FileManager.default.removeItem(atPath: path)
+      try? FileManager.default.removeItem(atPath: path + "-wal")
+      try? FileManager.default.removeItem(atPath: path + "-shm")
+    }
+
+    let connection = try SQLiteConnection(path: path)
+    try verifyWALMode(connection.handle)
+  }
+
+  private func verifyWALMode(_ handle: OpaquePointer) throws {
+    // Verify WAL is active.
+    var stmt: OpaquePointer?
+    let result = sqlite3_prepare_v2(
+      handle,
+      "PRAGMA journal_mode;",
+      -1,
+      &stmt,
+      nil
+    )
+    guard result == SQLITE_OK, let statement = stmt else {
+      throw SQLiteError.resultCode(result, context: "pragma check")
+    }
+    defer { sqlite3_finalize(statement) }
+    guard sqlite3_step(statement) == SQLITE_ROW else {
+      Issue.record("Expected SQLITE_ROW from PRAGMA journal_mode")
+      return
+    }
+    let mode = String(cString: sqlite3_column_text(statement, 0))
+    #expect(mode == "wal")
   }
 }

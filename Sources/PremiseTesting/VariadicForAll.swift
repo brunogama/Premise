@@ -5,6 +5,8 @@ import PremiseStrategies
 /// Runs a property over independently generated values.
 @_disfavoredOverload
 public func forAll<each Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the synchronous variadic API and caller-captured source locations.
   _ strategies: repeat Strategy<each Value>,
   config: PropertyConfig = .default,
   fileID: String = #fileID,
@@ -31,6 +33,8 @@ public func forAll<each Value: Sendable>(
 /// Runs an asynchronous property over independently generated values.
 @_disfavoredOverload
 public func forAll<each Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the async variadic API and caller-captured source locations.
   _ strategies: repeat Strategy<each Value>,
   config: PropertyConfig = .default,
   fileID: String = #fileID,

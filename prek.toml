@@ -68,7 +68,7 @@ pass_filenames = true
 [[repos.hooks]]
 id = "swift-sheriff"
 name = "🤠 Linting Swift code..."
-entry = """bash -c 'swiftlint lint --fix "$@" && swiftlint lint --strict "$@"' --"""
+entry = """bash -c 'root_files=(); docs_files=(); for file in "$@"; do case "$file" in docs/Documentation.docc/Resources/*) docs_files+=("$file") ;; *) root_files+=("$file") ;; esac; done; if ((${#root_files[@]})); then swiftlint lint --fix --config .swiftlint.yml "${root_files[@]}" && swiftlint lint --strict --config .swiftlint.yml "${root_files[@]}" || exit $?; fi; if ((${#docs_files[@]})); then swiftlint lint --fix --config docs/Documentation.docc/Resources/.swiftlint.yml "${docs_files[@]}" && swiftlint lint --strict --config docs/Documentation.docc/Resources/.swiftlint.yml "${docs_files[@]}" || exit $?; fi' --"""
 language = "system"
 files = '\.swift$'
 exclude = "^Tests/.*/Resources/"

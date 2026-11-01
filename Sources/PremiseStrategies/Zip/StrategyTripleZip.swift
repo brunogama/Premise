@@ -5,7 +5,11 @@ public func zip<A: Sendable, B: Sendable, C: Sendable>(
   _ first: Strategy<A>,
   _ second: Strategy<B>,
   _ third: Strategy<C>
+  // The public zip contract returns a three-value tuple.
+  // swiftlint:disable:next large_tuple
 ) -> Strategy<(A, B, C)> {
+  // The constructed strategy must retain that public tuple type.
+  // swiftlint:disable:next large_tuple
   Strategy<(A, B, C)>(
     label: "zip(\(first.label), \(second.label), \(third.label))",
     draw: { data in

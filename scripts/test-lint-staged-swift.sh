@@ -10,6 +10,7 @@ mkdir -p Sources Tests/MacroRegression
 cat > .swiftlint.yml <<'YAML'
 only_rules:
   - line_length
+  - custom_rules
 line_length:
   warning: 20
   error: 20
@@ -31,10 +32,14 @@ line_length:
   warning: 10
   error: 10
 YAML
-if ! sh "$root/scripts/lint_staged_swift.sh" \
+if sh "$root/scripts/lint_staged_swift.sh" \
   'Tests/MacroRegression/file with space.swift' >"$work/output" 2>&1; then
+  echo 'Expected the staged root policy to override the nested policy.' >&2
+  exit 1
+fi
+if ! grep -F 'Line Length Violation' "$work/output" >/dev/null; then
   cat "$work/output" >&2
-  echo 'Expected staged nested config, not the root or worktree config.' >&2
+  echo 'Expected the root line length violation.' >&2
   exit 1
 fi
 cat > 'Tests/MacroRegression/file with space.swift' <<'SWIFT'
@@ -85,6 +90,23 @@ if ! grep -F 'Line Length Violation' "$work/output" >/dev/null; then
   exit 1
 fi
 
+cat > Tests/MacroRegression/.swiftlint.yml <<'YAML'
+parent_config: ../../.swiftlint.yml
+line_length:
+  warning: invalid
+YAML
+git add Tests/MacroRegression/.swiftlint.yml
+if sh "$root/scripts/lint_staged_swift.sh" \
+  'Tests/MacroRegression/file with space.swift' >"$work/output" 2>&1; then
+  echo 'Expected invalid nested SwiftLint settings to fail closed.' >&2
+  exit 1
+fi
+if ! grep -F 'Invalid configuration' "$work/output" >/dev/null; then
+  cat "$work/output" >&2
+  echo 'Expected a SwiftLint configuration diagnostic.' >&2
+  exit 1
+fi
+
 cat > 'Tests/parent policy.yml' <<'YAML'
 parent_config: ../.swiftlint.yml
 line_length:
@@ -94,10 +116,14 @@ YAML
 printf 'parent_config: "../parent policy.yml"\n' > Tests/MacroRegression/.swiftlint.yml
 git add 'Tests/parent policy.yml' Tests/MacroRegression/.swiftlint.yml
 printf 'invalid: [\n' > 'Tests/parent policy.yml'
-if ! sh "$root/scripts/lint_staged_swift.sh" \
+if sh "$root/scripts/lint_staged_swift.sh" \
   'Tests/MacroRegression/file with space.swift' >"$work/output" 2>&1; then
+  echo 'Expected the staged root policy, not the custom parent policy.' >&2
+  exit 1
+fi
+if ! grep -F 'Line Length Violation' "$work/output" >/dev/null; then
   cat "$work/output" >&2
-  echo 'Expected the staged custom parent config, not its worktree version.' >&2
+  echo 'Expected the staged root line length violation.' >&2
   exit 1
 fi
 printf 'let x = 1\n' > 'Tests/MacroRegression/file with space.swift'
@@ -148,6 +174,42 @@ if sh "$root/scripts/lint_staged_swift.sh" \
 fi
 grep -F 'Cannot use conflicted config' "$work/output" >/dev/null
 
+git update-index --force-remove Tests/MacroRegression/.swiftlint.yml
+for invalid in 'strict: nonsense' 'included: 42'; do
+  printf 'parent_config: ../../.swiftlint.yml\n%s\n' "$invalid" > Tests/MacroRegression/.swiftlint.yml
+  git add Tests/MacroRegression/.swiftlint.yml
+  if sh "$root/scripts/lint_staged_swift.sh" \
+    'Tests/MacroRegression/file with space.swift' >"$work/output" 2>&1; then
+    echo "Expected invalid staged setting to fail: $invalid" >&2
+    exit 1
+  fi
+  grep -F 'Invalid staged config' "$work/output" >/dev/null
+done
+mkdir -p docs/Documentation.docc/Resources
+cat > docs/Documentation.docc/Resources/.swiftlint.yml <<'YAML'
+parent_config: ../../../.swiftlint.yml
+line_length:
+  warning: 100
+  error: 100
+custom_rules:
+  tutorial_marker:
+    regex: 'forbiddenMarker'
+    severity: error
+YAML
+printf 'let text = "This tutorial line exceeds the root limit."\n' > docs/Documentation.docc/Resources/example.swift
+git add docs/Documentation.docc/Resources/.swiftlint.yml docs/Documentation.docc/Resources/example.swift
+if ! sh "$root/scripts/lint_staged_swift.sh" docs/Documentation.docc/Resources/example.swift >"$work/output" 2>&1; then
+  cat "$work/output" >&2
+  echo 'Expected tutorial resources to retain their staged nested policy.' >&2
+  exit 1
+fi
+printf 'let forbiddenMarker = 1\n' > docs/Documentation.docc/Resources/example.swift
+git add docs/Documentation.docc/Resources/example.swift
+if sh "$root/scripts/lint_staged_swift.sh" docs/Documentation.docc/Resources/example.swift >"$work/output" 2>&1; then
+  echo 'Expected the tutorial custom rule to reject its marker.' >&2
+  exit 1
+fi
+grep -F 'tutorial_marker' "$work/output" >/dev/null
 git update-index --force-remove Tests/MacroRegression/.swiftlint.yml
 git update-index --force-remove .swiftlint.yml
 if sh "$root/scripts/lint_staged_swift.sh" \

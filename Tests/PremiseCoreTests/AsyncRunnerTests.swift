@@ -8,18 +8,7 @@ private enum AsyncRunnerFailure: Error {
 
 @Test("Runner supports async properties and marks fresh failures")
 func runnerSupportsAsyncPropertiesAndMarksFreshFailures() async {
-  let strategy = Strategy<Int>.just(42)
-  let propertyID = PropertyIdentity(
-    fileID: "AsyncRunnerTests",
-    line: 1,
-    strategyLabel: strategy.label,
-    functionName: "runnerSupportsAsyncPropertiesAndMarksFreshFailures"
-  )
-  let runner = Runner(
-    strategy: strategy,
-    config: PropertyConfig(maxRuns: 1, seed: 123),
-    propertyID: propertyID
-  )
+  let runner = freshFailureRunner()
 
   let result = await runner.run { value in
     await Task.yield()
@@ -40,27 +29,8 @@ func runnerSupportsAsyncPropertiesAndMarksFreshFailures() async {
 
 @Test("Runner marks replayed failures as known failures")
 func runnerMarksReplayedFailuresAsKnownFailures() async {
-  let strategy = Strategy<Int>.just(7)
-  let propertyID = PropertyIdentity(
-    fileID: "AsyncRunnerTests",
-    line: 2,
-    strategyLabel: strategy.label,
-    functionName: "runnerMarksReplayedFailuresAsKnownFailures"
-  )
-  let runner = Runner(
-    strategy: strategy,
-    config: PropertyConfig(maxRuns: 0, seed: 999),
-    propertyID: propertyID
-  )
-
-  let initialRecord = FailureRecord(
-    propertyID: propertyID,
-    trace: ChoiceTrace(),
-    errorMessage: "known failure",
-    seed: 999,
-    discovery: .newFailure
-  )
-
+  let runner = replayFailureRunner()
+  let initialRecord = knownFailureRecord(for: runner.propertyID)
   let result = await runner.run(
     { value in
       if value == 7 {
@@ -77,4 +47,46 @@ func runnerMarksReplayedFailuresAsKnownFailures() async {
 
   #expect(value == 7)
   #expect(record.discovery == .knownFailure)
+}
+
+private func freshFailureRunner() -> Runner<Int> {
+  let strategy = Strategy<Int>.just(42)
+  let propertyID = PropertyIdentity(
+    fileID: "AsyncRunnerTests",
+    line: 1,
+    strategyLabel: strategy.label,
+    functionName: "runnerSupportsAsyncPropertiesAndMarksFreshFailures"
+  )
+  return Runner(
+    strategy: strategy,
+    config: PropertyConfig(maxRuns: 1, seed: 123),
+    propertyID: propertyID
+  )
+}
+
+private func replayFailureRunner() -> Runner<Int> {
+  let strategy = Strategy<Int>.just(7)
+  let propertyID = PropertyIdentity(
+    fileID: "AsyncRunnerTests",
+    line: 2,
+    strategyLabel: strategy.label,
+    functionName: "runnerMarksReplayedFailuresAsKnownFailures"
+  )
+  return Runner(
+    strategy: strategy,
+    config: PropertyConfig(maxRuns: 0, seed: 999),
+    propertyID: propertyID
+  )
+}
+
+private func knownFailureRecord(
+  for propertyID: PropertyIdentity
+) -> FailureRecord {
+  FailureRecord(
+    propertyID: propertyID,
+    trace: ChoiceTrace(),
+    errorMessage: "known failure",
+    seed: 999,
+    discovery: .newFailure
+  )
 }

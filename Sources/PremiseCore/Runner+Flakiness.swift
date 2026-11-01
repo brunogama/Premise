@@ -1,61 +1,31 @@
 extension Runner {
   func flakinessFailureIfNeeded(
-    initialTrace: ChoiceTrace,
-    errorMessage: String,
-    initialValue: Value,
-    runCount: Int,
-    seed: UInt64?,
-    statistics: RunStatistics,
-    discovery: FailureDiscovery,
+    context: ShrinkContext<Value>,
     replay: () -> ExecutionFailure<Value>?
   ) -> (record: FailureRecord, value: Value)? {
     flakinessFailure(
-      initialTrace: initialTrace,
-      errorMessage: errorMessage,
-      initialValue: initialValue,
-      runCount: runCount,
-      seed: seed,
-      statistics: statistics,
-      discovery: discovery,
+      context: context,
       replayed: replay()
     )
   }
 
   func flakinessFailureIfNeededAsync(
-    initialTrace: ChoiceTrace,
-    errorMessage: String,
-    initialValue: Value,
-    runCount: Int,
-    seed: UInt64?,
-    statistics: RunStatistics,
-    discovery: FailureDiscovery,
+    context: ShrinkContext<Value>,
     replay: () async -> ExecutionFailure<Value>?
   ) async -> (record: FailureRecord, value: Value)? {
     flakinessFailure(
-      initialTrace: initialTrace,
-      errorMessage: errorMessage,
-      initialValue: initialValue,
-      runCount: runCount,
-      seed: seed,
-      statistics: statistics,
-      discovery: discovery,
+      context: context,
       replayed: await replay()
     )
   }
 
   private func flakinessFailure(
-    initialTrace: ChoiceTrace,
-    errorMessage: String,
-    initialValue: Value,
-    runCount: Int,
-    seed: UInt64?,
-    statistics: RunStatistics,
-    discovery: FailureDiscovery,
+    context: ShrinkContext<Value>,
     replayed: ExecutionFailure<Value>?
   ) -> (record: FailureRecord, value: Value)? {
     guard
       let flakiness = flakiness(
-        errorMessage: errorMessage,
+        errorMessage: context.errorMessage,
         replayed: replayed
       )
     else {
@@ -63,12 +33,8 @@ extension Runner {
     }
     return flakyFailure(
       flakiness,
-      trace: initialTrace,
-      value: initialValue,
-      runCount: runCount,
-      seed: seed,
-      statistics: replayed?.record.statistics ?? statistics,
-      discovery: discovery
+      context: context,
+      statistics: replayed?.record.statistics ?? context.statistics
     )
   }
 
@@ -88,25 +54,21 @@ extension Runner {
 
   private func flakyFailure(
     _ flakiness: PropertyFlakiness,
-    trace: ChoiceTrace,
-    value: Value,
-    runCount: Int,
-    seed: UInt64?,
-    statistics: RunStatistics,
-    discovery: FailureDiscovery
+    context: ShrinkContext<Value>,
+    statistics: RunStatistics
   ) -> (record: FailureRecord, value: Value) {
     (
       record: FailureRecord(
         propertyID: propertyID,
-        trace: trace,
+        trace: context.trace,
         errorMessage: String(describing: flakiness),
-        runCount: runCount,
+        runCount: context.runCount,
         shrinkCount: 0,
-        seed: seed,
-        discovery: discovery,
+        seed: context.seed,
+        discovery: context.discovery,
         statistics: statistics
       ),
-      value: value
+      value: context.value
     )
   }
 }
