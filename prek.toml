@@ -17,6 +17,10 @@ hooks = [
     { id = "check-merge-conflict" },
     # PEM documentation contains key-format labels, not private-key material.
     { id = "detect-private-key", exclude = '^\.pi/skills/swift-security/references/cryptokit-public-key\.md$' },
+    { id = "check-illegal-windows-names" },
+
+    { id = "check-executables-have-shebangs" },
+    { id = "check-symlinks" },
 ]
 
 [[repos]]
@@ -54,6 +58,16 @@ entry = "swift test --disable-xctest"
 files = "\\.swift$"
 pass_filenames = false
 priority = 3
+[[repos]]
+repo = "local"
+[[repos.hooks]]
+id = "repository-safety"
+name = "Validate staged repository manifests and configs"
+entry = "sh scripts/validate_staged_repository.sh"
+language = "system"
+files = '^(Package\\.swift|\\.swiftlint\\.yml|\\.swift-format)$'
+pass_filenames = false
+priority = 1
 [[repos]]
 repo = "local"
 [[repos.hooks]]
@@ -102,7 +116,7 @@ always_run = true
 [[repos.hooks]]
 id = "protect-essential-files"
 name = "🛡️ Protecting essential files from deletion..."
-entry = """bash -c 'PROTECTED_FILES=("AGENTS.md" "CLAUDE.md" "CODE_OF_CONDUCT.md" "CONTRIBUTING.md" "Dangerfile.swift" "LICENSE" "RELEASING.md" "RULES.md" "SECURITY.md" "WORKFLOW.md" "spi.yml" ".swiftlint.yml" ".swift-format" "prek.toml" ".periphery.yml" ".mcp.json" ".gitmessage" ".gitignore" ".coderabbit.yaml" ".bead-config.yaml"); for file in "${PROTECTED_FILES[@]}"; do if git diff --cached --name-status | grep -q "^D.*$file$"; then echo "🛑 Essential file $file cannot be removed!"; echo "This file is protected and must remain in the repository."; exit 1; fi; done'"""
+entry = """bash -c 'PROTECTED_FILES=("AGENTS.md" "CLAUDE.md" "CODE_OF_CONDUCT.md" "CONTRIBUTING.md" "Dangerfile.swift" "LICENSE" "RELEASING.md" "RULES.md" "SECURITY.md" "WORKFLOW.md" "spi.yml" ".swiftlint.yml" ".swift-format" "prek.toml" ".github/workflows/ci.yml" "scripts/build-documentation.sh" "scripts/validate-boundaries.sh" ".periphery.yml" ".mcp.json" ".gitmessage" ".gitignore" ".coderabbit.yaml" ".bead-config.yaml"); for file in "${PROTECTED_FILES[@]}"; do if git diff --cached --name-status | grep -q "^D.*$file$"; then echo "🛑 Essential file $file cannot be removed!"; echo "This file is protected and must remain in the repository."; exit 1; fi; done'"""
 language = "system"
 pass_filenames = false
 always_run = true
