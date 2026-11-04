@@ -65,7 +65,7 @@ id = "repository-safety"
 name = "Validate staged repository manifests and configs"
 entry = "sh scripts/validate_staged_repository.sh"
 language = "system"
-files = '^(Package\\.swift|\\.swiftlint\\.yml|\\.swift-format)$'
+files = '^(Package\.swift|\.swiftlint\.yml|\.swift-format)$'
 pass_filenames = false
 priority = 1
 [[repos]]
