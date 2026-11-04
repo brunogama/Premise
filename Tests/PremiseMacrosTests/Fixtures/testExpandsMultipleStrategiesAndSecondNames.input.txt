@@ -1,0 +1,4 @@
+@given(.integers(in: 0...100), .ascii)
+func combines(_ count: Int, text: String) {
+    #expect(count >= 0)
+}

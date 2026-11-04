@@ -12,7 +12,7 @@ else {
 let package = Package(
   name: "PremiseMacroRegression",
   dependencies: [
-    .package(path: premiseRoot),
+    .package(name: "Premise", path: premiseRoot),
     .package(path: syntaxRoot),
   ],
   targets: [

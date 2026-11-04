@@ -1,4 +1,5 @@
 import Foundation
+import PremiseToolSupport
 import PremiseCore
 import PremiseDatabase
 
@@ -9,7 +10,7 @@ enum PremiseReplayTool {
         arguments: Array(CommandLine.arguments.dropFirst())
       )
       if options.showHelp {
-        writeOutput(Self.helpText)
+        try ToolIO.emit(Self.helpText)
         return
       }
 
@@ -17,13 +18,19 @@ enum PremiseReplayTool {
       if options.emitJSON {
         try writeJSON(summaries)
       } else {
-        writeOutput(formatText(summaries))
+        try ToolIO.emit(formatText(summaries))
       }
     } catch {
-      fputs("premise-replay: \(error)\n", stderr)
-      fputs("Run `swift package premise-replay --help` for usage.\n", stderr)
-      Foundation.exit(1)
+      reportError(error)
     }
+  }
+
+  private static func reportError(_ error: any Error) {
+    _ = try? ToolIO.logError("premise-replay: \(error)")
+    _ = try? ToolIO.logError(
+      "Run `swift package premise-replay --help` for usage."
+    )
+    Foundation.exit(1)
   }
 
   private static func writeJSON(_ summaries: [ReplaySummary]) throws {
@@ -34,10 +41,7 @@ enum PremiseReplayTool {
     guard let text = String(bytes: bytes, encoding: .utf8) else {
       throw CocoaError(.fileReadInapplicableStringEncoding)
     }
-    writeOutput(text)
-  }
-  private static func writeOutput(_ value: String) {
-    FileHandle.standardOutput.write(Data((value + "\n").utf8))
+    try ToolIO.emit(text)
   }
   private static let helpText = """
     Usage:

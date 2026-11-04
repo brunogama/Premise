@@ -1,5 +1,5 @@
 import Foundation
-import SQLite3
+import PremiseSQLite
 
 // The SQLite handle requires one shared lifetime and lock.
 // swiftlint:disable prefer_struct
@@ -42,12 +42,13 @@ public final class SQLiteConnection: @unchecked Sendable {
     var databaseHandle: OpaquePointer?
     let flags =
       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
-    let openResult = sqlite3_open_v2(path, &databaseHandle, flags, nil)
+    let openResult =
+      PremiseSQLite.sqlite3_open_v2(path, &databaseHandle, flags, nil)
 
     guard openResult == SQLITE_OK, let database = databaseHandle else {
       // Clean up partial handle if open failed but returned non-nil.
       if let database = databaseHandle {
-        sqlite3_close_v2(database)
+        PremiseSQLite.sqlite3_close_v2(database)
       }
       throw Self.openError(openResult, path: path)
     }
@@ -57,7 +58,7 @@ public final class SQLiteConnection: @unchecked Sendable {
     do {
       try Self.configure(database)
     } catch {
-      sqlite3_close_v2(database)
+      PremiseSQLite.sqlite3_close_v2(database)
       throw error
     }
   }
@@ -66,7 +67,7 @@ public final class SQLiteConnection: @unchecked Sendable {
     SQLiteError.resultCode(result, context: "sqlite3_open_v2 failed for path: \(path)")
   }
   private static func configure(_ database: OpaquePointer) throws {
-    sqlite3_busy_timeout(database, 5000)
+    PremiseSQLite.sqlite3_busy_timeout(database, 5000)
     try SQLiteSchema.exec(database, "PRAGMA journal_mode=WAL;")
     try SQLiteSchema.exec(database, "PRAGMA synchronous=NORMAL;")
     try SQLiteSchema.exec(database, "PRAGMA wal_autocheckpoint=1000;")
@@ -86,6 +87,6 @@ public final class SQLiteConnection: @unchecked Sendable {
   }
 
   deinit {
-    sqlite3_close_v2(handle)
+    PremiseSQLite.sqlite3_close_v2(handle)
   }
 }

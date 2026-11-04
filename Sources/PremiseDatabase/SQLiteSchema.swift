@@ -1,4 +1,4 @@
-import SQLite3
+import PremiseSQLite
 
 /// DDL definitions and schema management for the Premise failures database.
 ///
@@ -70,9 +70,9 @@ public enum SQLiteSchema {
   /// - Throws: ``SQLiteError/resultCode(_:context:)`` when the result
   ///   is not `SQLITE_OK`.
   static func exec(_ database: OpaquePointer, _ sql: String) throws {
-    let result = sqlite3_exec(database, sql, nil, nil, nil)
+    let result = PremiseSQLite.sqlite3_exec(database, sql, nil, nil, nil)
     guard result == SQLITE_OK else {
-      let message = String(cString: sqlite3_errmsg(database))
+      let message = String(cString: PremiseSQLite.sqlite3_errmsg(database))
       throw SQLiteError.resultCode(result, context: message)
     }
   }
@@ -85,16 +85,17 @@ public enum SQLiteSchema {
   private static func userVersion(_ database: OpaquePointer) throws -> Int32 {
     var stmt: OpaquePointer?
     let sql = "PRAGMA user_version;"
-    let prepareResult = sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
+    let prepareResult =
+      PremiseSQLite.sqlite3_prepare_v2(database, sql, -1, &stmt, nil)
     guard prepareResult == SQLITE_OK, let statement = stmt else {
-      let message = String(cString: sqlite3_errmsg(database))
+      let message = String(cString: PremiseSQLite.sqlite3_errmsg(database))
       throw SQLiteError.resultCode(prepareResult, context: message)
     }
-    defer { sqlite3_finalize(statement) }
+    defer { PremiseSQLite.sqlite3_finalize(statement) }
 
-    guard sqlite3_step(statement) == SQLITE_ROW else {
+    guard PremiseSQLite.sqlite3_step(statement) == SQLITE_ROW else {
       return 0
     }
-    return sqlite3_column_int(statement, 0)
+    return PremiseSQLite.sqlite3_column_int(statement, 0)
   }
 }

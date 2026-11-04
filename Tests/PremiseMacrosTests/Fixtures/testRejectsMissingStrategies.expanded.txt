@@ -1,0 +1,3 @@
+func noStrategies(n: Int) {
+    #expect(n >= 0)
+}

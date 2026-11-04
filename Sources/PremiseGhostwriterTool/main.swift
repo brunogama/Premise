@@ -1,4 +1,5 @@
 import Foundation
+import PremiseToolSupport
 import PremiseGhostwriter
 
 enum PremiseGhostwriterTool {
@@ -7,22 +8,19 @@ enum PremiseGhostwriterTool {
       let arguments = Array(CommandLine.arguments.dropFirst())
       let options = try GhostwriterOptions(arguments: arguments)
       if options.showHelp {
-        output(helpText)
+        try ToolIO.emit(helpText)
         return
       }
 
       let source = try PremiseGhostwriter.render(options.request)
-      output(source)
+      try ToolIO.emit(source)
     } catch {
-      fputs("premise-ghostwriter: \(error)\n", stderr)
-      let usage = "Run `swift package premise-ghostwriter --help` for usage.\n"
-      fputs(usage, stderr)
+      _ = try? ToolIO.logError("premise-ghostwriter: \(error)")
+      _ = try? ToolIO.logError(
+        "Run `swift package premise-ghostwriter --help` for usage."
+      )
       Foundation.exit(1)
     }
-  }
-
-  private static func output(_ text: String) {
-    FileHandle.standardOutput.write(Data((text + "\n").utf8))
   }
 
   private static let helpText = """

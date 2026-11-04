@@ -1,0 +1,4 @@
+@given(.bools, explicitExamples: [1], examples: [.xfail(2)])
+func exampled(b: Bool) {
+    #expect(b || !b)
+}

@@ -14,12 +14,17 @@ for mode in default source binary; do
 import json, sys
 package = json.load(sys.stdin)
 names = {entry["name"] for key in ("products", "targets") for entry in package[key]}
-excluded = {"PremiseMacros", "PremiseMacrosPlugin"} & names
-if excluded:
-    sys.exit("macro targets or products unexpectedly present: " + ", ".join(sorted(excluded)))
-if package["dependencies"]:
+macros = {"PremiseMacros", "PremiseMacrosPlugin"} & names
+mode = sys.argv[1]
+expected = set() if mode == "default" else {"PremiseMacros", "PremiseMacrosPlugin"}
+if macros != expected:
+    sys.exit(f"incorrect macro targets/products for {mode}: {sorted(macros)}")
+if mode == "source":
+    if "PremiseMacrosTests" not in names or len(package["dependencies"]) != 1:
+        sys.exit("source macro opt-in must include expansion tests and swift-syntax")
+elif package["dependencies"]:
     sys.exit("unexpected package dependencies")
-'
+' "$mode"
 done
 
 # The retained artifact script must fail before touching existing artifacts.
@@ -44,4 +49,4 @@ if ! grep -Fq 'macro artifacts are unavailable in this version' "$fixture/output
   printf 'artifact build did not explain macro exclusion\n' >&2
   exit 1
 fi
-printf 'macro exclusion verified\n'
+printf 'default macro exclusion and source/binary opt-ins verified\n'

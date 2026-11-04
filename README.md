@@ -51,22 +51,22 @@ repeatably in future runs.
 
 ### Install with SwiftPM
 
-Premise is versioned for Swift Package Manager. The current release is `1.0.1`; add it as your minimum compatible version in `Package.swift`:
+Premise is versioned for Swift Package Manager. The current release is `1.0.2`; add it as your minimum compatible version in `Package.swift`:
 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/brunogama/Premise.git", from: "1.0.1"),
+    .package(url: "https://github.com/brunogama/Premise.git", from: "1.0.2"),
 ]
 ```
 
-If you want to pin exactly to the `1.0.1` tag for package tracking, use `exact` instead:
+If you want to pin exactly to the `1.0.2` tag for package tracking, use `exact` instead:
 
 ```swift
-.package(url: "https://github.com/brunogama/Premise.git", exact: "1.0.1")
+.package(url: "https://github.com/brunogama/Premise.git", exact: "1.0.2")
 ```
 
-In Xcode, use **File > Add Package Dependencies…**, enter `https://github.com/brunogama/Premise.git`, choose **Up to Next Major Version**, and set the version to `1.0.1`.
+In Xcode, use **File > Add Package Dependencies…**, enter `https://github.com/brunogama/Premise.git`, choose **Up to Next Major Version**, and set the version to `1.0.2`.
 
 Then add the products you need to your test target:
 
@@ -360,8 +360,10 @@ recorded in run statistics for triage.
 
 ## Macro availability
 
-The experimental `@given` macro is not included in this version. Use
-`forAll` or `premise_forAll` to run property tests instead.
+The experimental `@given` macro is excluded from the default package. Use
+`forAll` or `premise_forAll` without macro dependencies, or opt in to a source
+build with `PREMISE_MACRO_SOURCE=1`. Binary opt-in requires
+`PREMISE_MACRO_BINARY=1` and `PREMISE_MACRO_BINARY_CHECKSUM`.
 
 ## Package map
 
@@ -417,7 +419,7 @@ bash scripts/validate-boundaries.sh
 ### Invariants
 
 - Choice traces support deterministic replay across generation, execution, and failure persistence.
-- Core and strategy targets must not depend on XCTest or Swift Testing; the experimental macro is excluded from this version.
+- Core and strategy targets must not depend on XCTest or Swift Testing; the experimental macro is excluded by default.
 
 ### Side effects
 

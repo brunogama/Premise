@@ -100,7 +100,7 @@ func expectForAllReportsFalsePredicates() async throws {
   await withKnownIssue {
     try await expectForAll(
       Strategy<Int>.just(1),
-      config: .bounded(runs: 1, replay: false)
+      config: isolatedFailureStorage(.bounded(runs: 1, replay: false))
     ) { value in
       value == 2
     }

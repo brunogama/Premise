@@ -145,7 +145,8 @@ private func record(
   let arguments =
     analyzerArguments(from: target.arguments)
     + ["-I", target.importPath, "-module-name", target.moduleName]
-    + ["-index-store-path", indexPath] + z3Arguments(target: target, root: root)
+    + ["-index-store-path", indexPath]
+    + systemLibraryArguments(target: target, root: root)
     + target.sourceFiles
   let command = commandLine(arguments: arguments)
   return [
@@ -156,13 +157,22 @@ private func record(
   ]
 }
 
-private func z3Arguments(target: TargetCommand, root: URL) -> [String] {
-  guard target.moduleName == "PremiseSMT" else { return [] }
+private func systemLibraryArguments(
+  target: TargetCommand,
+  root: URL
+) -> [String] {
+  let systemModule: String
+  switch target.moduleName {
+  case "PremiseSMT": systemModule = "CZ3"
+  case "PremiseSQLite": systemModule = "CSQLite"
+  default: return []
+  }
   let moduleMap = root.appendingPathComponent(
-    "Sources/CZ3/module.modulemap"
+    "Sources/\(systemModule)/module.modulemap"
   ).path
+  let cflags = target.moduleName == "PremiseSMT" ? target.cflags : []
   return ["-Xcc", "-fmodule-map-file=\(moduleMap)"]
-    + target.cflags.flatMap { ["-Xcc", $0] }
+    + cflags.flatMap { ["-Xcc", $0] }
 }
 private func commandLine(arguments: [String]) -> String {
   (["swiftc"] + arguments).map(shellQuote).joined(separator: " ")

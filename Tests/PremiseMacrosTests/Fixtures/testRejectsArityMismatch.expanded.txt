@@ -1,0 +1,3 @@
+func twoParams(a: Int, b: Int) {
+    #expect(a >= 0)
+}

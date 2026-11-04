@@ -1,0 +1,11 @@
+func nonNegative(n: Int) {
+    #expect(n >= 0)
+}
+
+struct nonNegative_Given {
+    @Test func test() async throws {
+        try await forAll(.integers(in: 0 ... 100)) { (n) in
+            #expect(n >= 0)
+        }
+    }
+}

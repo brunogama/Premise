@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No unreleased changes in this branch.
+
+## v1.0.2 - 2026-07-14
+
 ### Added
 
 - Added adapter-level explicit examples, including expected-failing examples.

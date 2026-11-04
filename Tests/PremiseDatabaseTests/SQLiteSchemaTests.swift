@@ -1,5 +1,5 @@
 import Foundation
-import SQLite3
+import PremiseSQLite
 import Testing
 
 @testable import PremiseDatabase

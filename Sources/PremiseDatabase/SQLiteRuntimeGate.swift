@@ -1,4 +1,4 @@
-import SQLite3
+import PremiseSQLite
 
 /// Fail-fast runtime check ensuring the linked SQLite library supports
 /// WAL mode without the known corruption bugs fixed in 3.51.3.
@@ -14,7 +14,7 @@ public enum SQLiteRuntimeGate {
 
   /// Returns `true` when the linked SQLite runtime is safe for WAL mode.
   public static func isWALSafe() -> Bool {
-    let version = sqlite3_libversion_number()
+    let version = PremiseSQLite.sqlite3_libversion_number()
     return version >= minimumSafeVersion || safeBackports.contains(version)
   }
 
@@ -26,7 +26,7 @@ public enum SQLiteRuntimeGate {
   public static func assertWALSafeRuntime() throws {
     guard isWALSafe() else {
       throw SQLiteError.unsupportedWALRuntime(
-        versionNumber: sqlite3_libversion_number()
+        versionNumber: PremiseSQLite.sqlite3_libversion_number()
       )
     }
   }

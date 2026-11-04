@@ -12,6 +12,7 @@ private enum CounterOperation: ModelOperation, Equatable {
     switch self {
     case .insert(let value):
       model.insert(value)
+
     case .remove(let value):
       model.remove(value)
     }
