@@ -1,7 +1,7 @@
 import PremiseCore
 import PremiseDatabase
 import Foundation
-import SQLite3
+import PremiseSQLite
 import Testing
 
 /// Round-trip tests for ``SQLiteBackedDatabase``.

@@ -1,4 +1,4 @@
-import SQLite3
+import PremiseSQLite
 
 /// Fail-fast runtime check ensuring the linked SQLite library supports
 /// WAL mode without the known corruption bugs fixed in 3.51.3.

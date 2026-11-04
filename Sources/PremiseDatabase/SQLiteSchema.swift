@@ -1,4 +1,4 @@
-import SQLite3
+import PremiseSQLite
 
 /// DDL definitions and schema management for the Premise failures database.
 ///

@@ -26,7 +26,7 @@ func forAllFailingProperty() async throws {
   let strategy = Strategy<Int>.integers(in: 1...10)
   // The integers strategy returns lowerBound (1), so checking > 5 fails.
   await withKnownIssue {
-    try await forAll(strategy) { value in
+    try await forAll(strategy, config: isolatedFailureStorage()) { value in
       guard value > 5 else {
         throw PropertyTestFailure(message: "value \(value) is not > 5")
       }
@@ -39,7 +39,7 @@ func forAllFailureContainsCounterexample() async throws {
   let strategy = Strategy<Int>.integers(in: 0...100)
   // Verify the adapter executes the property and records an issue on failure.
   await withKnownIssue {
-    try await forAll(strategy) { _ in
+    try await forAll(strategy, config: isolatedFailureStorage()) { _ in
       throw PropertyTestFailure(message: "always fails")
     }
   }
@@ -50,7 +50,7 @@ func forAllRunsExplicitExamplesBeforeGeneration() async throws {
   await withKnownIssue {
     try await forAll(
       Strategy<Int>.just(99),
-      config: PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit]),
+      config: isolatedFailureStorage(PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])),
       explicitExamples: [3]
     ) { value in
       if value == 3 {

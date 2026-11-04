@@ -47,6 +47,14 @@ if buildMacroFromSource {
       name: "PremiseMacros",
       dependencies: ["PremiseMacrosPlugin"]
     ),
+    .testTarget(
+      name: "PremiseMacrosTests",
+      dependencies: [
+        "PremiseMacrosPlugin",
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ]
+    ),
   ]
   macroDependencies = [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0")
@@ -67,7 +75,7 @@ if buildMacroFromSource {
     .binaryTarget(
       name: "PremiseMacrosPlugin",
       url:
-        "https://github.com/brunogama/Premise/releases/download/v1.0.0/PremiseMacrosPlugin.artifactbundle.zip",
+        "https://github.com/brunogama/Premise/releases/download/v1.0.2/PremiseMacrosPlugin.artifactbundle.zip",
       checksum: checksum
     ),
     .target(
@@ -115,15 +123,29 @@ let package = Package(
   ],
   dependencies: macroDependencies,
   targets: [
-    .target(name: "PremiseCore"),
+    .target(
+      name: "PremiseCore",
+      resources: [.copy("Documentation.docc")]
+    ),
     .target(
       name: "PremiseStrategies",
       dependencies: ["PremiseCore"]
     ),
     .target(
       name: "PremiseDatabase",
-      dependencies: ["PremiseCore"]
+      dependencies: ["PremiseCore", "PremiseSQLite"]
     ),
+    // Re-exports Darwin's SQLite3 module or the Linux CSQLite shim so that
+    // sqlite-facing files need one unconditional import.
+    .target(
+      name: "PremiseSQLite",
+      dependencies: [
+        .target(name: "CSQLite", condition: .when(platforms: [.linux]))
+      ]
+    ),
+    // Shared stdio for the command-line tools; avoids C stdio globals that
+    // Swift 6 strict concurrency rejects on Linux.
+    .target(name: "PremiseToolSupport"),
     .target(
       name: "PremiseFuzzing",
       dependencies: [
@@ -134,7 +156,7 @@ let package = Package(
     .target(name: "PremiseGhostwriter"),
     .executableTarget(
       name: "PremiseGhostwriterTool",
-      dependencies: ["PremiseGhostwriter"]
+      dependencies: ["PremiseGhostwriter", "PremiseToolSupport"]
     ),
     .plugin(
       name: "PremiseGhostwriterPlugin",
@@ -176,6 +198,7 @@ let package = Package(
       dependencies: [
         "PremiseCore",
         "PremiseDatabase",
+        "PremiseToolSupport",
       ]
     ),
     .plugin(
@@ -215,6 +238,12 @@ let package = Package(
       pkgConfig: "z3",
       providers: [.brew(["z3"]), .apt(["z3"])]
     ),
+    // Darwin ships the SQLite3 module; Linux needs the system library shim.
+    .systemLibrary(
+      name: "CSQLite",
+      pkgConfig: "sqlite3",
+      providers: [.brew(["sqlite"]), .apt(["libsqlite3-dev"])]
+    ),
 
     // MARK: - v1 Test Targets
 
@@ -234,6 +263,7 @@ let package = Package(
       dependencies: [
         "PremiseCore",
         "PremiseDatabase",
+        "PremiseSQLite",
       ]
     ),
     .testTarget(
