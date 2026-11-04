@@ -1,7 +1,7 @@
 import Foundation
 import PremiseCore
 import PremiseDatabase
-import SQLite3
+import PremiseSQLite
 
 extension SQLiteV1CompatibilityTests {
   // Manually inserts a row into the failures table using raw SQLite C API.
