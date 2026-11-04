@@ -5,7 +5,6 @@ tmp=$(mktemp -d "${TMPDIR:-/tmp}/premise-staged-format.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 mkdir -p "$tmp/scripts"
 cp "$root/.swift-format" "$tmp/.swift-format"
-cp "$root/scripts/.swift-format" "$tmp/scripts/.swift-format"
 cp "$root/scripts/format_staged_files.sh" "$tmp/scripts/format_staged_files.sh"
 cd "$tmp"
 git init -q

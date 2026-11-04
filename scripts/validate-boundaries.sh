@@ -24,8 +24,8 @@ contains_test_framework_import() {
 }
 
 core_strategy_sources=(
-  Sources/PremiseCore/*.swift
-  Sources/PremiseStrategies/*.swift
+  Sources/PremiseCore/**/*.swift
+  Sources/PremiseStrategies/**/*.swift
 )
 
 if contains_test_framework_import "${core_strategy_sources[@]}"; then
@@ -33,8 +33,8 @@ if contains_test_framework_import "${core_strategy_sources[@]}"; then
 fi
 
 macro_sources=(
-  Sources/PremiseMacrosPlugin/*.swift
-  Sources/PremiseMacros/*.swift
+  Sources/PremiseMacrosPlugin/**/*.swift
+  Sources/PremiseMacros/**/*.swift
 )
 if contains_test_framework_import "${macro_sources[@]}"; then
   fail "test framework imports are not allowed in macro source targets"
