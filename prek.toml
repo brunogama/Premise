@@ -99,7 +99,7 @@ always_run = true
 [[repos.hooks]]
 id = "license-year-updater"
 name = "📅 Updating LICENSE year..."
-entry = '''bash -c 'if [ -f "LICENSE" ]; then CURRENT_YEAR=$(date +"%Y"); sed -i "" "s/Copyright (c) [0-9]\\{4\\}/Copyright (c) $CURRENT_YEAR/" LICENSE; fi''''
+entry = "bash -c 'if [ -f \"LICENSE\" ]; then CURRENT_YEAR=$(date +\"%Y\"); if sed --version >/dev/null 2>&1; then sed -i \"s/Copyright (c) [0-9]\\{4\\}/Copyright (c) $CURRENT_YEAR/\" LICENSE; else sed -i \"\" \"s/Copyright (c) [0-9]\\{4\\}/Copyright (c) $CURRENT_YEAR/\" LICENSE; fi; fi'"
 language = "system"
 files = "^LICENSE$"
 pass_filenames = false

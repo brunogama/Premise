@@ -12,6 +12,7 @@ fail() {
 
 contains_test_framework_import() {
   local file line
+  shopt -s globstar nullglob
   for file in "$@"; do
     [[ -f "$file" ]] || continue
     while IFS= read -r line || [[ -n "$line" ]]; do
