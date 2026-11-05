@@ -11,10 +11,116 @@ For day-to-day repository operating behavior, follow `AGENTS.md`.
 - Every release must correspond to intentional, validated code.
 - Do not release from a dirty worktree.
 - Do not release if formatter, lint, build, tests, or coverage gates fail.
-- Do not publish a release unless the user explicitly asked.
+- Publish only through the approved main-branch automation or an explicit user request.
 - Once a version has been released, its contents must not be modified.
 - Any post-release change requires a new version.
 - Release from validated `main`, not from a long-lived release branch.
+
+---
+
+## Automatic version tags
+
+`.github/workflows/semantic-release.yml` waits for `CI` to pass for a push to
+`main` in this repository. It publishes a version if the unreleased commits
+include a feature, fix or breaking change. Pull request runs, failed CI, manual
+runs and fork runs cannot publish.
+
+The command analyzes commits since the highest reachable stable
+`vMAJOR.MINOR.PATCH` tag. It ignores merge commit messages but includes commits
+from merged branches. For squash merges, use a Conventional Commit message for
+the squash commit. A breaking change takes precedence over a feature, and a
+feature takes precedence over a fix. Types are case-insensitive, so `Feat:` and
+`FIX:` behave like `feat:` and `fix:`. Breaking footer tokens must be uppercase.
+
+| Commit message | Result from `v1.0.2` |
+| --- | --- |
+| `fix: repair replay` | `v1.0.3` |
+| `feat(replay): add trace support` | `v1.1.0` |
+| `refactor!: rename replay` | `v2.0.0` |
+| Any conventional type with a `BREAKING CHANGE:` or `BREAKING-CHANGE:` footer | `v2.0.0` |
+| Only `docs:`, `chore:`, other nonbreaking types, or nonconventional commits | No tag |
+
+The command uses only stable tags without leading zeros as baselines. It ignores
+prerelease tags and tags outside the current commit's ancestry. If it finds no
+stable baseline, it exits with an error.
+
+CI must pass all jobs, including the release-command tests. A macOS job with
+read-only permissions then runs strict Swift format and SwiftLint checks with
+the root configurations. It also runs the analyzer after a fresh build and runs
+repository QA. The publisher runs only if that job succeeds. Only one release
+runs at a time. A new run does not cancel a publication already in progress.
+
+The publisher requires a clean worktree and index. It compares the checked-out
+CI commit with the current tip of `main` on `origin`. If they differ, it exits
+successfully without publishing. It checks the README versions between the
+release markers before editing them. Each version must match the baseline tag.
+It commits only `README.md` and creates an annotated tag on that commit. It pushes
+`main` and the tag together with `git push --atomic`, without force. It refuses
+to replace an existing tag.
+
+Before Git sends the updates, `scripts/release_push.py` checks the old SHA that
+`origin` advertised for `main`. It must match the CI commit. If another writer
+rewinds `main` before Git negotiates the push, the hook rejects publication.
+The server also compares its current `main` SHA with that old SHA before
+accepting the push. It accepts both updates or neither.
+
+The publisher honors `core.hooksPath`, including relative paths. It restores the
+original Git configuration environment before running existing hooks. It
+preserves their arguments, standard input, working directory and exit behavior.
+Other configured hooks still run when Git calls them during the push. Only this
+push uses the temporary hook configuration. The publisher does not write
+repository or user settings. A rerun after success does not create another version.
+
+The command edits only the installation text between
+`<!-- release-version:start -->` and `<!-- release-version:end -->`.
+Keep the five installation versions, tag label and tag URL consistent with the
+baseline tag. The command leaves other README text and version numbers unchanged.
+
+Only the publisher job has `contents: write` permission. Its commits use the
+GitHub Actions bot identity. The repository must allow its `GITHUB_TOKEN` to push
+`main` and create tags. The publisher does not bypass protection rules. If a rule
+blocks a write, publication fails. Pushes that use `GITHUB_TOKEN` do not trigger
+push-based workflows. The README commit and tag therefore do not start another
+CI or release run.
+
+### Inspect a release plan
+
+Use Python 3.10 or newer and a checkout with full Git history. From the repository
+root, run:
+
+```bash
+python3 -B scripts/release_version.py
+```
+
+The default mode reads local history and README content. It does not fetch,
+edit files or change Git references. It prints JSON with `planned` or `skipped`,
+the baseline, the proposed version and the tag. Fetch history and tags separately
+if your checkout is incomplete. Only the CI publisher should use `--publish`.
+The command does not run Swift validation.
+
+If the SHA check or an existing pre-push hook rejects publication, the publisher
+does not update remote references. If the server rejects an update, it rejects
+both the branch and tag. A competing writer's change or rollback remains in place.
+The CI checkout may still contain its local README commit and tag. Inspect the
+error and current remote references before retrying from a fresh checkout of the
+intended `main` commit. That commit must have passed CI. Do not undo a deliberate
+rollback or bypass a rejecting hook to make a retry succeed.
+
+Do not force-push or move a published tag. If you lose the push response, inspect
+remote `main` and the tag before retrying. Use a fresh checkout for the retry.
+Other authorized writers can still change branches or tags after this push.
+
+### Keep macro publication separate
+
+This automation creates only a README commit and a Git tag. It does not create a
+GitHub Release, change `CHANGELOG.md`, publish macro assets, or update the pinned
+macro URL and checksum in `Package.swift`. The existing
+`.github/workflows/release.yml` handles macro artifacts separately. A Git tag does
+not trigger its `release: created` event. Use the manual release checklist below
+when preparing release notes or publishing macro artifacts. Maintainers own
+changelog entries.
+
+---
 
 ## Versioning
 Use semantic versioning:
@@ -43,7 +149,7 @@ Use for:
 - bug fixes
 - internal fixes with no API change
 - build or packaging fixes without public API changes
-- docs-only clarifications if this repository tags docs releases
+- Use `fix:` for corrections that need a release. Docs-only commits do not create tags.
 
 ### Minor
 Use for:
@@ -123,7 +229,7 @@ Examples:
 - `v1.0.0`
 - `v2.3.1`
 
-Do not create tags unless the user explicitly asked.
+Create tags only through the approved main-branch automation or an explicit user request.
 
 ## Release Notes
 Release notes should summarize:

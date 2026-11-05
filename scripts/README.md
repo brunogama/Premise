@@ -8,6 +8,13 @@ Repository maintenance and release-artifact scripts.
 
 ## Interface
 
+- `python3 -B scripts/release_version.py` prints a read-only release plan from
+  local Git history. CI uses `--publish` to commit the README installation versions
+  and push `main` and a new annotated tag together. See
+  [Automatic version tags](../RELEASING.md#automatic-version-tags) for the required
+  checks and retry instructions.
+- `python3 -B scripts/test_release_version.py` tests release planning and
+  publication in temporary local Git repositories. It does not contact GitHub.
 - `bash scripts/validate-boundaries.sh` checks selected package declarations, dependency edges, and prohibited test-framework imports.
 - `sh scripts/format_staged_files.sh <files...>` formats staged Swift content with the root `.swift-format` while preserving unstaged edits.
 - `sh scripts/test-format-staged-files.sh` verifies the formatter policy and unstaged-edit preservation in a disposable Git repository.
@@ -34,6 +41,10 @@ Repository maintenance and release-artifact scripts.
 
 - Boundary validation reads repository source and the package manifest.
 - The disabled artifact script leaves existing artifacts untouched.
+- The release command leaves files and Git references unchanged unless you pass
+  `--publish`. Publication fetches history and tags from `origin`, stages only
+  `README.md`, and pushes the commit and tag atomically. It does not create a
+  GitHub Release or macro artifact.
 
 ---
 
