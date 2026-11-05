@@ -13,7 +13,7 @@ if [ ! -f "$ROOT/Sources/CZ3/module.modulemap" ]; then
 fi
 mkdir -p "$ROOT/.build"
 BUILD_PATH="$(mktemp -d "$ROOT/.build/swiftlint-analyze.XXXXXX")"
-trap 'rm -rf "$BUILD_PATH"' EXIT
+trap 'printf "SwiftLint diagnostic build retained at %s\n" "$BUILD_PATH"' EXIT
 trap 'exit 1' HUP INT TERM
 CFLAGS="$(pkg-config --cflags z3)" || {
   echo "Unable to obtain z3 compiler flags from pkg-config." >&2
@@ -31,7 +31,7 @@ BUILD_DIRECTORY="${DESCRIPTION_PATH%/description.json}"
 swift "$ROOT/scripts/write_swiftlint_compile_commands.swift" \
   "$ROOT" "$BUILD_DIRECTORY" "$BUILD_PATH/compile_commands.json" "$BUILD_PATH/z3-cflags.txt"
 status=0
-find "$ROOT/Sources" -name '*.swift' -print0 | xargs -0 swiftlint analyze \
+find "$ROOT/Sources" -name '*.swift' -print0 | xargs -0 env DYLD_PRINT_LIBRARIES=1 swiftlint analyze \
   --strict \
   --config "$ROOT/.swiftlint.yml" \
   --compile-commands "$BUILD_PATH/compile_commands.json" \

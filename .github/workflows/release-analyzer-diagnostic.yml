@@ -1,0 +1,120 @@
+name: Release analyzer diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/release-analyzer
+
+permissions:
+  contents: read
+
+jobs:
+  analyzer:
+    name: Analyzer comparison (Swift ${{ matrix.swift }} and bundled SDK)
+    runs-on: macos-26
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.2", "6.3"]
+    steps:
+      - name: Check out diagnostic source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Select and assert Swift toolchain
+        uses: ./.github/actions/select-swift-toolchain
+        with:
+          swift-version: ${{ matrix.swift }}
+
+      - name: Install release validation tools
+        run: |
+          brew list --versions swiftlint >/dev/null || brew install swiftlint
+          brew list --versions z3 >/dev/null || brew install z3
+          brew list --versions pkg-config >/dev/null || brew install pkg-config
+
+      - name: Record tool identity and assert comparison versions
+        env:
+          REQUESTED_SWIFT: ${{ matrix.swift }}
+        run: |
+          mkdir -p .build/release-analyzer-diagnostic
+          exec >.build/release-analyzer-diagnostic/identity.log 2>&1
+          printf 'git HEAD: '
+          git rev-parse HEAD
+          printf 'ImageOS=%s\n' "${ImageOS:-}"
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}"
+          printf 'DEVELOPER_DIR=%s\n' "${DEVELOPER_DIR:-}"
+          printf 'TOOLCHAINS=%s\n' "${TOOLCHAINS:-}"
+          printf 'TOOLCHAIN_DIR=%s\n' "${TOOLCHAIN_DIR:-}"
+          printf 'XCODE_DEFAULT_TOOLCHAIN_OVERRIDE=%s\n' \
+            "${XCODE_DEFAULT_TOOLCHAIN_OVERRIDE:-}"
+          printf 'swift path: '
+          command -v swift
+          swift_version="$(swift --version)"
+          printf '%s\n' "$swift_version"
+          printf 'swiftc path: '
+          command -v swiftc
+          swiftc --version
+          printf 'xcrun swift path: '
+          xcrun --find swift
+          printf 'xcrun swiftc path: '
+          xcrun --find swiftc
+          printf 'macOS SDK path: '
+          xcrun --sdk macosx --show-sdk-path
+          printf 'macOS SDK version: '
+          xcrun --sdk macosx --show-sdk-version
+          printf 'SwiftLint path: '
+          swiftlint_path="$(command -v swiftlint)"
+          printf '%s\n' "$swiftlint_path"
+          swiftlint_version="$(swiftlint version)"
+          printf 'SwiftLint version: %s\n' "$swiftlint_version"
+          shasum -a 256 "$swiftlint_path"
+          if [[ "$swiftlint_version" != "0.65.1" ]]; then
+            echo 'error: comparison requires SwiftLint exactly 0.65.1' >&2
+            exit 1
+          fi
+          if [[ "$REQUESTED_SWIFT" == "6.2" ]]; then
+            baseline_dir=/Applications/Xcode_26.3.app/Contents/Developer
+            baseline_version='Swift version 6\.2\.4([[:space:]]|$)'
+            if [[ "${DEVELOPER_DIR:-}" != "$baseline_dir" ]] ||
+              [[ ! "$swift_version" =~ $baseline_version ]]; then
+              echo 'error: baseline requires Xcode_26.3.app, Swift 6.2.4' >&2
+              exit 1
+            fi
+          fi
+
+      - name: Check strict Swift formatting
+        run: |
+          swift format lint --strict --configuration .swift-format \
+            --recursive Package.swift Sources Tests Plugins scripts
+
+      - name: Run strict root SwiftLint
+        run: swiftlint lint --strict --config .swiftlint.yml
+
+      - name: Fresh build and instrumented SwiftLint analyzer
+        run: |
+          log=.build/release-analyzer-diagnostic/build-console.log
+          status=0
+          sh scripts/run_swiftlint_analyze.sh >"$log" 2>&1 || status=$?
+          cat "$log"
+          exit "$status"
+
+      - name: Run repository QA
+        run: swift scripts/qa_repository.swift .
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-analyzer-swift-${{ matrix.swift }}-macos-26
+          retention-days: 3
+          include-hidden-files: true
+          if-no-files-found: warn
+          path: |
+            .build/release-analyzer-diagnostic/identity.log
+            .build/release-analyzer-diagnostic/build-console.log
+            .build/swiftlint-analyze.*/compile_commands.json
+            .build/swiftlint-analyze.*/analyzer.log
+            .build/swiftlint-analyze.*/*.yaml
+            .build/swiftlint-analyze.*/**/debug/description.json
