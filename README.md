@@ -51,6 +51,8 @@ repeatably in future runs.
 
 ### Install with SwiftPM
 
+<!-- release-version:start -->
+
 Premise is versioned for Swift Package Manager. The current release is `1.0.2`; add it as your minimum compatible version in `Package.swift`:
 
 ```swift
@@ -67,6 +69,10 @@ If you want to pin exactly to the `1.0.2` tag for package tracking, use `exact` 
 ```
 
 In Xcode, use **File > Add Package Dependencies…**, enter `https://github.com/brunogama/Premise.git`, choose **Up to Next Major Version**, and set the version to `1.0.2`.
+
+[Release tag v1.0.2](https://github.com/brunogama/Premise/tree/v1.0.2).
+
+<!-- release-version:end -->
 
 Then add the products you need to your test target:
 

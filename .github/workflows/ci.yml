@@ -12,6 +12,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-command-tests:
+    name: Release command tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Test semantic version planning and atomic local publication
+        run: python3 -B scripts/test_release_version.py
+
   # ---------------------------------------------------------------------------
   # macOS (primary — builds + tests everything)
   #
