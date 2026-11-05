@@ -1,0 +1,4 @@
+parent_config: ../../../.swiftlint.yml
+# Result-builder structs are existing public API types.
+disabled_rules:
+  - convenience_type

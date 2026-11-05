@@ -50,7 +50,9 @@ func forAllRunsExplicitExamplesBeforeGeneration() async throws {
   await withKnownIssue {
     try await forAll(
       Strategy<Int>.just(99),
-      config: isolatedFailureStorage(PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])),
+      config: isolatedFailureStorage(
+        PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])
+      ),
       explicitExamples: [3]
     ) { value in
       if value == 3 {

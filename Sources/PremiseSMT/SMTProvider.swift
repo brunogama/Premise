@@ -19,19 +19,23 @@ public struct SMTProvider: PrimitiveProvider, Sendable {
     self.exhaustedFlag = false
   }
 
+  /// Draws the requested number of bits from the fallback provider.
   public mutating func drawBits(count: Int) -> UInt64 {
     fallback.drawBits(count: count)
   }
 
+  /// Draws the requested number of bytes from the fallback provider.
   public mutating func drawBytes(count: Int) -> [UInt8] {
     fallback.drawBytes(count: count)
   }
 
+  /// Marks this provider and its fallback as exhausted.
   public mutating func markExhausted() {
     exhaustedFlag = true
     fallback.markExhausted()
   }
 
+  /// Whether this provider or its fallback is exhausted.
   public var isExhausted: Bool {
     exhaustedFlag || fallback.isExhausted
   }

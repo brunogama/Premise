@@ -1,0 +1,11 @@
+func exampled(b: Bool) {
+    #expect(b || !b)
+}
+
+struct exampled_Given {
+    @Test func test() async throws {
+        try await forAll(.bools, explicitExamples: [1], examples: [.xfail(2)]) { (b) in
+            #expect(b || !b)
+        }
+    }
+}

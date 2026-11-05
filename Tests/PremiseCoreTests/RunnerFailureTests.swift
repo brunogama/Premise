@@ -9,7 +9,8 @@ private enum FailureTestsError: Error {
 @Test("Runner reports passed for a non-failing property")
 func runnerReportsPassed() async {
   let strategy = Strategy<Int>.just(1)
-  let runner = Runner(strategy: strategy, config: PropertyConfig(maxRuns: 1, seed: 1))
+  let config = PropertyConfig(maxRuns: 1, seed: 1)
+  let runner = Runner(strategy: strategy, config: config)
 
   let result = await runner.run { value in
     #expect(value == 1)
@@ -25,17 +26,7 @@ func runnerReportsPassed() async {
 
 @Test("Runner reports failure with trace data")
 func runnerReportsFailure() async {
-  let strategy = Strategy<Int>.integers(in: 0...0)
-  let propertyID = PropertyIdentity(
-    fileID: "RunnerFailureTests",
-    line: 1,
-    strategyLabel: strategy.label
-  )
-  let runner = Runner(
-    strategy: strategy,
-    config: PropertyConfig(maxRuns: 1, seed: 1),
-    propertyID: propertyID
-  )
+  let runner = failingRunner()
 
   let result = await runner.run { value in
     if value == 0 {
@@ -56,5 +47,19 @@ func runnerReportsFailure() async {
       }
       return false
     }
+  )
+}
+
+private func failingRunner() -> Runner<Int> {
+  let strategy = Strategy<Int>.integers(in: 0...0)
+  let propertyID = PropertyIdentity(
+    fileID: "RunnerFailureTests",
+    line: 1,
+    strategyLabel: strategy.label
+  )
+  return Runner(
+    strategy: strategy,
+    config: PropertyConfig(maxRuns: 1, seed: 1),
+    propertyID: propertyID
   )
 }

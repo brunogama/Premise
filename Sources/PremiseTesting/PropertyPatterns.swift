@@ -1,10 +1,11 @@
 // Pattern helpers mirror `forAll` source-location and example plumbing.
-// swiftlint:disable function_parameter_count
 #if canImport(Testing)
 import PremiseCore
 
 /// Checks that encoding then decoding preserves values from `strategy`.
 public func expectRoundTrip<Value: Sendable, Encoded: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve round-trip closures, examples, and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -36,7 +37,13 @@ public func expectRoundTrip<Value: Sendable, Encoded: Sendable>(
 }
 
 /// Checks that a pure model and async implementation agree for generated inputs.
-public func expectModelAgreement<Input: Sendable, Model: Sendable, Actual: Sendable>(
+public func expectModelAgreement<
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve model and implementation closures, examples, and caller-captured source locations.
+  Input: Sendable,
+  Model: Sendable,
+  Actual: Sendable
+>(
   _ strategy: Strategy<Input>,
   config: PropertyConfig = .default,
   explicitExamples: [Input] = [],
@@ -67,4 +74,3 @@ public func expectModelAgreement<Input: Sendable, Model: Sendable, Actual: Senda
   }
 }
 #endif
-// swiftlint:enable function_parameter_count

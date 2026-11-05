@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:802dfe26b3d0a9fc07795d7542edd1ca08197296a122787a38f25072e34fbd39",
+  "claims": [
+    {
+      "id": "claim_ce8354680803475ab5a6769b937ef1ca",
+      "statement": "ReplayFirstExecutor loads traces for the runner's property identity, executes with them, saves failures, and propagates storage or export errors.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseDatabase/ReplayFirstExecutor.swift#L29-L52",
+          "version": "repo-lines-v1:sha256:9cbdb03aab02be711627e958d349936f2b0d9f247f9278d8181614be37d44779:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NjVmMDkwMjllMmI5MzViNTFkNGNjZTYxMDgzMGE1NmJjNThiMTIxOWU4NDZhYzY4ODE1Njg0ODRlZTI1MTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0ODcyZWU3MTMyZTE0NDdjNDE1MmYxMWRlYTRmNGFjZDI1MjgyMDMyMGVkOWVlOTljMDIwMmQxMzgyZTUyZTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_65eaae7bf4894fae996bbe90e1d075da",
+      "statement": "The file-backed database defaults to .premise/examples, deduplicates traces, retains at most 32 per property, and uses atomic writes.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseDatabase/FileBackedDatabase.swift#L4-L23",
+          "version": "repo-lines-v1:sha256:9cbf2c9d9a35e0bfedddfec68091d1ef7a71f73baa3a05fcdce16cdd1895648c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmMjc4NjhmMzhjOGI3ZDgyMGQ2OGRjODM1MmZiZjZkNzQwNTk1ZTM1NzlkMDM2YTBmMWE4YjBiOGQ1ZDFlMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhM2NmMzhjYTA5OGNmMzNhNzAzYWZhOThhZTk5YTdkOTk4NWVhYWRlMDJjMThlYjdlYTVlNjk0M2QyN2VmNjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3ODFiNmE1YTg4NWE1YWFlOTk3MDIxMDk0YzE0OWZjZTU4MzRjY2ZlNTFkNDU3OTE5NzI2YTIxN2FiZWU3YzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2ZmIzZmI2YTVjZDY3NzVmY2NjNWJkZGIwMjBlM2I0MGEzNzg0ZTRhM2Y0ODQ1NzU4MDA3MDVjNWRiNTIxOWMifQ"
+        },
+        {
+          "resource": "repo://Sources/PremiseDatabase/FileBackedDatabase.swift#L49-L78",
+          "version": "repo-lines-v1:sha256:f2cf234e82a93ef60e3eecf5bf0de40bc8882cb2351c1cb54fd3a134a26b39a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmMTM2ZDk2MmE1NTBiNWM4NGNmMDdjNmY0NTNmZDdiMzAzZWE3ODA2YWFlMGVkZjNkZjkwMGI2ZmIwN2Y4NTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NzM5YWU0OTYyNjgyNjZlYzIyZWVmNjNmY2NhOWNjNzY0NDk2MDkyYWU5ZTU4MDQwNmE5ZTUzNzhlNjI0M2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3ZDg2MzJlNTRlOTI5OGFiYjk1ODcyN2UyZDUxNDA4YWJhZjEzNjYwMzUzNzkxMDE0MGFiZjY1YjMwYWI2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3YzAwOGJmMTdmNmU2ZWI0ZmNiYWY1ODlkYzQxYmU5MjNkM2NiNGE4MGIyYzM5MjI1OTdiODBkYWFkZjVhYWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f98bd4b8310d4d7b9dea3e043fe9fb1d",
+      "statement": "The SQLite-backed actor defaults to .premise/examples.sqlite and loads matching traces in ascending creation-time order.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseDatabase/SQLiteBackedDatabase.swift#L5-L21",
+          "version": "repo-lines-v1:sha256:c16421dccf3f2e87af5054547272785639a5ea82ee38228e351dd9b4d1202c5e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YTgzYzRmOTI3MDIzY2ZhNTAxNTIwMzM3MzdiYzA2ODZmNGY3Mzg4MjM3MTNmYjZkZGM1ZWVhZmQ3MzQ1YjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4ZTQyNmEzYjhkMmNlNDZjYTA1ZjcwYmVlZTk2Y2RkMTFlZDMwZjE0ZDdjMTk2NGE5NGYzYTQ0ZDI5NmZjM2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5NDFkMjU0MjQ0MDNjNmQ2MWQxNWQ4NzY3ZWY2NTA1Mjc1OWIwNWEwMzk3YmYzYWIxNDUzN2U5YTRhYWQwOTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2ZmIzZmI2YTVjZDY3NzVmY2NjNWJkZGIwMjBlM2I0MGEzNzg0ZTRhM2Y0ODQ1NzU4MDA3MDVjNWRiNTIxOWMifQ"
+        },
+        {
+          "resource": "repo://Sources/PremiseDatabase/SQLiteBackedDatabase.swift#L56-L85",
+          "version": "repo-lines-v1:sha256:ca57dc5d1f21b9ff0e69235e94afea713b4eae00a1a4bf970e8f4151115a7ecb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkZDU5NTU2OGU2ZThhNjI5NDUyZjg5MGQ5Y2Y4MmNkYjRlMzY5NTIyMTE1MWRlMjVjNDVhYzgwYjhiZGVjZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4NzY3ODc3MjI2MjFkZjVkYWJjNjA4NTcwNmJmOTQ0YWJkZmNkMjRkNmJhODhjMWM3MWI5N2Y0ZjU0MDg5Y2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_29311340ffb14269ab1cab0054b31af8",
+      "statement": "The replay tool accepts trace artifacts, persisted envelopes, raw trace JSON or reproduction blobs and supports JSON output.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseReplayTool/main.swift#L41-L52",
+          "version": "repo-lines-v1:sha256:655e7b87817c875067d6b63442eb1ed0cffeb094c7555e3815c8fa84ba6cb0a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2YTcxNTI1NzJlZTg0ZjEwOTA2Yzc0YjlmMmE5MjQzNGRkYWIwZTNjNDI4MTNiMDRlNTk3ZWZjZWM5NTFiMjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2ODE2MTIyYWZjNWViMzY5NzBlMTYyYzJmOTQ4Y2FhMTg2NWI0YzkyYTg1YWVjMmY5MGUzZTBlZmY2YWQ1N2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2NzU0ZGYwZjRlMzk5NDAwNDRmZWVkZjY3MGJiMTUwZTZlMWZlOGRkMzM1N2EyOTE3YTQzMTk2Mzg5MzI5NzUifQ"
+        },
+        {
+          "resource": "repo://Sources/PremiseReplayTool/main.swift#L6-L26",
+          "version": "repo-lines-v1:sha256:27eb346e532a1b4336b1eb83999bd2a250c961cec8708b64c25b762b301051d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2NzE0NmZlZGIyZTBmZDIwMmIyYWMwNGY4YjQ5ZDkwZDU3YWNhODQ5OWNkMTNiMWVjYTcxODc5YzljY2U2MzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjZGRkMGQ1YTNkZjk4OTg3Y2I4MTk2YWMyZjdmMWI4NjQxYjhjNmU3N2YwNzJiNDQyMjFmYzZkODBlZjgyNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiOWVkYmI3NzUzZTQxNmNiMGI1YzYwODUyYWVmZTVkMjM3ZWFmNWZlMTBiYTU0ZTNlMzJiYWFmNzgxYTUwMGIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-01T12:35:26.822Z"
+  }
+}

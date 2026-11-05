@@ -53,15 +53,6 @@ public extension Strategy {
     dictionaries(keys: keys, values: values, count: count...count)
   }
 
-  /// Generates dictionaries whose number of unique keys is in `minCount...maxCount`.
-  static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
-    keys: Strategy<Key>,
-    values: Strategy<Element>,
-    minCount: Int,
-    maxCount: Int
-  ) -> Strategy<[Key: Element]> {
-    dictionaries(keys: keys, values: values, count: minCount...maxCount)
-  }
 
   /// Generates dictionaries whose number of unique keys is selected from `count`.
   static func dictionaries<Key: Hashable & Sendable, Element: Sendable>(
@@ -76,19 +67,13 @@ public extension Strategy {
         let pairCount = drawEdgeBiasedCount(in: count, using: &data)
         let pairs = try drawUniqueDictionaryPairs(
           count: pairCount,
-          keys: keys,
-          values: values,
+          strategies: (keys, values),
           data: &data
         )
-        let sorted = pairs.enumerated().sorted { lhs, rhs in
-          let left = String(describing: lhs.element.0)
-          let right = String(describing: rhs.element.0)
-          return left == right ? lhs.offset < rhs.offset : left < right
-        }
-        return Dictionary(sorted.map(\.element), uniquingKeysWith: { _, new in new })
+        return sortedDictionary(pairs)
       },
       shrink: { value in
-        shrinkDictionary(value, keys: keys, values: values, count: count)
+        shrinkDictionary(value, strategies: (keys, values), count: count)
       }
     )
   }
@@ -125,7 +110,9 @@ public extension Strategy {
           element: element,
           data: &data
         )
-        let ordered = values.sorted { String(describing: $0) < String(describing: $1) }
+        let ordered = values.sorted {
+          String(describing: $0) < String(describing: $1)
+        }
         return Set(ordered)
       },
       shrink: { value in
@@ -135,94 +122,17 @@ public extension Strategy {
   }
 }
 
-private func drawEdgeBiasedCount(
-  in range: ClosedRange<Int>,
-  using data: inout PremiseData
-) -> Int {
-  let chooser = data.drawInteger(in: 0...4)
-  if chooser == 0 {
-    return range.lowerBound
-  }
 
-  if chooser == 1 {
-    return range.upperBound
+private func sortedDictionary<Key: Hashable, Value>(
+  _ pairs: [(Key, Value)]
+) -> [Key: Value] {
+  let sorted = pairs.enumerated().sorted { lhs, rhs in
+    let left = String(describing: lhs.element.0)
+    let right = String(describing: rhs.element.0)
+    return left == right ? lhs.offset < rhs.offset : left < right
   }
-
-  if chooser == 2, range.contains(0) {
-    return 0
-  }
-
-  return data.drawInteger(in: range)
+  return Dictionary(sorted.map(\.element), uniquingKeysWith: { _, new in new })
 }
-
-private func drawUniqueDictionaryPairs<Key: Hashable & Sendable, Value: Sendable>(
-  count: Int,
-  keys: Strategy<Key>,
-  values: Strategy<Value>,
-  data: inout PremiseData
-) throws -> [(Key, Value)] {
-  guard count > 0 else { return [] }
-
-  var pairs: [(Key, Value)] = []
-  var seenKeys: Set<Key> = []
-  let maxAttempts = uniqueAttemptLimit(for: count)
-
-  for _ in 0..<maxAttempts where pairs.count < count {
-    let pair = try data.withSpan { spanData -> (Key, Value)? in
-      let key = try keys.draw(&spanData)
-      guard seenKeys.insert(key).inserted else {
-        return nil
-      }
-      let value = try values.draw(&spanData)
-      return (key, value)
-    }
-    if let pair {
-      pairs.append(pair)
-    }
-  }
-
-  guard pairs.count == count else {
-    throw StrategyError.filterExhausted(
-      label: "unique dictionary keys for \(keys.label)",
-      maxAttempts: maxAttempts
-    )
-  }
-  return pairs
-}
-
-private func drawUniqueSetValues<Element: Hashable & Sendable>(
-  count: Int,
-  element: Strategy<Element>,
-  data: inout PremiseData
-) throws -> [Element] {
-  guard count > 0 else { return [] }
-
-  var values: [Element] = []
-  var seenValues: Set<Element> = []
-  let maxAttempts = uniqueAttemptLimit(for: count)
-
-  for _ in 0..<maxAttempts where values.count < count {
-    let value = try data.withSpan { spanData in
-      try element.draw(&spanData)
-    }
-    if seenValues.insert(value).inserted {
-      values.append(value)
-    }
-  }
-
-  guard values.count == count else {
-    throw StrategyError.filterExhausted(
-      label: "unique set elements for \(element.label)",
-      maxAttempts: maxAttempts
-    )
-  }
-  return values
-}
-
-private func uniqueAttemptLimit(for count: Int) -> Int {
-  max(32, count * 16)
-}
-
 private func shrinkArray<Value: Sendable>(
   _ value: [Value],
   element: Strategy<Value>,
@@ -248,32 +158,42 @@ private func shrinkArray<Value: Sendable>(
 
 private func shrinkDictionary<Key: Hashable & Sendable, Value: Sendable>(
   _ value: [Key: Value],
-  keys: Strategy<Key>,
-  values: Strategy<Value>,
+  strategies: (keys: Strategy<Key>, values: Strategy<Value>),
   count: ClosedRange<Int>
 ) -> [[Key: Value]] {
   guard !value.isEmpty else { return [] }
-  let pairs = value.sorted { String(describing: $0.key) < String(describing: $1.key) }
+  let pairs = value.sorted {
+    String(describing: $0.key) < String(describing: $1.key)
+  }
   var candidates: [[Key: Value]] = []
   if value.count > count.lowerBound {
     candidates.append(Dictionary(uniqueKeysWithValues: pairs.dropLast()))
   }
   for (key, elementValue) in pairs {
-    for shrunkValue in values.shrink(elementValue) {
+    for shrunkValue in strategies.values.shrink(elementValue) {
       var copy = value
       copy[key] = shrunkValue
       candidates.append(copy)
     }
-    for shrunkKey in keys.shrink(key) where shrunkKey != key {
-      var copy = value
-      copy.removeValue(forKey: key)
-      copy[shrunkKey] = elementValue
-      candidates.append(copy)
-    }
+    let pair = (key, elementValue)
+    let keyStrategy = strategies.keys
+    candidates += shrinkDictionaryKeys(value, pair: pair, strategy: keyStrategy)
   }
   return uniqueDictionaries(candidates.filter { count.contains($0.count) })
 }
 
+private func shrinkDictionaryKeys<Key: Hashable & Sendable, Value>(
+  _ value: [Key: Value],
+  pair: (Key, Value),
+  strategy: Strategy<Key>
+) -> [[Key: Value]] {
+  strategy.shrink(pair.0).filter { $0 != pair.0 }.map { key in
+    var copy = value
+    copy.removeValue(forKey: pair.0)
+    copy[key] = pair.1
+    return copy
+  }
+}
 private func shrinkSet<Element: Hashable & Sendable>(
   _ value: Set<Element>,
   element: Strategy<Element>,
@@ -303,7 +223,9 @@ private func uniqueArrays<Value>(_ values: [[Value]]) -> [[Value]] {
   }
 }
 
-private func uniqueDictionaries<Key, Value>(_ values: [[Key: Value]]) -> [[Key: Value]] {
+private func uniqueDictionaries<Key, Value>(
+  _ values: [[Key: Value]]
+) -> [[Key: Value]] {
   var seen: Set<String> = []
   return values.filter { value in
     seen.insert(String(describing: value)).inserted

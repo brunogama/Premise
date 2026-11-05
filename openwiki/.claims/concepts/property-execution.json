@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:c2ca5c7fa1b0c314a112aa6b718a49f714bef545aa7653b7013b4b3e8d9c7575",
+  "claims": [
+    {
+      "id": "claim_4a518d30390f4676bf4581b2f09dde28",
+      "statement": "Runner executes configured phases with a strategy and property identity, returning when a phase finds a failure.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseCore/Runner.swift#L33-L54",
+          "version": "repo-lines-v1:sha256:1eb122dc97a0d6d73db24bae317bc4c0891d466849b629da21fc275d47fa7b9b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllOGZiNjI2MmIxYTc1NDY1NTI0Y2Q0ZjRjMzgwODI2ZDMwZmE0M2M5NTJiNzc5NzhjZmY4ZDFkNzFiMGVhYzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1NGE0NzM1ZTVlMGY4NjAyODQwZjc3Nzc0MjdjNjE4ODY2MTZjMmRmN2VjZmUxZjQ4OWEyN2Y5ZDI4ZWE3YzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRmMzIxNjc4OTI4N2Q1ZTc4NDc1NzllMjQ4MWM3NTMzNjgwMmJiYzJmMjdkMTZhNGI5MzNkN2NjODU4NGQyNWUifQ"
+        },
+        {
+          "resource": "repo://Sources/PremiseCore/Runner.swift#L4-L12",
+          "version": "repo-lines-v1:sha256:e8eeb0258240cf6e2d90909c3951d1e1fa09551b663bd3d76db867ea3eb102c9:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDM3OTJkYTE5ZTYwMTBmOTY4OTVjYjIyMzU2NTBiZjk2MjRkYTVlN2QxZjk5MzRkZmViMzVhY2Y5NWNmYTQyOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjAxOWJhMmFlNGYyZGU1NjEzY2I5YzNmYzM5YzA0YjNjYjAyZDE1ZjRlMzY3MmM4MGFlMzY5ZjBjZjQ2YWE0OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWVjNWNhOGVlOGM3NDQwMjhkZDk5NjVhMmI5MjBjZmIzMDQxMDNkOWExMWM5ODVhNTEzZjJiNDhlN2NiNDQyZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTIxMjc0NGNlMGE4MmEzY2FjZDU0NTYyMTBiZjNlMjZjNTgyZDYwNGM4YjQ5ZmY0OTcxZTY1ODBjYWU2N2QwZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_2194ba87c47f4ef89a741e8966b6b938",
+      "statement": "Execution treats draw errors and PremiseRejection as rejections, and other property errors or deadline failures as failures.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseCore/Runner%2BExecution.swift#L12-L49",
+          "version": "repo-lines-v1:sha256:36bab7b6fa3340c883e2fdb9066a4ef5c5afc2ccce90aae416990c4abb5512d7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0OGFjMjdkNTNhOGZiMWY2MzA0Nzg4YzM2MDc5MjE1OTUwYTg1Y2I2YmFmNDA0ODEwMTlkOGU4M2RmMmZjZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxMzJlZTIyNzFjOWJhNTYzNzJkNmNkZmYxODQ5NTc1MjdjODUzN2Y0YTdhZDQzYTIzMzMyNDJmNWZjNmRhNmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5MTYzMDE4MDQ3MjE0ZjRjY2I2Zjg1ZGUyOWU3ZDAzZDhlZGE3NGExNGE1NGY2NzVjMGY2M2M5ZDY5ZDJkNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkwMGQyNTdhNjEwNTBmZWRhMWFiMDBlMGZkOWQwMGVhZmQwNzgzYTllMjFjZTQwY2I1ZmFjZjZhZDNkYjhlZjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d8f42c39955b47dba5fde7a8639cd5a3",
+      "statement": "ChoiceTrace stores primitive entries and spans, supports versioned binary encoding and exposes reproduction blobs.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseCore/ChoiceTrace.swift#L3-L14",
+          "version": "repo-lines-v1:sha256:82dd3ec63c6973c883e72419558f5f003786f16cbd7e16126cdf4121e7eb57f8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0NTNiYTYyYTI2ZDNlYTJmNWEwMDFiNDMyNTE2NjczNzJiODQwMzdkMTE0ZmIzMThmODdiZDI1MWNlYjQwZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiZmRjYTgyMzdmYzljMzExMzBiMWE4MjU4MTU3ZmI4MWY3ZGE5ZjJiZTRkODI3NDczMDExYzk5MjIxZjg0ZTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmNzhhNjUxYjE0MGY1ZGM3YWE2NDBjODI1NDIyNWUxMjY5NTM3MTgwYzUwOTdiNzViMjFlMTM3NGYxZTc5ZjUifQ"
+        },
+        {
+          "resource": "repo://Sources/PremiseCore/ChoiceTrace.swift#L36-L68",
+          "version": "repo-lines-v1:sha256:f5fa80d96cffc4c47409c99ccc9fdbf1596a381d6417ccdcddcd87708efa0403:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcwZDM5ZDVjNTMxMzY4ZjhiMzVhZjY0MDBmYWE2ZGRkYWQ5YjdmNTZjZTY3NjMzYjgzZDliZmI1MmY5YmU5NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxOGRkOTRkZTMwMDBhODE5YTU4MjhhOWY4ZWIzODI5YzQwMmUyYWRiNzdlNTZjOTg2MGY4NGJjYmQyOWE2OTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_802e43a02d9a4909afa25c8d7ea24d48",
+      "statement": "The runner checks flakiness before minimizing failures and skips shrinking when the shrink phase is disabled.",
+      "evidence": [
+        {
+          "resource": "repo://Sources/PremiseCore/Runner%2BMinimization.swift#L98-L113",
+          "version": "repo-lines-v1:sha256:fcbe38fd611eaecbeca8afd6c8d03f50d83c523b610565ea29f0d7583741d2ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkNGE3NTZhNWYyOThjMWNkMzUxMTc0YjZjMmJiZmJlYzI2MzZjOWFhNjNmODFlZDNiMTM3NzAyMDA0MmI4MTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhOThjNTBkOTBlNGU0OWU0MTk3MmNmNjhiZTE5NWJiZDc5YTI2OTUyN2VjOTVmMzc3OGY3NTFkOGI1Nzk2ZDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5ZGYzNDJiZDIyZDhkNDJkZGYwMzZlNTgyNmRhODE4OGE1YTNkYWJiZGMxZDQwZmU5MDAzZjc1YjA3NTRhODQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-01T12:35:26.822Z"
+  }
+}

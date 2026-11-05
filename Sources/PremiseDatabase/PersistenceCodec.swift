@@ -1,7 +1,6 @@
 import PremiseCore
-import Foundation
 
-/// Maps between runtime ``FailureRecord`` values and the versioned
+/// Maps between runtime ``/PremiseCore/FailureRecord`` values and the versioned
 /// ``PersistedFailureRecordV1`` envelope used for on-disk storage.
 ///
 /// Every decode path validates format versions before constructing
@@ -22,14 +21,14 @@ public enum PersistenceCodec {
 
   // MARK: - Encode
 
-  /// Wraps a ``FailureRecord`` into the current versioned envelope.
+  /// Wraps a ``/PremiseCore/FailureRecord`` into the current versioned envelope.
   ///
   /// - Parameter record: The runtime failure record to persist.
   /// - Returns: A ``PersistedFailureRecordV1`` ready for serialization.
-  public static func encode(_ record: FailureRecord) -> PersistedFailureRecordV1 {
+  public static func encode(
+    _ record: FailureRecord
+  ) -> PersistedFailureRecordV1 {
     PersistedFailureRecordV1(
-      recordFormatVersion: 1,
-      traceFormatVersion: 1,
       propertyID: record.propertyID,
       trace: record.trace,
       errorMessage: record.errorMessage,
@@ -37,6 +36,8 @@ public enum PersistenceCodec {
       shrinkCount: record.shrinkCount,
       timestamp: record.timestamp,
       engineVersion: record.engineVersion,
+      recordFormatVersion: 1,
+      traceFormatVersion: 1,
       seed: record.seed,
       discovery: record.discovery,
       statistics: record.statistics
@@ -45,12 +46,12 @@ public enum PersistenceCodec {
 
   // MARK: - Decode
 
-  /// Validates and converts a persisted envelope back to a ``FailureRecord``.
+  /// Validates and converts a persisted envelope back to a ``/PremiseCore/FailureRecord``.
   ///
   /// - Parameter envelope: The deserialized versioned envelope.
   /// - Throws: ``PersistenceCompatibilityError`` if either format version
   ///   is outside the supported range.
-  /// - Returns: A ``FailureRecord`` suitable for replay.
+  /// - Returns: A ``/PremiseCore/FailureRecord`` suitable for replay.
   public static func decode(
     _ envelope: PersistedFailureRecordV1
   ) throws -> FailureRecord {
@@ -81,11 +82,8 @@ public enum PersistenceCodec {
   ) throws {
     let policy = PersistenceVersionPolicy.self
 
-    guard
-      policy.supportedRecordVersions.contains(
-        envelope.recordFormatVersion
-      )
-    else {
+    let recordVersion = envelope.recordFormatVersion
+    guard policy.supportedRecordVersions.contains(recordVersion) else {
       throw PersistenceCompatibilityError.unsupportedRecordVersion(
         found: envelope.recordFormatVersion,
         supported: policy.supportedRecordVersions

@@ -1,0 +1,41 @@
+parent_config: ../../../.swiftlint.yml
+
+custom_rules:
+  prefer_struct:
+    name: "Prefer Value Semantics"
+    regex: '(?m)^\s*(?:\w+\s+)*class\b'
+    excluded: >-
+      (?x).*/docs/Documentation\.docc/Resources/
+      (?:t02-s0(?:2-imports|3-property|4-two-properties|6-config)
+      |t10-s0(?:1-buggy-cache|6-fixed))\.swift$
+    message: >-
+      Prefer a struct unless identity, inheritance, or shared reference
+      semantics are required.
+    severity: warning
+  prefer_struct_tutorial_test:
+    name: "Prefer Value Semantics"
+    included: >-
+      (?x).*/docs/Documentation\.docc/Resources/
+      t02-s0(?:2-imports|3-property|4-two-properties|6-config)\.swift$
+    regex: '(?m)^\s*(?:\w+\s+)*class\s+(?!SortTests\b)'
+    message: >-
+      Prefer a struct unless identity, inheritance, or shared reference
+      semantics are required.
+    severity: warning
+  prefer_struct_tutorial_cache:
+    name: "Prefer Value Semantics"
+    included: >-
+      (?x).*/docs/Documentation\.docc/Resources/
+      t10-s0(?:1-buggy-cache|6-fixed)\.swift$
+    regex: '(?m)^\s*(?:\w+\s+)*class\s+(?!BuggyCache\b)'
+    message: >-
+      Prefer a struct unless identity, inheritance, or shared reference
+      semantics are required.
+    severity: warning
+  no_print:
+    name: "No Print Statements"
+    regex: '\bprint\s*\('
+    excluded: >-
+      (?x).*/docs/Documentation\.docc/Resources/t10-s05-debug-print\.swift$
+    message: "Remove print statements; use Logger or os_log instead."
+    severity: error

@@ -1,6 +1,6 @@
 /// Witness-backed generation contract for property strategies.
 ///
-/// A `Strategy` is a pair of closures — one to generate (`draw`) and one to
+/// A `Strategy` is a pair of closures: one to generate (`draw`) and one to
 /// minimise (`shrink`).  Strategies compose via `map`, `flatMap`, `filter`,
 /// `zip`, and other combinators in `PremiseStrategies`.
 ///
@@ -8,10 +8,14 @@
 /// let evens = Strategy<Int>.integers(in: 0...100).filter { $0.isMultiple(of: 2) }
 /// ```
 public struct Strategy<Value: Sendable>: Sendable {
+  /// A descriptive label for diagnostics and property identity.
   public let label: String
+  /// Generates a value from the supplied data.
   public let draw: @Sendable (inout PremiseData) throws -> Value
+  /// Produces smaller candidates for a generated value.
   public let shrink: @Sendable (Value) -> [Value]
 
+  /// Creates a strategy from generation and shrinking closures.
   public init(
     label: String,
     draw: @escaping @Sendable (inout PremiseData) throws -> Value,
@@ -26,6 +30,7 @@ public struct Strategy<Value: Sendable>: Sendable {
 // MARK: - CustomStringConvertible
 
 extension Strategy: CustomStringConvertible {
+  /// A human-readable description of the strategy.
   public var description: String {
     "Strategy<\(Value.self)>(\(label))"
   }

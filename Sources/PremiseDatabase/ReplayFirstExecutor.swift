@@ -18,7 +18,7 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   /// Creates a replay-first executor.
   ///
   /// - Parameters:
-  ///   - runner: The property runner whose ``Runner/run(_:replayTraces:)``
+  ///   - runner: The property runner whose ``/PremiseCore/Runner/run(_:replayTraces:)-4m55v``
   ///     method will be called.
   ///   - database: The database from which traces are loaded and to which
   ///     new failures are saved.
@@ -31,10 +31,10 @@ public struct ReplayFirstExecutor<Value: Sendable>: Sendable {
   ///
   /// 1. Loads persisted traces from the database for the runner's property
   ///    identity.
-  /// 2. Passes the loaded traces to ``Runner/run(_:replayTraces:)``.
+  /// 2. Passes the loaded traces to ``/PremiseCore/Runner/run(_:replayTraces:)-4m55v``.
   /// 3. If the result is a failure, persists the failure record back to the
   ///    database for future runs.
-  /// 4. Returns the original ``RunResult`` unchanged.
+  /// 4. Returns the original ``/PremiseCore/RunResult`` unchanged.
   ///
   /// - Parameter property: The property closure to test.
   /// - Throws: Any database load/save or trace export error.

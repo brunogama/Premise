@@ -82,9 +82,17 @@ func fuzzOneInputSavesFailuresToDatabase() async throws {
     .appendingPathComponent(UUID().uuidString, isDirectory: true)
   let config = FuzzConfig(propertyID: propertyID, databaseDirectory: directory)
 
+  try await assertFuzzFailure(config: config)
+
+  let traces = try await FileBackedDatabase(rootDirectory: directory)
+    .loadTraces(for: propertyID)
+  #expect(!traces.isEmpty)
+}
+
+private func assertFuzzFailure(config: FuzzConfig) async throws {
   do {
     try await fuzzOneInput(
-      Data([7]),
+      Data([3, 0, 0, 0, 0, 0, 0, 0, 0]),
       strategy: Strategy<Int>.integers(in: 0...10),
       config: config
     ) { _ in
@@ -92,10 +100,7 @@ func fuzzOneInputSavesFailuresToDatabase() async throws {
     }
     #expect(Bool(false))
   } catch let failure as FuzzFailure {
-    #expect(failure.input == [7])
+    #expect(failure.input == [3, 0, 0, 0, 0, 0, 0, 0, 0])
     #expect(failure.underlyingDescription.contains("property failed"))
   }
-
-  let traces = try await FileBackedDatabase(rootDirectory: directory).loadTraces(for: propertyID)
-  #expect(!traces.isEmpty)
 }

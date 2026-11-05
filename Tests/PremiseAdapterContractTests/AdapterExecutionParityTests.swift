@@ -29,16 +29,10 @@ struct AdapterExecutionParityTests {
     return Runner(strategy: strategy, config: config, propertyID: pid)
   }
 
-  private static func makeDatabase() -> FileBackedDatabase {
-    let directory = FileManager.default.temporaryDirectory
-      .appendingPathComponent(UUID().uuidString, isDirectory: true)
-    return FileBackedDatabase(rootDirectory: directory)
-  }
-
   @Test("Runner returns .passed for a trivially true property")
   func passingPropertyResult() async {
     let runner = Self.makeRunner()
-    let result = await runner.run({ _ in })
+    let result = await runner.run({ _ in () })
     guard case .passed(let runs) = result else {
       Issue.record("Expected .passed, got failure")
       return
@@ -78,28 +72,43 @@ struct AdapterExecutionParityTests {
       }
     })
 
-    switch (result1, result2) {
-    case (.passed(let r1), .passed(let r2)):
-      #expect(r1 == r2)
+    Self.expectMatchingResults(result1, result2)
+  }
 
-    case (.failure(let rec1, value: let v1), .failure(let rec2, value: let v2)):
-      #expect(v1 == v2)
-      #expect(rec1.errorMessage == rec2.errorMessage)
-      #expect(rec1.runCount == rec2.runCount)
-      #expect(rec1.shrinkCount == rec2.shrinkCount)
+  private static func expectMatchingResults(
+    _ result1: RunResult<Int>,
+    _ result2: RunResult<Int>
+  ) {
+    switch (result1, result2) {
+    case (.passed(let firstRuns), .passed(let secondRuns)):
+      #expect(firstRuns == secondRuns)
+
+    case (
+      .failure(let firstRecord, value: let firstValue),
+      .failure(let secondRecord, value: let secondValue)
+    ):
+      #expect(firstValue == secondValue)
+      #expect(firstRecord.errorMessage == secondRecord.errorMessage)
+      #expect(firstRecord.runCount == secondRecord.runCount)
+      #expect(firstRecord.shrinkCount == secondRecord.shrinkCount)
 
     default:
       Issue.record("Results diverged: \(result1) vs \(result2)")
     }
   }
+}
 
+extension AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor passes through Runner result for passing property")
   func executorPassingProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10))
-    let database = Self.makeDatabase()
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let database = FileBackedDatabase(rootDirectory: directory)
     let executor = ReplayFirstExecutor(runner: runner, database: database)
 
-    let result = try await executor.execute({ _ in })
+    let result = try await executor.execute({ _ in () })
 
     guard case .passed(let runs) = result else {
       Issue.record("Expected .passed from executor")
@@ -111,7 +120,10 @@ struct AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor passes through Runner result for failing property")
   func executorFailingProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10))
-    let database = Self.makeDatabase()
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let database = FileBackedDatabase(rootDirectory: directory)
     let executor = ReplayFirstExecutor(runner: runner, database: database)
 
     let result = try await executor.execute({ _ in
@@ -128,7 +140,10 @@ struct AdapterExecutionParityTests {
   @Test("ReplayFirstExecutor returns detailed reports for async properties")
   func executorAsyncDetailedProperty() async throws {
     let runner = Self.makeRunner(config: PropertyConfig(maxRuns: 10, seed: 3))
-    let database = Self.makeDatabase()
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let database = FileBackedDatabase(rootDirectory: directory)
     let executor = ReplayFirstExecutor(runner: runner, database: database)
     let property: @Sendable (Int) async throws -> Void = { _ in
       throw ContractTestError(message: "async detailed fail")
@@ -136,7 +151,8 @@ struct AdapterExecutionParityTests {
 
     let result = try await executor.executeDetailed(property)
 
-    guard case .failure(let record, value: _, report: let report) = result else {
+    guard case .failure(let record, value: _, report: let report) = result
+    else {
       Issue.record("Expected detailed async failure from executor")
       return
     }
@@ -167,10 +183,4 @@ struct AdapterExecutionParityTests {
     #expect(record.propertyID.fileID == "Module/Test.swift")
     #expect(record.propertyID.line == 55)
   }
-}
-
-/// A simple error type for contract testing.
-struct ContractTestError: Error, CustomStringConvertible {
-  let message: String
-  var description: String { message }
 }

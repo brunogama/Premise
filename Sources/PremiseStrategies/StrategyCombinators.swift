@@ -1,10 +1,15 @@
 import PremiseCore
 
+/// Configuration for recursive strategy generation.
 public struct RecursiveStrategyConfig: Sendable {
+  /// Maximum recursive depth.
   public var depth: Int
+  /// Relative weight of choosing a leaf.
   public var desiredSize: Int
+  /// Relative weight of choosing a branch.
   public var expectedBranchSize: Int
 
+  /// Creates a recursive strategy configuration.
   public init(depth: Int, desiredSize: Int, expectedBranchSize: Int) {
     self.depth = depth
     self.desiredSize = desiredSize
@@ -51,7 +56,7 @@ public extension Strategy {
     )
   }
 
-  /// Precondition filter — alias for ``filter(_:maxAttempts:)`` with
+  /// Precondition filter: alias for ``filter(_:maxAttempts:)`` with
   /// clearer intent for property-level assumptions.
   ///
   /// Use `assume` when restricting the generated domain, e.g.
@@ -120,12 +125,16 @@ public extension Strategy {
     )
   }
 
-  static func frequency(_ weightedStrategies: [(Int, Strategy<Value>)]) -> Strategy<Value> {
+  static func frequency(
+    _ weightedStrategies: [(Int, Strategy<Value>)]
+  ) -> Strategy<Value> {
     let filtered = weightedStrategies.filter { $0.0 > 0 }
     precondition(!filtered.isEmpty, "frequency requires a positive weight")
     let total = filtered.reduce(into: 0) { $0 += $1.0 }
+    let labels = filtered.map { "\($0.0):\($0.1.label)" }
+      .joined(separator: ", ")
     return Strategy<Value>(
-      label: "frequency(\(filtered.map { "\($0.0):\($0.1.label)" }.joined(separator: ", ")))",
+      label: "frequency(\(labels))",
       draw: { data in
         let pick = data.drawInteger(in: 0...(total - 1))
         var cumulative = 0
@@ -215,97 +224,4 @@ public extension Strategy {
     return make(level: config.depth)
   }
 
-  /// Convenience recursive strategy builder with explicit depth and size knobs.
-  static func recursive(
-    maxDepth: Int,
-    desiredSize: Int = 4,
-    expectedBranchSize: Int = 2,
-    leaf: Strategy<Value>,
-    _ build: @escaping @Sendable (Strategy<Value>) -> Strategy<Value>
-  ) -> Strategy<Value> {
-    recursive(
-      RecursiveStrategyConfig(
-        depth: maxDepth,
-        desiredSize: desiredSize,
-        expectedBranchSize: expectedBranchSize
-      ),
-      leaf: leaf,
-      build
-    )
-  }
-}
-
-// MARK: - Zip (parameter packs, free function)
-
-/// Combines two strategies into a tuple and shrinks one component at a time.
-public func zip<A: Sendable, B: Sendable>(
-  _ first: Strategy<A>,
-  _ second: Strategy<B>
-) -> Strategy<(A, B)> {
-  Strategy<(A, B)>(
-    label: "zip(\(first.label), \(second.label))",
-    draw: { data in
-      (try first.draw(&data), try second.draw(&data))
-    },
-    shrink: { value in
-      first.shrink(value.0).map { ($0, value.1) }
-        + second.shrink(value.1).map { (value.0, $0) }
-    }
-  )
-}
-
-/// Combines three strategies into a tuple and shrinks one component at a time.
-public func zip<A: Sendable, B: Sendable, C: Sendable>(
-  _ first: Strategy<A>,
-  _ second: Strategy<B>,
-  _ third: Strategy<C>
-) -> Strategy<(A, B, C)> {
-  Strategy<(A, B, C)>(
-    label: "zip(\(first.label), \(second.label), \(third.label))",
-    draw: { data in
-      (try first.draw(&data), try second.draw(&data), try third.draw(&data))
-    },
-    shrink: { value in
-      first.shrink(value.0).map { ($0, value.1, value.2) }
-        + second.shrink(value.1).map { (value.0, $0, value.2) }
-        + third.shrink(value.2).map { (value.0, value.1, $0) }
-    }
-  )
-}
-
-/// Combines an arbitrary number of strategies into a tuple using Swift
-/// parameter packs.  Each component is drawn independently and shrinking
-/// delegates to trace-based ``ShrinkMachine`` (value-level shrinking is
-/// not feasible across heterogeneous packs).
-///
-/// ```swift
-/// let pair = zip(.integers(in: 0...10), Strategy<String>.ascii)
-/// let triple = zip(.integers(in: 0...10), Strategy<Bool>.booleans, Strategy<String>.ascii)
-/// ```
-public func zip<each T: Sendable>(
-  _ strategy: repeat Strategy<each T>
-) -> Strategy<(repeat each T)> {
-  let labels = packLabels(repeat each strategy)
-  return Strategy<(repeat each T)>(
-    label: "zip(\(labels))",
-    draw: { data in
-      (repeat try (each strategy).draw(&data))
-    },
-    // Value-level shrinking across parameter packs is not expressible;
-    // trace-based ShrinkMachine handles minimisation.
-    shrink: { _ in [] }
-  )
-}
-
-// MARK: - Pack helpers
-
-/// Collects strategy labels from a parameter pack into a comma-separated
-/// string for diagnostics.
-private func packLabels<each T: Sendable>(
-  _ strategy: repeat Strategy<each T>
-) -> String {
-  var labels: [String] = []
-  func append<S: Sendable>(_ s: Strategy<S>) { labels.append(s.label) }
-  repeat append(each strategy)
-  return labels.joined(separator: ", ")
 }

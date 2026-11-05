@@ -1,0 +1,2 @@
+@given(.integers(in: 0...100))
+struct NotAFunction {}

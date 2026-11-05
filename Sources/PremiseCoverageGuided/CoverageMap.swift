@@ -1,5 +1,3 @@
-import PremiseCore
-
 /// A thread-safe coverage map that tracks which code edges have been observed.
 ///
 /// Coverage maps aggregate binary edge-hit information. Each edge is identified
@@ -7,7 +5,9 @@ import PremiseCore
 /// enabling coverage-guided exploration to prioritize inputs that discover
 /// new edges.
 public struct CoverageMap: Sendable, Equatable {
-  /// The raw edge-hit bitmap. Each bit position corresponds to an edge index.
+  /// The raw edge-hit bitmap.
+  ///
+  /// Each bit position corresponds to an edge index.
   private var bitmap: [UInt8]
 
   /// The number of edge slots available in this map.

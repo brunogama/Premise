@@ -18,14 +18,8 @@
 /// }
 /// ```
 ///
-/// Expands to:
-/// ```swift
-/// @Test func additionIsCommutative() async throws {
-///     try await forAll(.integers(in: 0...100), .ascii) { a, s in
-///         #expect(s.count >= 0)
-///     }
-/// }
-/// ```
+/// The macro generates a peer type containing a Swift Testing test method.
+/// Four or more strategies are combined with `zip`.
 ///
 /// You can pass `config:`, `explicitExamples:`, and `examples:` labels after
 /// the strategy arguments:
@@ -38,6 +32,6 @@
 /// )
 /// func largeSpace(n: Int) { ... }
 /// ```
-@attached(peer, names: overloaded)
+@attached(peer, names: suffixed(_Given))
 public macro given(_ strategies: Any...) =
   #externalMacro(module: "PremiseMacrosPlugin", type: "GivenMacro")

@@ -24,6 +24,8 @@ let environment = ProcessInfo.processInfo.environment
 let buildMacroFromSource = environment["PREMISE_MACRO_SOURCE"] != nil
 let buildBinaryMacro = environment["PREMISE_MACRO_BINARY"] != nil
 
+let targetDocumentationExclusions = ["README.md"]
+
 // MARK: - Macro Targets
 
 let macroProducts: [Product]
@@ -39,21 +41,28 @@ if buildMacroFromSource {
       name: "PremiseMacrosPlugin",
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftBasicFormat", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-      ]
+      ],
+      exclude: targetDocumentationExclusions
     ),
     .target(
       name: "PremiseMacros",
-      dependencies: ["PremiseMacrosPlugin"]
+      dependencies: ["PremiseMacrosPlugin"],
+      exclude: targetDocumentationExclusions
     ),
     .testTarget(
       name: "PremiseMacrosTests",
       dependencies: [
         "PremiseMacrosPlugin",
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ]
+        .product(
+          name: "SwiftSyntaxMacrosGenericTestSupport",
+          package: "swift-syntax"
+        ),
+      ],
+      resources: [.copy("Fixtures")]
     ),
   ]
   macroDependencies = [
@@ -80,7 +89,8 @@ if buildMacroFromSource {
     ),
     .target(
       name: "PremiseMacros",
-      dependencies: ["PremiseMacrosPlugin"]
+      dependencies: ["PremiseMacrosPlugin"],
+      exclude: targetDocumentationExclusions
     ),
   ]
   macroDependencies = []
@@ -92,8 +102,67 @@ if buildMacroFromSource {
 
 // MARK: - Package
 
+let libraryNames = [
+  "PremiseCore",
+  "PremiseStrategies",
+  "PremiseDatabase",
+  "PremiseFuzzing",
+  "PremiseGhostwriter",
+  "PremiseTesting",
+  "PremiseXCTest",
+  "PremiseParallel",
+  "PremiseTelemetry",
+  "PremiseCoverageGuided",
+]
+
+let testDependencies: [String: [Target.Dependency]] = [
+  "PremiseCoreTests": ["PremiseCore", "PremiseStrategies"],
+  "PremiseStrategiesTests": ["PremiseStrategies"],
+  "PremiseDatabaseTests": ["PremiseCore", "PremiseDatabase", "PremiseSQLite"],
+  "PremiseFuzzingTests": [
+    "PremiseCore",
+    "PremiseDatabase",
+    "PremiseFuzzing",
+    "PremiseStrategies",
+  ],
+  "PremiseGhostwriterTests": ["PremiseGhostwriter"],
+  "PremiseTestingIntegrationTests": ["PremiseTesting", "PremiseDatabase"],
+  "PremiseXCTestIntegrationTests": ["PremiseXCTest"],
+  "PremiseAdapterContractTests": [
+    "PremiseCore",
+    "PremiseStrategies",
+    "PremiseDatabase",
+    "PremiseTesting",
+    "PremiseXCTest",
+  ],
+  "PremiseParallelTests": [
+    "PremiseParallel",
+    "PremiseCore",
+    "PremiseStrategies",
+  ],
+  "PremiseTelemetryTests": [
+    "PremiseTelemetry",
+    "PremiseCore",
+    "PremiseStrategies",
+  ],
+  "PremiseCoverageGuidedTests": ["PremiseCoverageGuided", "PremiseCore"],
+  "PremiseSMTTests": ["PremiseSMT", "PremiseCore"],
+]
+
+let libraryDependencies: [String: [Target.Dependency]] = [
+  "PremiseCore": [],
+  "PremiseStrategies": ["PremiseCore"],
+  "PremiseDatabase": ["PremiseCore", "PremiseSQLite"],
+  "PremiseFuzzing": ["PremiseCore", "PremiseDatabase"],
+  "PremiseGhostwriter": [],
+  "PremiseTesting": ["PremiseCore", "PremiseStrategies", "PremiseDatabase"],
+  "PremiseXCTest": ["PremiseCore", "PremiseStrategies", "PremiseDatabase"],
+  "PremiseParallel": ["PremiseCore", "PremiseDatabase"],
+  "PremiseTelemetry": ["PremiseCore"],
+]
+
 let package = Package(
-  name: "SwiftPremise",
+  name: "Premise",
   platforms: [
     .macOS(.v13),
     .iOS(.v16),
@@ -101,18 +170,11 @@ let package = Package(
     .watchOS(.v9),
     .visionOS(.v1),
   ],
-  products: [
-    .library(name: "PremiseCore", targets: ["PremiseCore"]),
-    .library(name: "PremiseStrategies", targets: ["PremiseStrategies"]),
-    .library(name: "PremiseDatabase", targets: ["PremiseDatabase"]),
-    .library(name: "PremiseFuzzing", targets: ["PremiseFuzzing"]),
-    .library(name: "PremiseGhostwriter", targets: ["PremiseGhostwriter"]),
-    .library(name: "PremiseTesting", targets: ["PremiseTesting"]),
-    .library(name: "PremiseXCTest", targets: ["PremiseXCTest"]),
-    .library(name: "PremiseParallel", targets: ["PremiseParallel"]),
-    .library(name: "PremiseTelemetry", targets: ["PremiseTelemetry"]),
-    .library(name: "PremiseCoverageGuided", targets: ["PremiseCoverageGuided"]),
-    .executable(name: "PremiseGhostwriterTool", targets: ["PremiseGhostwriterTool"]),
+  products: libraryNames.map { .library(name: $0, targets: [$0]) } + [
+    .executable(
+      name: "PremiseGhostwriterTool",
+      targets: ["PremiseGhostwriterTool"]
+    ),
     .executable(name: "PremiseReplayTool", targets: ["PremiseReplayTool"]),
   ] + macroProducts,
   traits: [
@@ -123,18 +185,7 @@ let package = Package(
   ],
   dependencies: macroDependencies,
   targets: [
-    .target(
-      name: "PremiseCore",
-      resources: [.copy("Documentation.docc")]
-    ),
-    .target(
-      name: "PremiseStrategies",
-      dependencies: ["PremiseCore"]
-    ),
-    .target(
-      name: "PremiseDatabase",
-      dependencies: ["PremiseCore", "PremiseSQLite"]
-    ),
+
     // Re-exports Darwin's SQLite3 module or the Linux CSQLite shim so that
     // sqlite-facing files need one unconditional import.
     .target(
@@ -146,17 +197,11 @@ let package = Package(
     // Shared stdio for the command-line tools; avoids C stdio globals that
     // Swift 6 strict concurrency rejects on Linux.
     .target(name: "PremiseToolSupport"),
-    .target(
-      name: "PremiseFuzzing",
-      dependencies: [
-        "PremiseCore",
-        "PremiseDatabase",
-      ]
-    ),
-    .target(name: "PremiseGhostwriter"),
+
     .executableTarget(
       name: "PremiseGhostwriterTool",
-      dependencies: ["PremiseGhostwriter", "PremiseToolSupport"]
+      dependencies: ["PremiseGhostwriter", "PremiseToolSupport"],
+      exclude: targetDocumentationExclusions
     ),
     .plugin(
       name: "PremiseGhostwriterPlugin",
@@ -168,38 +213,15 @@ let package = Package(
       ),
       dependencies: ["PremiseGhostwriterTool"]
     ),
-    .target(
-      name: "PremiseTesting",
-      dependencies: [
-        "PremiseCore",
-        "PremiseStrategies",
-        "PremiseDatabase",
-      ]
-    ),
-    .target(
-      name: "PremiseXCTest",
-      dependencies: [
-        "PremiseCore",
-        "PremiseStrategies",
-        "PremiseDatabase",
-      ]
-    ),
 
-    .target(
-      name: "PremiseParallel",
-      dependencies: ["PremiseCore", "PremiseDatabase"]
-    ),
-    .target(
-      name: "PremiseTelemetry",
-      dependencies: ["PremiseCore"]
-    ),
     .executableTarget(
       name: "PremiseReplayTool",
       dependencies: [
         "PremiseCore",
         "PremiseDatabase",
         "PremiseToolSupport",
-      ]
+      ],
+      exclude: targetDocumentationExclusions
     ),
     .plugin(
       name: "PremiseReplayPlugin",
@@ -218,6 +240,7 @@ let package = Package(
         "PremiseCore",
         "CPremiseSanitizerCoverage",
       ],
+      exclude: targetDocumentationExclusions,
       swiftSettings: [
         .define("PREMISE_COVERAGE_GUIDED", .when(traits: ["CoverageGuided"]))
       ]
@@ -229,6 +252,7 @@ let package = Package(
         "PremiseCore",
         .target(name: "CZ3", condition: .when(traits: ["SMT"])),
       ],
+      exclude: targetDocumentationExclusions,
       swiftSettings: [
         .define("PREMISE_SMT", .when(traits: ["SMT"]))
       ]
@@ -245,91 +269,16 @@ let package = Package(
       providers: [.brew(["sqlite"]), .apt(["libsqlite3-dev"])]
     ),
 
-    // MARK: - v1 Test Targets
-
-    .testTarget(
-      name: "PremiseCoreTests",
-      dependencies: [
-        "PremiseCore",
-        "PremiseStrategies",
-      ]
-    ),
-    .testTarget(
-      name: "PremiseStrategiesTests",
-      dependencies: ["PremiseStrategies"]
-    ),
-    .testTarget(
-      name: "PremiseDatabaseTests",
-      dependencies: [
-        "PremiseCore",
-        "PremiseDatabase",
-        "PremiseSQLite",
-      ]
-    ),
-    .testTarget(
-      name: "PremiseFuzzingTests",
-      dependencies: [
-        "PremiseCore",
-        "PremiseDatabase",
-        "PremiseFuzzing",
-        "PremiseStrategies",
-      ]
-    ),
-    .testTarget(
-      name: "PremiseGhostwriterTests",
-      dependencies: ["PremiseGhostwriter"]
-    ),
-    .testTarget(
-      name: "PremiseTestingIntegrationTests",
-      dependencies: ["PremiseTesting", "PremiseDatabase"]
-    ),
-    .testTarget(
-      name: "PremiseXCTestIntegrationTests",
-      dependencies: ["PremiseXCTest"]
-    ),
-    .testTarget(
-      name: "PremiseAdapterContractTests",
-      dependencies: [
-        "PremiseCore",
-        "PremiseStrategies",
-        "PremiseDatabase",
-        "PremiseTesting",
-        "PremiseXCTest",
-      ]
-    ),
-
-    // MARK: - v2 Extension Test Targets
-
-    .testTarget(
-      name: "PremiseParallelTests",
-      dependencies: [
-        "PremiseParallel",
-        "PremiseCore",
-        "PremiseStrategies",
-      ]
-    ),
-    .testTarget(
-      name: "PremiseTelemetryTests",
-      dependencies: [
-        "PremiseTelemetry",
-        "PremiseCore",
-        "PremiseStrategies",
-      ]
-    ),
-    .testTarget(
-      name: "PremiseCoverageGuidedTests",
-      dependencies: [
-        "PremiseCoverageGuided",
-        "PremiseCore",
-      ]
-    ),
-    .testTarget(
-      name: "PremiseSMTTests",
-      dependencies: [
-        "PremiseSMT",
-        "PremiseCore",
-      ]
-    ),
-  ] + macroTargets,
+  ] + macroTargets
+    + libraryDependencies.sorted { $0.key < $1.key }.map {
+      .target(
+        name: $0.key,
+        dependencies: $0.value,
+        exclude: targetDocumentationExclusions
+      )
+    }
+    + testDependencies.sorted { $0.key < $1.key }.map {
+      .testTarget(name: $0.key, dependencies: $0.value)
+    },
   swiftLanguageModes: [.v6]
 )

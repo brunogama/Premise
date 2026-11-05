@@ -1,0 +1,6 @@
+parent_config: ../../.swiftlint.yml
+
+function_parameter_count:
+  warning: 8
+  error: 8
+  ignores_default_parameters: false

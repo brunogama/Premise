@@ -1,8 +1,6 @@
 #if canImport(Testing)
-import Testing
 
 import PremiseCore
-import PremiseDatabase
 import PremiseStrategies
 
 // MARK: - Single-strategy forAll
@@ -10,9 +8,9 @@ import PremiseStrategies
 /// Runs a property test through the Premise engine inside a swift-testing
 /// context.
 ///
-/// `forAll` constructs a ``Runner`` from the given strategy and configuration,
-/// wraps it in a ``ReplayFirstExecutor`` backed by a ``FileBackedDatabase``,
-/// and reports any failure as a swift-testing ``Issue`` containing the
+/// `forAll` constructs a ``/PremiseCore/Runner`` from the given strategy and configuration,
+/// wraps it in a ``/PremiseDatabase/ReplayFirstExecutor`` backed by a ``/PremiseDatabase/FileBackedDatabase``,
+/// and reports any failure as a swift-testing [Issue](https://developer.apple.com/documentation/testing/issue) containing the
 /// minimized counterexample, run/shrink counts, and a replay instruction.
 ///
 /// ```swift
@@ -23,6 +21,8 @@ import PremiseStrategies
 /// }
 /// ```
 public func forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -51,6 +51,8 @@ public func forAll<Value: Sendable>(
 /// Runs an async property test through the Premise engine inside a
 /// swift-testing context.
 public func forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -88,6 +90,8 @@ public func forAll<Value: Sendable>(
 /// }
 /// ```
 public func forAll<A: Sendable, B: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
@@ -100,19 +104,7 @@ public func forAll<A: Sendable, B: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (A, B) throws -> Void
 ) async throws {
-  let combined = Strategy<(A, B)>(
-    label: "(\(strategyA.label), \(strategyB.label))",
-    draw: { data in
-      let a = try strategyA.draw(&data)
-      let b = try strategyB.draw(&data)
-      return (a, b)
-    },
-    shrink: { pair in
-      let shrunkA = strategyA.shrink(pair.0).map { ($0, pair.1) }
-      let shrunkB = strategyB.shrink(pair.1).map { (pair.0, $0) }
-      return shrunkA + shrunkB
-    }
-  )
+  let combined = combinedStrategy(strategyA, strategyB)
   try await runForAll(
     strategy: combined,
     config: config,
@@ -130,6 +122,8 @@ public func forAll<A: Sendable, B: Sendable>(
 
 /// Runs an async property test over two independently generated values.
 public func forAll<A: Sendable, B: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   config: PropertyConfig = .default,
@@ -174,11 +168,17 @@ public func forAll<A: Sendable, B: Sendable>(
 /// }
 /// ```
 public func forAll<A: Sendable, B: Sendable, C: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   explicitExamples: [(A, B, C)] = [],
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
@@ -187,21 +187,7 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
   function: String = #function,
   _ property: @escaping @Sendable (A, B, C) throws -> Void
 ) async throws {
-  let combined = Strategy<(A, B, C)>(
-    label: "(\(strategyA.label), \(strategyB.label), \(strategyC.label))",
-    draw: { data in
-      let a = try strategyA.draw(&data)
-      let b = try strategyB.draw(&data)
-      let c = try strategyC.draw(&data)
-      return (a, b, c)
-    },
-    shrink: { triple in
-      let sA = strategyA.shrink(triple.0).map { ($0, triple.1, triple.2) }
-      let sB = strategyB.shrink(triple.1).map { (triple.0, $0, triple.2) }
-      let sC = strategyC.shrink(triple.2).map { (triple.0, triple.1, $0) }
-      return sA + sB + sC
-    }
-  )
+  let combined = combinedStrategy(strategyA, strategyB, strategyC)
   try await runForAll(
     strategy: combined,
     config: config,
@@ -219,11 +205,17 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
 
 /// Runs an async property test over three independently generated values.
 public func forAll<A: Sendable, B: Sendable, C: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategyA: Strategy<A>,
   _ strategyB: Strategy<B>,
   _ strategyC: Strategy<C>,
   config: PropertyConfig = .default,
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   explicitExamples: [(A, B, C)] = [],
+  // Existing callers supply three-element tuples.
+  // swiftlint:disable:next large_tuple
   examples: [ExplicitExample<(A, B, C)>] = [],
   fileID: String = #fileID,
   filePath: String = #filePath,
@@ -250,7 +242,7 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
 
 // MARK: - forAll with PremiseData access
 
-/// Runs a property test that also receives a ``PremiseData`` reference
+/// Runs a property test that also receives a ``/PremiseCore/PremiseData`` reference
 /// for recording notes, events, and target scores.
 ///
 /// ```swift
@@ -264,6 +256,8 @@ public func forAll<A: Sendable, B: Sendable, C: Sendable>(
 /// }
 /// ```
 public func forAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve public arguments and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -282,162 +276,20 @@ public func forAll<Value: Sendable>(
     functionName: function
   )
 
-  let runner = Runner(
-    strategy: strategy,
-    config: config,
-    propertyID: propertyID
-  )
-  let database = makeDatabase(config: config)
-  let executor = ReplayFirstExecutor(runner: runner, database: database)
+  let executor = makeExecutor(strategy, config: config, propertyID: propertyID)
   let result = try await executor.executeDetailed(
     explicitExamples: explicitExamples,
     examples: examples,
     property
   )
 
-  if case .failure(let record, value: let value, report: let report) = result {
-    let message = FailureFormatter.format(
-      value: value,
-      record: record,
-      propertyID: propertyID,
-      report: report,
-      includeReproductionBlob: config.printReproductionBlob
-    )
-    let sourceLocation = SourceLocation(
-      fileID: fileID,
-      filePath: filePath,
-      line: line,
-      column: column
-    )
-    Issue.record(
-      Comment(rawValue: message),
-      sourceLocation: sourceLocation
-    )
-  }
-}
-
-// MARK: - Internal
-
-/// Shared implementation for all forAll variants.
-// swiftlint:disable:next function_parameter_count
-private func runForAll<Value: Sendable>(
-  strategy: Strategy<Value>,
-  config: PropertyConfig,
-  explicitExamples: [Value] = [],
-  examples: [ExplicitExample<Value>] = [],
-  fileID: String,
-  filePath: String,
-  line: Int,
-  column: Int,
-  function: String,
-  property: @escaping @Sendable (Value) throws -> Void
-) async throws {
-  let propertyID = PropertyIdentity(
-    fileID: fileID,
-    line: UInt(line),
-    strategyLabel: strategy.label,
-    functionName: function
-  )
-
-  let runner = Runner(
-    strategy: strategy,
+  reportForAllResult(
+    result,
+    propertyID: propertyID,
     config: config,
-    propertyID: propertyID
-  )
-
-  let database = makeDatabase(config: config)
-  let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(
-    explicitExamples: explicitExamples,
-    examples: examples,
-    property
-  )
-
-  if case .failure(let record, value: let value, report: let report) = result {
-    let message = FailureFormatter.format(
-      value: value,
-      record: record,
-      propertyID: propertyID,
-      report: report,
-      includeReproductionBlob: config.printReproductionBlob
-    )
-    let sourceLocation = SourceLocation(
-      fileID: fileID,
-      filePath: filePath,
-      line: line,
-      column: column
-    )
-    Issue.record(
-      Comment(rawValue: message),
-      sourceLocation: sourceLocation
-    )
-  }
-}
-
-// swiftlint:disable:next function_parameter_count
-private func runForAllAsync<Value: Sendable>(
-  strategy: Strategy<Value>,
-  config: PropertyConfig,
-  explicitExamples: [Value] = [],
-  examples: [ExplicitExample<Value>] = [],
-  fileID: String,
-  filePath: String,
-  line: Int,
-  column: Int,
-  function: String,
-  property: @escaping @Sendable (Value) async throws -> Void
-) async throws {
-  let propertyID = PropertyIdentity(
-    fileID: fileID,
-    line: UInt(line),
-    strategyLabel: strategy.label,
-    functionName: function
-  )
-
-  let runner = Runner(
-    strategy: strategy,
-    config: config,
-    propertyID: propertyID
-  )
-
-  let database = makeDatabase(config: config)
-  let executor = ReplayFirstExecutor(runner: runner, database: database)
-  let result = try await executor.executeDetailed(
-    explicitExamples: explicitExamples,
-    examples: examples,
-    property
-  )
-
-  if case .failure(let record, value: let value, report: let report) = result {
-    let message = FailureFormatter.format(
-      value: value,
-      record: record,
-      propertyID: propertyID,
-      report: report,
-      includeReproductionBlob: config.printReproductionBlob
-    )
-    let sourceLocation = SourceLocation(
-      fileID: fileID,
-      filePath: filePath,
-      line: line,
-      column: column
-    )
-    Issue.record(
-      Comment(rawValue: message),
-      sourceLocation: sourceLocation
-    )
-  }
-}
-
-private func makeDatabase(config: PropertyConfig) -> any ExampleDatabase {
-  let local = FileBackedDatabase(rootDirectory: config.localDatabaseDirectory)
-  guard let corpusDirectory = config.committedCorpusDirectory else {
-    return local
-  }
-  let corpus = FileBackedDatabase(rootDirectory: corpusDirectory)
-  return CompositeExampleDatabase(
-    replaySources: [corpus, local],
-    writableDatabase: local
+    location: makeLocation(fileID, filePath, line, column)
   )
 }
+
+
 #endif

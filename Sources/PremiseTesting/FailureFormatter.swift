@@ -3,6 +3,7 @@ import PremiseCore
 /// Formats a property failure into a human-readable diagnostic string
 /// containing the counterexample, run/shrink counts, and replay instructions.
 enum FailureFormatter {
+  // swiftlint:disable function_parameter_count - Value, record, identity, report, and blob policy are independent diagnostic inputs.
   /// Builds a diagnostic message from a property failure.
   ///
   /// - Parameters:
@@ -10,6 +11,7 @@ enum FailureFormatter {
   ///   - record: The failure record containing trace, counts, and metadata.
   ///   - propertyID: The property identity for replay instructions.
   ///   - report: Optional detailed run report for aggregated diagnostics.
+  ///   - includeReproductionBlob: Whether to include the encoded trace.
   /// - Returns: A multi-line diagnostic string.
   static func format<Value>(
     value: Value,
@@ -21,18 +23,12 @@ enum FailureFormatter {
     var lines: [String] = []
 
     // Header with location.
-    let location: String
-    if let fn = propertyID.functionName {
-      location = "\(propertyID.fileID) \(fn)#\(propertyID.line)"
-    } else {
-      location = "\(propertyID.fileID)#\(propertyID.line)"
-    }
+    let location = location(for: propertyID)
     lines.append("Property failed: \(location)")
     lines.append("Failure kind: \(record.discovery.rawValue)")
 
     // Pretty-printed counterexample (use dump for complex types).
-    let valueDescription = prettyPrint(value)
-    lines.append("Minimal counterexample: \(valueDescription)")
+    lines.append("Minimal counterexample: \(prettyPrint(value))")
 
     // Error detail.
     lines.append("Error: \(record.errorMessage)")
@@ -48,6 +44,28 @@ enum FailureFormatter {
     appendMultipleFailures(from: report, to: &lines)
 
     // Seed-based replay instruction.
+    appendReplay(
+      record: record,
+      includeBlob: includeReproductionBlob,
+      to: &lines
+    )
+
+    return lines.joined(separator: "\n")
+  }
+  // swiftlint:enable function_parameter_count
+
+  private static func location(for propertyID: PropertyIdentity) -> String {
+    if let function = propertyID.functionName {
+      return "\(propertyID.fileID) \(function)#\(propertyID.line)"
+    }
+    return "\(propertyID.fileID)#\(propertyID.line)"
+  }
+
+  private static func appendReplay(
+    record: FailureRecord,
+    includeBlob: Bool,
+    to lines: inout [String]
+  ) {
     if let seed = record.seed {
       lines.append("Seed to reproduce: \(seed)")
       lines.append("Replay: config: PropertyConfig(seed: \(seed))")
@@ -57,15 +75,12 @@ enum FailureFormatter {
           + "or an exported JSON trace artifact."
       )
     }
-
-    if includeReproductionBlob, let blob = try? record.trace.reproductionBlob() {
+    if includeBlob, let blob = try? record.trace.reproductionBlob() {
       lines.append("Reproduction blob: \(blob)")
       lines.append(
         "Replay blob: try ChoiceTrace.decodeReproductionBlob(\"\(blob)\")"
       )
     }
-
-    return lines.joined(separator: "\n")
   }
 
   // MARK: - Pretty-printing
@@ -96,6 +111,9 @@ enum FailureFormatter {
     return String(describing: value)
   }
 
+}
+
+extension FailureFormatter {
   private static func statistics(
     record: FailureRecord,
     report: RunReport?

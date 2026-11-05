@@ -45,6 +45,9 @@ jobs:
         with:
           swift-version: ${{ matrix.swift }}
 
+      - name: Install Z3
+        run: brew list --versions z3 >/dev/null || brew install z3
+
       - name: Run boundary validation
         run: bash scripts/validate-boundaries.sh
 
@@ -54,6 +57,9 @@ jobs:
             --explicit-target-dependency-import-check error \
             -Xswiftc -warnings-as-errors \
             -Xswiftc -strict-concurrency=complete
+
+      - name: Build documentation
+        run: bash scripts/build-documentation.sh
 
       - name: Test
         run: |

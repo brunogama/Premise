@@ -1,10 +1,17 @@
+/// Minimizes a failing trace using an asynchronous property.
 public struct AsyncShrinkMachine<Value: Sendable> {
+  /// Runner used to replay candidates.
   public let runner: Runner<Value>
+  /// Property evaluated during replay.
   public let property: @Sendable (Value) async throws -> Void
+  /// Best failing trace found so far.
   public private(set) var bestTrace: ChoiceTrace
+  /// Number of accepted shrink steps.
   public private(set) var iterations: Int
+  /// Maximum number of accepted shrink steps.
   public let maxIterations: Int
 
+  /// Creates a shrink machine for a failing trace.
   public init(
     runner: Runner<Value>,
     property: @escaping @Sendable (Value) async throws -> Void,
@@ -18,6 +25,7 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     iterations = 0
   }
 
+  /// Runs shrink passes until no pass improves the trace or the budget ends.
   public mutating func run() async -> ChoiceTrace {
     while iterations < maxIterations {
       let improved: Bool
@@ -35,6 +43,7 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     return bestTrace
   }
 
+  /// Attempts to remove a recorded span.
   public mutating func deletionPass() async -> Bool {
     guard !bestTrace.spans.isEmpty else { return false }
     for index in bestTrace.spans.indices.reversed() {
@@ -47,6 +56,7 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     return false
   }
 
+  /// Attempts to reduce an integer choice.
   public mutating func integerPass() async -> Bool {
     for index in bestTrace.entries.indices {
       guard case .integer(let value) = bestTrace.entries[index] else {
@@ -64,6 +74,7 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     return false
   }
 
+  /// Attempts to remove an element from a recorded collection.
   public mutating func collectionPass() async -> Bool {
     guard !bestTrace.spans.isEmpty else { return false }
     for index in bestTrace.spans.indices.reversed() {
@@ -84,6 +95,7 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     return false
   }
 
+  /// Replays and accepts a candidate if it still fails.
   public mutating func tryTrace(_ candidate: ChoiceTrace) async -> Bool {
     if await runner.replay(candidate, property: property) {
       bestTrace = candidate
@@ -92,6 +104,9 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     }
     return false
   }
+}
+
+extension AsyncShrinkMachine {
 
   private func integerCandidates(for value: UInt64) -> [UInt64] {
     var candidates: [UInt64] = [0]
@@ -104,7 +119,10 @@ public struct AsyncShrinkMachine<Value: Sendable> {
     return Array(Set(candidates)).sorted()
   }
 
-  private func removing(span: ChoiceTrace.Span, from trace: ChoiceTrace) -> ChoiceTrace {
+  private func removing(
+    span: ChoiceTrace.Span,
+    from trace: ChoiceTrace
+  ) -> ChoiceTrace {
     var candidate = trace
     guard span.start < span.end, span.end <= candidate.entries.count else {
       return candidate

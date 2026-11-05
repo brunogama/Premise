@@ -23,6 +23,7 @@ public actor SQLiteBackedDatabase: ExampleDatabase {
 
   // MARK: - ExampleDatabase
 
+  /// Stores a failure record.
   public func save(_ record: FailureRecord) async throws {
     let envelope = PersistenceCodec.encode(record)
 
@@ -39,43 +40,21 @@ public actor SQLiteBackedDatabase: ExampleDatabase {
       """
 
     let stmt = try prepareStatement(sql)
-    defer { sqlite3_finalize(stmt) }
+    defer { PremiseSQLite.sqlite3_finalize(stmt) }
 
     bindPropertyIdentity(stmt, record.propertyID, startingAt: 1)
-    sqlite3_bind_int(stmt, 4, Int32(envelope.traceFormatVersion))
-    sqlite3_bind_int(stmt, 5, Int32(envelope.recordFormatVersion))
+    PremiseSQLite.sqlite3_bind_int(stmt, 4, Int32(envelope.traceFormatVersion))
+    PremiseSQLite.sqlite3_bind_int(stmt, 5, Int32(envelope.recordFormatVersion))
 
-    traceData.withUnsafeBytes { buffer in
-      guard let baseAddress = buffer.baseAddress else { return }
-      sqlite3_bind_blob(
-        stmt,
-        6,
-        baseAddress,
-        Int32(buffer.count),
-        unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-      )
-    }
+    bindBlob(traceData, to: stmt, at: 6)
+    bindBlob(recordData, to: stmt, at: 7)
 
-    recordData.withUnsafeBytes { buffer in
-      guard let baseAddress = buffer.baseAddress else { return }
-      sqlite3_bind_blob(
-        stmt,
-        7,
-        baseAddress,
-        Int32(buffer.count),
-        unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-      )
-    }
+    PremiseSQLite.sqlite3_bind_int64(stmt, 8, createdAtMs)
 
-    sqlite3_bind_int64(stmt, 8, createdAtMs)
-
-    let stepResult = sqlite3_step(stmt)
-    guard stepResult == SQLITE_DONE else {
-      let message = String(cString: sqlite3_errmsg(connection.handle))
-      throw SQLiteError.resultCode(stepResult, context: message)
-    }
+    try stepToCompletion(stmt)
   }
 
+  /// Loads stored traces for a property.
   public func loadTraces(
     for id: PropertyIdentity
   ) async throws -> [ChoiceTrace] {
@@ -87,42 +66,27 @@ public actor SQLiteBackedDatabase: ExampleDatabase {
       """
 
     let stmt = try prepareStatement(sql)
-    defer { sqlite3_finalize(stmt) }
+    defer { PremiseSQLite.sqlite3_finalize(stmt) }
 
     bindPropertyIdentity(stmt, id, startingAt: 1)
 
     var traces: [ChoiceTrace] = []
 
-    while sqlite3_step(stmt) == SQLITE_ROW {
-      let traceVersion = Int(sqlite3_column_int(stmt, 0))
-      let recordVersion = Int(sqlite3_column_int(stmt, 1))
+    while PremiseSQLite.sqlite3_step(stmt) == SQLITE_ROW {
+      try validateVersions(stmt)
 
-      guard PersistenceVersionPolicy.supportedTraceVersions.contains(traceVersion) else {
-        throw PersistenceCompatibilityError.unsupportedTraceVersion(
-          found: traceVersion,
-          supported: PersistenceVersionPolicy.supportedTraceVersions
-        )
-      }
-
-      guard PersistenceVersionPolicy.supportedRecordVersions.contains(recordVersion) else {
-        throw PersistenceCompatibilityError.unsupportedRecordVersion(
-          found: recordVersion,
-          supported: PersistenceVersionPolicy.supportedRecordVersions
-        )
-      }
-
-      guard let blobPointer = sqlite3_column_blob(stmt, 2) else {
+      guard let blobPointer = PremiseSQLite.sqlite3_column_blob(stmt, 2) else {
         continue
       }
-      let blobLength = Int(sqlite3_column_bytes(stmt, 2))
+      let blobLength = Int(PremiseSQLite.sqlite3_column_bytes(stmt, 2))
       let data = Data(bytes: blobPointer, count: blobLength)
-      let trace = try JSONDecoder().decode(ChoiceTrace.self, from: data)
-      traces.append(trace)
+      traces.append(try JSONDecoder().decode(ChoiceTrace.self, from: data))
     }
 
     return traces
   }
 
+  /// Removes stored failures for a property.
   public func clear(for id: PropertyIdentity) async throws {
     let sql = """
       DELETE FROM failures \
@@ -130,18 +94,56 @@ public actor SQLiteBackedDatabase: ExampleDatabase {
       """
 
     let stmt = try prepareStatement(sql)
-    defer { sqlite3_finalize(stmt) }
+    defer { PremiseSQLite.sqlite3_finalize(stmt) }
 
     bindPropertyIdentity(stmt, id, startingAt: 1)
 
-    let stepResult = sqlite3_step(stmt)
-    guard stepResult == SQLITE_DONE else {
-      let message = String(cString: sqlite3_errmsg(connection.handle))
-      throw SQLiteError.resultCode(stepResult, context: message)
+    try stepToCompletion(stmt)
+  }
+
+}
+
+extension SQLiteBackedDatabase {
+  private func stepToCompletion(_ stmt: OpaquePointer) throws {
+    let result = PremiseSQLite.sqlite3_step(stmt)
+    guard result == SQLITE_DONE else {
+      let message =
+        String(cString: PremiseSQLite.sqlite3_errmsg(connection.handle))
+      throw SQLiteError.resultCode(result, context: message)
     }
   }
 
-  // MARK: - Private Helpers
+  private func bindBlob(_ data: Data, to stmt: OpaquePointer, at index: Int32) {
+    data.withUnsafeBytes { buffer in
+      guard let baseAddress = buffer.baseAddress else { return }
+      PremiseSQLite.sqlite3_bind_blob(
+        stmt,
+        index,
+        baseAddress,
+        Int32(buffer.count),
+        unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+      )
+    }
+  }
+
+  private func validateVersions(_ stmt: OpaquePointer) throws {
+    let traceVersion = Int(PremiseSQLite.sqlite3_column_int(stmt, 0))
+    let recordVersion = Int(PremiseSQLite.sqlite3_column_int(stmt, 1))
+    let traceVersions = PersistenceVersionPolicy.supportedTraceVersions
+    guard traceVersions.contains(traceVersion) else {
+      throw PersistenceCompatibilityError.unsupportedTraceVersion(
+        found: traceVersion,
+        supported: PersistenceVersionPolicy.supportedTraceVersions
+      )
+    }
+    let recordVersions = PersistenceVersionPolicy.supportedRecordVersions
+    guard recordVersions.contains(recordVersion) else {
+      throw PersistenceCompatibilityError.unsupportedRecordVersion(
+        found: recordVersion,
+        supported: PersistenceVersionPolicy.supportedRecordVersions
+      )
+    }
+  }
 
   /// Wraps `sqlite3_prepare_v2`, throwing ``SQLiteError`` on failure.
   ///
@@ -150,9 +152,11 @@ public actor SQLiteBackedDatabase: ExampleDatabase {
   /// - Throws: ``SQLiteError/resultCode(_:context:)`` on preparation failure.
   private func prepareStatement(_ sql: String) throws -> OpaquePointer {
     var stmt: OpaquePointer?
-    let result = sqlite3_prepare_v2(connection.handle, sql, -1, &stmt, nil)
+    let result =
+      PremiseSQLite.sqlite3_prepare_v2(connection.handle, sql, -1, &stmt, nil)
     guard result == SQLITE_OK, let statement = stmt else {
-      let message = String(cString: sqlite3_errmsg(connection.handle))
+      let message =
+        String(cString: PremiseSQLite.sqlite3_errmsg(connection.handle))
       throw SQLiteError.resultCode(result, context: message)
     }
     return statement
@@ -163,18 +167,24 @@ public actor SQLiteBackedDatabase: ExampleDatabase {
   /// - Parameters:
   ///   - stmt: The prepared statement.
   ///   - id: The property identity to bind.
-  ///   - startingAt: The 1-based parameter index for the first field.
+  ///   - index: The 1-based parameter index for the first field.
   private func bindPropertyIdentity(
     _ stmt: OpaquePointer,
     _ id: PropertyIdentity,
     startingAt index: Int32
   ) {
     _ = id.fileID.withCString { cstr in
-      sqlite3_bind_text(stmt, index, cstr, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+      PremiseSQLite.sqlite3_bind_text(
+        stmt,
+        index,
+        cstr,
+        -1,
+        unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+      )
     }
-    sqlite3_bind_int64(stmt, index + 1, Int64(id.line))
+    PremiseSQLite.sqlite3_bind_int64(stmt, index + 1, Int64(id.line))
     _ = id.strategyLabel.withCString { cstr in
-      sqlite3_bind_text(
+      PremiseSQLite.sqlite3_bind_text(
         stmt,
         index + 2,
         cstr,

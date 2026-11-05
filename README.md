@@ -21,27 +21,26 @@ repeatably in future runs.
 > [!NOTE]
 > Premise is inspired by Python's Hypothesis, but the API is intentionally
 > Swift-native: value-oriented strategies, `Sendable` public types, async-aware
-> adapters, SwiftPM plugins, and an optional macro layer that stays out of the
-> default dependency graph.
+> adapters, and SwiftPM plugins. The experimental macro is not included in this version.
 
 ## Features
 
-- **Deterministic replay** — every failing run records a `ChoiceTrace` that can
+- **Deterministic replay**: every failing run records a `ChoiceTrace` that can
   be decoded and replayed exactly.
-- **Structural shrinking** — failing choices are minimized at the trace level,
+- **Structural shrinking**: failing choices are minimized at the trace level,
   with strategy-specific shrinkers for common Swift values.
-- **Persistent failures** — file-backed and SQLite-backed databases replay known
+- **Persistent failures**: file-backed and SQLite-backed databases replay known
   failures before fresh generation.
-- **Rich strategy catalog** — primitives, collections, URLs, UUIDs, dates,
+- **Rich strategy catalog**: primitives, collections, URLs, UUIDs, dates,
   regex-shaped strings, network strings, records, vectors, recursive data, and
   more.
-- **swift-testing and XCTest adapters** — use `forAll` or `premise_forAll`
+- **swift-testing and XCTest adapters**: use `forAll` or `premise_forAll`
   without changing your test framework.
-- **Stateful testing** — generate operation sequences or rule-based state
+- **Stateful testing**: generate operation sequences or rule-based state
   machine programs with replayable minimal failures.
-- **Tooling included** — replay trace inspection, ghostwritten property
+- **Tooling included**: replay trace inspection, ghostwritten property
   skeletons, JSONL run output, and fuzzer byte-input bridging.
-- **Strict concurrency** — built for Swift 6 complete strict-concurrency checks.
+- **Strict concurrency**: built for Swift 6 complete strict-concurrency checks.
 
 ## Getting started
 
@@ -121,12 +120,12 @@ final class MathTests: XCTestCase {
 
 ## How it works
 
-1. **Draw** — a strategy asks `PremiseData` for primitive choices.
-2. **Record** — every choice is stored in a deterministic `ChoiceTrace`.
-3. **Check** — your property runs against the generated value.
-4. **Shrink** — on failure, Premise replays smaller traces until the
+1. **Draw**: a strategy asks `PremiseData` for primitive choices.
+2. **Record**: every choice is stored in a deterministic `ChoiceTrace`.
+3. **Check**: your property runs against the generated value.
+4. **Shrink**: on failure, Premise replays smaller traces until the
    counterexample is minimal.
-5. **Persist** — the failure is stored and replayed first on the next run.
+5. **Persist**: the failure is stored and replayed first on the next run.
 
 ## Strategies
 
@@ -169,7 +168,7 @@ let positiveEven = Strategy<Int>(
 )
 ```
 
-See the [strategy catalog](Sources/PremiseCore/Documentation.docc/Articles/StrategyCatalog.md)
+See the [strategy catalog](docs/Documentation.docc/Articles/StrategyCatalog.md)
 for the full built-in reference.
 
 ## Configuration
@@ -336,6 +335,11 @@ Supported templates:
 - `idempotence`
 - `binary-operation-laws`
 
+When calling the typed `PremiseGhostwriter.roundtrip`, `equivalence`,
+`idempotence`, or `binaryOperationLaws` APIs directly, use `try` and handle
+`GhostwriterError` for missing required expressions. These helpers previously
+had nonthrowing signatures.
+
 Bridge libFuzzer, AFL, or custom byte-input harnesses through `PremiseFuzzing`:
 
 ```swift
@@ -354,26 +358,12 @@ try await fuzzOneInput(
 Failing fuzz inputs are saved as Premise replay traces, with the original bytes
 recorded in run statistics for triage.
 
-## Optional `@given` macro
+## Macro availability
 
-The default manifest is macro-free: core products build without downloading a
-macro artifact or resolving `swift-syntax`. If you want decorator-style syntax,
-opt in to the macro product:
-
-```bash
-PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
-```
-
-```swift
-import Testing
-import PremiseMacros
-import PremiseTesting
-
-@given(.integers(in: 0...100), .ascii)
-func lengthDoesNotReduceNumber(n: Int, text: String) {
-    #expect(n + text.count >= n)
-}
-```
+The experimental `@given` macro is excluded from the default package. Use
+`forAll` or `premise_forAll` without macro dependencies, or opt in to a source
+build with `PREMISE_MACRO_SOURCE=1`. Binary opt-in requires
+`PREMISE_MACRO_BINARY=1` and `PREMISE_MACRO_BINARY_CHECKSUM`.
 
 ## Package map
 
@@ -389,7 +379,6 @@ func lengthDoesNotReduceNumber(n: Int, text: String) {
 | `PremiseParallel` | Parallel property execution |
 | `PremiseTelemetry` | Engine event hooks and telemetry sinks |
 | `PremiseCoverageGuided` | SanitizerCoverage snapshots and coverage guidance |
-| `PremiseMacros` | Optional `@given` macro |
 
 ## Local development
 
@@ -403,8 +392,6 @@ swift test
 # Validate target boundaries
 bash scripts/validate-boundaries.sh
 
-# Build optional source macros
-PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
 ```
 
 > [!IMPORTANT]
@@ -414,7 +401,32 @@ PREMISE_MACRO_SOURCE=1 swift build --product PremiseMacros
 
 ## Learn more
 
-- [How the engine works](Sources/PremiseCore/Documentation.docc/Articles/HowTheEngineWorks.md)
-- [Failure persistence and replay](Sources/PremiseCore/Documentation.docc/Articles/FailurePersistenceAndReplay.md)
-- [Stateful rule machines](Sources/PremiseCore/Documentation.docc/Articles/StatefulRuleMachines.md)
-- [Ghostwriter and fuzzer bridge](Sources/PremiseCore/Documentation.docc/Articles/GhostwriterAndFuzzing.md)
+- [How the engine works](docs/Documentation.docc/Articles/HowTheEngineWorks.md)
+- [Failure persistence and replay](docs/Documentation.docc/Articles/FailurePersistenceAndReplay.md)
+- [Stateful rule machines](docs/Documentation.docc/Articles/StatefulRuleMachines.md)
+- [Ghostwriter and fuzzer bridge](docs/Documentation.docc/Articles/GhostwriterAndFuzzing.md)
+
+---
+
+## Repository blueprint
+
+### Interface
+
+- [Sources](./Sources/README.md) contains the engine, adapters, optional integrations, and command-line tools.
+- [Plugins](./Plugins/README.md) exposes SwiftPM commands for ghostwriting and replay.
+- [Scripts](./scripts/README.md) contains boundary checks and macro artifact packaging.
+
+### Invariants
+
+- Choice traces support deterministic replay across generation, execution, and failure persistence.
+- Core and strategy targets must not depend on XCTest or Swift Testing; the experimental macro is excluded by default.
+
+### Side effects
+
+- Property execution invokes user code and may persist failure traces. Tools and scripts can read or write files and launch subprocesses.
+- Optional coverage, telemetry, and solver integrations interact with process state or external resources.
+
+### Verification
+
+- Run `swift test` and `bash scripts/validate-boundaries.sh` from the repository root.
+- Verify macro exclusion with `bash scripts/test-macro-exclusion.sh`.

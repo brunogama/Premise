@@ -1,0 +1,7 @@
+parent_config: ../../.swiftlint.yml
+
+# Preserve the existing public request initializer and template helpers.
+function_parameter_count:
+  warning: 12
+  error: 12
+  ignores_default_parameters: false

@@ -52,7 +52,7 @@ struct FileBackedDatabasePersistenceTests {
   @Test("Saving two records returns two traces in insertion order")
   func saveAndLoadMultipleRecords() async throws {
     let tempDir = try makeTempDirectory()
-    let db = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: tempDir)
     let id = makePropertyID()
 
     let record1 = makeRecord(
@@ -64,10 +64,10 @@ struct FileBackedDatabasePersistenceTests {
       entries: [.integer(2)]
     )
 
-    try await db.save(record1)
-    try await db.save(record2)
+    try await database.save(record1)
+    try await database.save(record2)
 
-    let traces = try await db.loadTraces(for: id)
+    let traces = try await database.loadTraces(for: id)
     #expect(traces.count == 2)
     #expect(traces[0] == ChoiceTrace(entries: [.integer(1)]))
     #expect(traces[1] == ChoiceTrace(entries: [.integer(2)]))
@@ -76,18 +76,18 @@ struct FileBackedDatabasePersistenceTests {
   @Test("Clearing a property removes its traces and leaves others untouched")
   func clearRemovesOnlyTargetProperty() async throws {
     let tempDir = try makeTempDirectory()
-    let db = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: tempDir)
 
     let idA = makePropertyID(fileID: "A.swift", line: 1)
     let idB = makePropertyID(fileID: "B.swift", line: 2)
 
-    try await db.save(makeRecord(propertyID: idA))
-    try await db.save(makeRecord(propertyID: idB))
+    try await database.save(makeRecord(propertyID: idA))
+    try await database.save(makeRecord(propertyID: idB))
 
-    try await db.clear(for: idA)
+    try await database.clear(for: idA)
 
-    let tracesA = try await db.loadTraces(for: idA)
-    let tracesB = try await db.loadTraces(for: idB)
+    let tracesA = try await database.loadTraces(for: idA)
+    let tracesB = try await database.loadTraces(for: idB)
 
     #expect(tracesA.isEmpty)
     #expect(tracesB.count == 1)
@@ -96,10 +96,10 @@ struct FileBackedDatabasePersistenceTests {
   @Test("Loading a property with no file returns an empty array")
   func loadNonexistentPropertyReturnsEmpty() async throws {
     let tempDir = try makeTempDirectory()
-    let db = FileBackedDatabase(rootDirectory: tempDir)
+    let database = FileBackedDatabase(rootDirectory: tempDir)
     let id = makePropertyID()
 
-    let traces = try await db.loadTraces(for: id)
+    let traces = try await database.loadTraces(for: id)
     #expect(traces.isEmpty)
   }
 }

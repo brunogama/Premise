@@ -46,9 +46,9 @@ struct SMTProviderOptInTests {
   func versionEquality() {
     let a = Z3VersionPolicy(major: 4, minor: 15, patch: 0)
     let b = Z3VersionPolicy(major: 4, minor: 15, patch: 0)
-    let c = Z3VersionPolicy(major: 4, minor: 16, patch: 0)
+    let different = Z3VersionPolicy(major: 4, minor: 16, patch: 0)
     #expect(a == b)
-    #expect(a != c)
+    #expect(a != different)
   }
 
   @Test("SMTProvider conforms to PrimitiveProvider and draws bits")

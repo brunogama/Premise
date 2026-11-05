@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "pages": {
+    "/openwiki/concepts/property-execution.md": {
+      "pageVersion": "sha256:c2ca5c7fa1b0c314a112aa6b718a49f714bef545aa7653b7013b4b3e8d9c7575",
+      "completedBy": "pi",
+      "completedRunId": "8978cf17-536f-47de-93fc-0246cc24e2c2",
+      "gitHead": "b117e9937e4abace97467ce52d628198bcee6f09",
+      "sourceFingerprint": "sha256:d57f7ddcaa15fda28eb0f6cb198142fdc960b1524d66903d69643e627032dc73"
+    },
+    "/openwiki/operations/development-and-tooling.md": {
+      "pageVersion": "sha256:0b3af7f2cea493fa1da3cf8ac92e22a709a800557bb4ca74efde0057ccadc27e",
+      "completedBy": "pi",
+      "completedRunId": "8978cf17-536f-47de-93fc-0246cc24e2c2",
+      "gitHead": "b117e9937e4abace97467ce52d628198bcee6f09",
+      "sourceFingerprint": "sha256:d57f7ddcaa15fda28eb0f6cb198142fdc960b1524d66903d69643e627032dc73"
+    },
+    "/openwiki/quickstart.md": {
+      "pageVersion": "sha256:d49da844f0109e0240e0d494733722feb59896ae88ef247ba54641ec9610b4a0",
+      "completedBy": "pi",
+      "completedRunId": "8978cf17-536f-47de-93fc-0246cc24e2c2",
+      "gitHead": "b117e9937e4abace97467ce52d628198bcee6f09",
+      "sourceFingerprint": "sha256:d57f7ddcaa15fda28eb0f6cb198142fdc960b1524d66903d69643e627032dc73"
+    },
+    "/openwiki/workflows/replay-and-persistence.md": {
+      "pageVersion": "sha256:802dfe26b3d0a9fc07795d7542edd1ca08197296a122787a38f25072e34fbd39",
+      "completedBy": "pi",
+      "completedRunId": "8978cf17-536f-47de-93fc-0246cc24e2c2",
+      "gitHead": "b117e9937e4abace97467ce52d628198bcee6f09",
+      "sourceFingerprint": "sha256:d57f7ddcaa15fda28eb0f6cb198142fdc960b1524d66903d69643e627032dc73"
+    },
+    "/openwiki/workflows/strategies-and-testing.md": {
+      "pageVersion": "sha256:c6b0c2113a3bd03a148f1ac16a4931c8ee3958793837b1a9b2223b3afffd5981",
+      "completedBy": "pi",
+      "completedRunId": "8978cf17-536f-47de-93fc-0246cc24e2c2",
+      "gitHead": "b117e9937e4abace97467ce52d628198bcee6f09",
+      "sourceFingerprint": "sha256:d57f7ddcaa15fda28eb0f6cb198142fdc960b1524d66903d69643e627032dc73"
+    }
+  }
+}

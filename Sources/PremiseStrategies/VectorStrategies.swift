@@ -1,50 +1,5 @@
 import PremiseCore
 
-/// Sparse vector value used by built-in vector-ish strategies.
-public struct SparseVector: Sendable, Equatable, Codable {
-  public var dimensions: Int
-  public var entries: [Int: Double]
-
-  public init(dimensions: Int, entries: [Int: Double]) {
-    self.dimensions = dimensions
-    self.entries = entries
-  }
-}
-
-/// Quantized numeric value with a raw integer bucket and floating scale.
-public struct QuantizedValue: Sendable, Equatable, Codable {
-  public var raw: Int
-  public var scale: Double
-
-  public init(raw: Int, scale: Double) {
-    self.raw = raw
-    self.scale = scale
-  }
-
-  public var value: Double {
-    Double(raw) * scale
-  }
-}
-
-/// Generic index workflow operation for model-based index tests.
-public struct IndexOperation: Sendable, Equatable, Codable {
-  public enum Kind: String, Sendable, Codable {
-    case insert
-    case update
-    case delete
-    case query
-  }
-
-  public var kind: Kind
-  public var index: Int
-  public var value: Int?
-
-  public init(kind: Kind, index: Int, value: Int? = nil) {
-    self.kind = kind
-    self.index = index
-    self.value = value
-  }
-}
 
 public extension Strategy where Value == Int {
   /// Generates vector dimensions with a bias toward the lower bound.
@@ -125,11 +80,17 @@ public extension Strategy where Value == IndexOperation {
       draw: { data in
         let kind = kinds[data.drawInteger(in: 0...(kinds.count - 1))]
         let index = data.drawInteger(in: indexRange)
-        let payload = kind == .delete || kind == .query ? nil : data.drawInteger(in: value)
+        let payload =
+          kind == .delete || kind == .query
+          ? nil : data.drawInteger(in: value)
         return IndexOperation(kind: kind, index: index, value: payload)
       },
       shrink: { operation in
-        shrinkIndexOperation(operation, indexRange: indexRange, valueRange: value)
+        shrinkIndexOperation(
+          operation,
+          indexRange: indexRange,
+          valueRange: value
+        )
       }
     )
   }
@@ -143,7 +104,10 @@ public extension Strategy where Value == [IndexOperation] {
     value: ClosedRange<Int>
   ) -> Strategy<[IndexOperation]> {
     Strategy<IndexOperation>.arrays(
-      of: Strategy<IndexOperation>.indexOperations(indexRange: indexRange, value: value),
+      of: Strategy<IndexOperation>.indexOperations(
+        indexRange: indexRange,
+        value: value
+      ),
       length: length
     )
   }
@@ -173,16 +137,21 @@ private func shrinkSparseVector(
   guard !vector.entries.isEmpty else { return [] }
   var candidates: [SparseVector] = []
   let orderedKeys = vector.entries.keys.sorted()
+  guard let lastKey = orderedKeys.last else { return [] }
   var removed = vector.entries
-  removed.removeValue(forKey: orderedKeys.last!)
-  candidates.append(SparseVector(dimensions: vector.dimensions, entries: removed))
+  removed.removeValue(forKey: lastKey)
+  candidates.append(
+    SparseVector(dimensions: vector.dimensions, entries: removed)
+  )
 
   for key in orderedKeys {
     guard let value = vector.entries[key] else { continue }
     for shrunk in values.shrink(value) {
       var entries = vector.entries
       entries[key] = shrunk
-      candidates.append(SparseVector(dimensions: vector.dimensions, entries: entries))
+      candidates.append(
+        SparseVector(dimensions: vector.dimensions, entries: entries)
+      )
     }
   }
   return candidates
@@ -206,14 +175,22 @@ private func shrinkIndexOperation(
       )
     )
   }
-  if let value = operation.value, value != valueRange.lowerBound {
-    candidates.append(
-      IndexOperation(
-        kind: operation.kind,
-        index: operation.index,
-        value: valueRange.lowerBound
-      )
-    )
-  }
+  candidates += shrinkIndexOperationValue(operation, valueRange: valueRange)
   return candidates
+}
+
+private func shrinkIndexOperationValue(
+  _ operation: IndexOperation,
+  valueRange: ClosedRange<Int>
+) -> [IndexOperation] {
+  guard let value = operation.value, value != valueRange.lowerBound else {
+    return []
+  }
+  return [
+    IndexOperation(
+      kind: operation.kind,
+      index: operation.index,
+      value: valueRange.lowerBound
+    )
+  ]
 }

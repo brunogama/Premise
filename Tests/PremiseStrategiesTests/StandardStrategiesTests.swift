@@ -34,7 +34,8 @@ func byteStrategyUsesRequestedLength() throws {
 @Test("String strategy respects the alphabet and length")
 func stringStrategyRespectsAlphabetAndLength() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 7, maxDraws: 8))
-  let value = try Strategy<String>.strings(from: ["a", "b"], length: 2...4).draw(&data)
+  let strategy = Strategy<String>.strings(from: ["a", "b"], length: 2...4)
+  let value = try strategy.draw(&data)
   #expect((2...4).contains(value.count))
   #expect(value.allSatisfy { $0 == "a" || $0 == "b" })
 }

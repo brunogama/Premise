@@ -14,7 +14,9 @@ public struct Z3VersionPolicy: Sendable, Equatable {
 
   /// The detected Z3 runtime version, if available.
   public let major: UInt32
+  /// The detected Z3 minor version.
   public let minor: UInt32
+  /// The detected Z3 patch version.
   public let patch: UInt32
 
   /// Creates a version policy with the given version components.

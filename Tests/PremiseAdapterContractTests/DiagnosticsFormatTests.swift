@@ -96,6 +96,9 @@ struct DiagnosticsFormatTests {
     #expect(fifthLine == "Runs: 100, Shrinks: 7")
   }
 
+}
+
+extension DiagnosticsFormatTests {
   @Test("Output contains failure kind trace size and replay instructions")
   func outputContainsReplayMetadata() {
     let record = Self.makeRecord()
@@ -158,6 +161,9 @@ struct DiagnosticsFormatTests {
     #expect(output.contains("Target score: 2.0"))
   }
 
+}
+
+extension DiagnosticsFormatTests {
   // MARK: - Value Rendering
 
   @Test("String counterexample renders with quotes removed")
@@ -206,16 +212,21 @@ struct DiagnosticsFormatTests {
     #expect(output.contains("Error: "))
   }
 
-  @Test("XCTest formatter output matches swift-testing formatter for all edge cases")
-  func xcTestEdgeCaseParity() {
-    // swiftlint:disable:next large_tuple
-    let edgeCases: [(Any, String, Int, Int)] = [
+  // Each case keeps the value and its three record inputs together.
+  // swiftlint:disable:next large_tuple
+  private static var edgeCases: [(Any, String, Int, Int)] {
+    [
       (0, "", 0, 0),
       (Int.max, "overflow", 1, 1000),
       (-1, "negative", 999, 0),
     ]
+  }
 
-    for (value, errorMsg, runs, shrinks) in edgeCases {
+  @Test(
+    "XCTest formatter output matches swift-testing formatter for all edge cases"
+  )
+  func xcTestEdgeCaseParity() {
+    for (value, errorMsg, runs, shrinks) in Self.edgeCases {
       let record = Self.makeRecord(
         errorMessage: errorMsg,
         runCount: runs,
@@ -228,8 +239,10 @@ struct DiagnosticsFormatTests {
       )
       let xcOutput = XCTestFailureFormatter.format(
         value: value,
-        record: record,
-        propertyID: Self.testPropertyID
+        context: XCTestFailureContext(
+          record: record,
+          propertyID: Self.testPropertyID
+        )
       )
       #expect(stOutput == xcOutput)
     }

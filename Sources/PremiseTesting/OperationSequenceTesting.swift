@@ -11,6 +11,8 @@ public protocol ModelOperation: Sendable {
   func run(on system: inout System) async throws
 }
 
+// Preserve this public signature for source compatibility.
+// swiftlint:disable function_parameter_count
 /// Runs a sequence of operations against a model and system, checking
 /// equivalence after each step.
 public func checkOperationSequence<Operation: ModelOperation>(
@@ -19,6 +21,7 @@ public func checkOperationSequence<Operation: ModelOperation>(
   initialSystem: Operation.System,
   assertEquivalent: (Operation.Model, Operation.System) throws -> Void
 ) async throws {
+  // swiftlint:enable function_parameter_count
   var model = initialModel
   var system = initialSystem
 

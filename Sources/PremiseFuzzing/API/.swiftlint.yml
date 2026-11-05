@@ -1,0 +1,5 @@
+# Preserve the existing four-parameter public fuzzOneInput overloads.
+function_parameter_count:
+  warning: 4
+  error: 4
+  ignores_default_parameters: false

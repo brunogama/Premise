@@ -24,12 +24,39 @@ func dataAwareForAllAllowsImperativeDraws() async throws {
 
 @Test("Failure formatter includes statistics")
 func formatterIncludesStatistics() {
-  let propertyID = PropertyIdentity(fileID: "StatsTests", line: 7, strategyLabel: "integers")
+  let propertyID = PropertyIdentity(
+    fileID: "StatsTests",
+    line: 7,
+    strategyLabel: "integers"
+  )
+  let stats = formatterStatistics()
+  let record = formatterFailureRecord(propertyID: propertyID, stats: stats)
+  let report = formatterRunReport(stats: stats)
+  let output = FailureFormatter.format(
+    value: 0,
+    record: record,
+    propertyID: propertyID,
+    report: report
+  )
+  #expect(output.contains("Events: empty=2, non-empty=1"))
+  #expect(output.contains("Notes: length=0"))
+  #expect(output.contains("Target score: 4.0"))
+  #expect(output.contains("Health warnings: excessiveFiltering"))
+}
+
+private func formatterStatistics() -> RunStatistics {
   var stats = RunStatistics()
   stats.events = ["empty", "empty", "non-empty"]
   stats.notes = [RunNote(label: "length", value: "0")]
   stats.targetScore = 4
-  let record = FailureRecord(
+  return stats
+}
+
+private func formatterFailureRecord(
+  propertyID: PropertyIdentity,
+  stats: RunStatistics
+) -> FailureRecord {
+  FailureRecord(
     propertyID: propertyID,
     trace: ChoiceTrace(),
     errorMessage: "boom",
@@ -38,7 +65,10 @@ func formatterIncludesStatistics() {
     seed: 1,
     statistics: stats
   )
-  let report = RunReport(
+}
+
+private func formatterRunReport(stats: RunStatistics) -> RunReport {
+  RunReport(
     runCount: 1,
     events: ["empty": 2, "non-empty": 1],
     notes: stats.notes,
@@ -50,14 +80,4 @@ func formatterIncludesStatistics() {
       )
     ]
   )
-  let output = FailureFormatter.format(
-    value: 0,
-    record: record,
-    propertyID: propertyID,
-    report: report
-  )
-  #expect(output.contains("Events: empty=2, non-empty=1"))
-  #expect(output.contains("Notes: length=0"))
-  #expect(output.contains("Target score: 4.0"))
-  #expect(output.contains("Health warnings: excessiveFiltering"))
 }

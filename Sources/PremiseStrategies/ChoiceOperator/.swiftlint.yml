@@ -1,0 +1,4 @@
+parent_config: ../../../.swiftlint.yml
+# The free operator is an existing public API.
+disabled_rules:
+  - static_operator

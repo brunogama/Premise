@@ -1,0 +1,5 @@
+parent_config: ../../../.swiftlint.yml
+# Preserve the existing four-parameter dictionary overload.
+function_parameter_count:
+  warning: 4
+  error: 4

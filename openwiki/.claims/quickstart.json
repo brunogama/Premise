@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:d49da844f0109e0240e0d494733722feb59896ae88ef247ba54641ec9610b4a0",
+  "claims": [
+    {
+      "id": "claim_f61722c09b87418cb03d8ac08ee97ff1",
+      "statement": "Swift Premise is a Swift property-based testing framework that generates inputs, shrinks failures and supports deterministic replay.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L3-L20",
+          "version": "repo-lines-v1:sha256:64b6ce2424724b4011d59e0f9eb2dc0765be18ea255c209e40dfe0bcf8a9f251:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5MDY3MTJhZTU4ZjliMGQxZWM5ZTI2NWE3YWY0MmQ0ZDczZmQwMGEyZmNhMDgwMTc2MjRmMDc2ZGU3NjRjOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM2YWE0Yjg5NjdiMjA0YzRjODAzN2RlMjQxYjEwMTc3Nzk3NmEyNTg0NWY5YTliYzhiYTIwODJkOTZmYjc3OGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwYmNkZTMwZDhhMTNhZmVlYjA3MGM1MjllY2UwZDVmNTE1M2MzYzg4YjIzMGI4NmYwNzE2ZWM1NGEyYzgwZDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_de0ef00c5c27427d99fb24b59fd29237",
+      "statement": "The Swift package publishes separate libraries for core execution, strategies, persistence and testing adapters.",
+      "evidence": [
+        {
+          "resource": "repo://Package.swift#L29-L35",
+          "version": "repo-lines-v1:sha256:23ace0d3b40bb7812e5f17c8de4c381da2abcfcc3f0e47352e8fcb1bb3b049a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTY0ZDhjMDczNDI5ODkzMTAxNTc2ZDg4ZDk5MTI3ZTg5ZDY4OTFkM2IxN2U4OWRmMDJlYzlhZTcwNzA1ZDhiZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2Q5ODkwNmZlZTI0NTU4ZmU0NWVhYWQzZjA4ZDdjN2RmMzlhMWFkYTM1NzViYThmY2RhMDE3OTRhZGM4ODZiNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjU3OWUzZDM1MTQ2YmViOGRmZTQ3NjM0YzNhZmJiZjZmODc4YmU0NjRlYjljMzdkOTgxNzFiYjIwMzlkZmI2YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTg4YjM5NzQxYTU5M2ZiYmFjZGMxNWJmMmZmMmQ1ODk5ZWRhMmI1NDRmM2ZkN2FlMWNmMDFkODNiYTU5YzI2NSJ9"
+        },
+        {
+          "resource": "repo://Package.swift#L7-L18",
+          "version": "repo-lines-v1:sha256:f6575b069de06e793d431748813d1bdfb7305854747618b6ccdb1eeed1c63dfa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NTc5YTUzNDVjMjgwNzRjZjkzODAyMGI0ODFlN2RkYmY3YTgxMWZiODFlOWI3MjhhNmEwYmMxN2ZjOTExZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjNThkNzRiZDViMzVmZWM1MmU0YjcyMmVhZGQwYTA1ZGM1NGNmY2QwZGNkNzRkMThmMzE2ZGUzYzhlOWFiMjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NDg4MTUwOWZmZDE4N2E1ZjdlYjk5NjE5YTA4MmMxMGJmYWY5ZWE2NDMwZTZlZGVhMjY5YzMyZjQ0YTliYWQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-01T12:35:26.822Z"
+  }
+}

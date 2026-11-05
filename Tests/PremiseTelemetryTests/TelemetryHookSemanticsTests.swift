@@ -44,7 +44,8 @@ struct TelemetryHookSemanticsTests {
 
     let events = await spy.events
     #expect(events.count == 1)
-    guard case .runFinished(let pid, let passed, let count) = events.first else {
+    guard case .runFinished(let pid, let passed, let count) = events.first
+    else {
       Issue.record("Expected runFinished event")
       return
     }

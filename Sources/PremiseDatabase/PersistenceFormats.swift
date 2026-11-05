@@ -45,8 +45,6 @@ public struct PersistedFailureRecordV1: Sendable, Codable, Equatable {
   /// Creates a versioned persistence envelope.
   ///
   /// - Parameters:
-  ///   - recordFormatVersion: Schema version of this envelope (currently 1).
-  ///   - traceFormatVersion: Schema version of the embedded trace (currently 1).
   ///   - propertyID: Stable identity of the failing property.
   ///   - trace: Choice trace that reproduces the failure.
   ///   - errorMessage: Human-readable error description.
@@ -54,12 +52,12 @@ public struct PersistedFailureRecordV1: Sendable, Codable, Equatable {
   ///   - shrinkCount: Shrink attempts applied.
   ///   - timestamp: When the failure was recorded.
   ///   - engineVersion: Engine version string.
+  ///   - recordFormatVersion: Schema version of this envelope (currently 1).
+  ///   - traceFormatVersion: Schema version of the embedded trace (currently 1).
   ///   - seed: Base seed used for discovery, when available.
   ///   - discovery: Whether the failure was newly discovered or replayed.
   ///   - statistics: Observations collected by the failing run.
   public init(
-    recordFormatVersion: Int = 1,
-    traceFormatVersion: Int = 1,
     propertyID: PropertyIdentity,
     trace: ChoiceTrace,
     errorMessage: String,
@@ -67,6 +65,8 @@ public struct PersistedFailureRecordV1: Sendable, Codable, Equatable {
     shrinkCount: Int,
     timestamp: Date,
     engineVersion: String,
+    recordFormatVersion: Int = 1,
+    traceFormatVersion: Int = 1,
     seed: UInt64? = nil,
     discovery: FailureDiscovery? = nil,
     statistics: RunStatistics? = nil

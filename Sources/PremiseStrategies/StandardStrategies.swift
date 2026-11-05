@@ -94,7 +94,8 @@ public extension Strategy where Value == [UInt8] {
       },
       shrink: { value in
         guard !value.isEmpty else { return [] }
-        return [Array(value.dropLast()), []].filter { length.contains($0.count) }
+        return [Array(value.dropLast()), []]
+          .filter { length.contains($0.count) }
       }
     )
   }
@@ -108,7 +109,10 @@ public extension Strategy where Value == String {
     from characters: [Character],
     length: ClosedRange<Int>
   ) -> Strategy<String> {
-    precondition(!characters.isEmpty, "strings(from:length:) requires at least one character")
+    precondition(
+      !characters.isEmpty,
+      "strings(from:length:) requires at least one character"
+    )
     return Strategy<String>(
       label: "strings(from: \(characters.count) chars, length: \(length))",
       draw: { data in
@@ -140,7 +144,7 @@ public extension Strategy where Value == String {
         return String(
           (0..<count).map { _ in
             let code = data.drawInteger(in: 32...126)
-            return Character(UnicodeScalar(code)!)
+            return Character(UnicodeScalar(UInt8(code)))
           }
         )
       },

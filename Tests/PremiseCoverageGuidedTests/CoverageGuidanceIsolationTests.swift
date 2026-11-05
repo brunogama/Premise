@@ -17,7 +17,11 @@ struct CoverageGuidanceIsolationTests {
     snapshot.recordEdge(9)
 
     let trace = ChoiceTrace()
-    let score = guide.score(snapshot: snapshot, baseline: baseline, trace: trace)
+    let score = guide.score(
+      snapshot: snapshot,
+      baseline: baseline,
+      trace: trace
+    )
     #expect(score.value == 2)
   }
 
@@ -33,7 +37,11 @@ struct CoverageGuidanceIsolationTests {
     snapshot.recordEdge(5)
 
     let trace = ChoiceTrace()
-    let score = guide.score(snapshot: snapshot, baseline: baseline, trace: trace)
+    let score = guide.score(
+      snapshot: snapshot,
+      baseline: baseline,
+      trace: trace
+    )
     #expect(score == .zero)
   }
 
@@ -113,9 +121,7 @@ struct CoverageGuidanceIsolationTests {
 
     // Separately track coverage - this is sidecar, not integrated
     let tracker = CoverageTracker(guide: EdgeCountGuide(), capacity: 64)
-    var snap = CoverageMap(capacity: 64)
-    snap.recordEdge(10)
-    await tracker.record(snapshot: snap, trace: ChoiceTrace())
+    await recordSidecarCoverage(tracker)
 
     // The Runner result is completely independent of coverage tracking
     switch result {
@@ -130,12 +136,17 @@ struct CoverageGuidanceIsolationTests {
     let edges = await tracker.totalEdgesSeen
     #expect(edges == 1)
   }
+}
 
-  @Test("SanitizerCoverage gracefully reports absence without instrumentation")
+extension CoverageGuidanceIsolationTests {
+  @Test(
+    "SanitizerCoverage gracefully reports absence without instrumentation"
+  )
   func sanitizerCoverageGracefullyReportsAbsence() async {
     SanitizerCoverage.reset()
     let tracker = CoverageTracker(guide: EdgeCountGuide(), capacity: 64)
-    let score = await tracker.recordCurrentSanitizerCoverage(trace: ChoiceTrace())
+    let trace = ChoiceTrace()
+    let score = await tracker.recordCurrentSanitizerCoverage(trace: trace)
 
     if !SanitizerCoverage.isAvailable {
       #expect(SanitizerCoverage.snapshot() == nil)
@@ -151,6 +162,12 @@ struct CoverageGuidanceIsolationTests {
     #expect(edges == 0)
     #expect(count == 0)
   }
+}
+
+private func recordSidecarCoverage(_ tracker: CoverageTracker) async {
+  var snap = CoverageMap(capacity: 64)
+  snap.recordEdge(10)
+  await tracker.record(snapshot: snap, trace: ChoiceTrace())
 }
 
 private enum TestPropertyError: Error {

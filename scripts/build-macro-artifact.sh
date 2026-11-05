@@ -20,10 +20,21 @@
 #
 set -euo pipefail
 
+
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 
 export PREMISE_MACRO_SOURCE=1
+
+# Fail before removing existing artifacts if the macro target is unavailable.
+if ! swift package dump-package | python3 -c '
+import json, sys
+package = json.load(sys.stdin)
+sys.exit(not any(target["name"] == "PremiseMacrosPlugin" for target in package["targets"]))
+' 2>/dev/null; then
+  printf 'macro artifacts are unavailable in this version\n' >&2
+  exit 1
+fi
 
 ARTIFACT_NAME="PremiseMacrosPlugin"
 BUILD_DIR=".build/artifacts"

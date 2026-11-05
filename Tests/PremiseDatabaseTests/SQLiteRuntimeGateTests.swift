@@ -42,7 +42,8 @@ struct SQLiteRuntimeGateTests {
       try SQLiteRuntimeGate.assertWALSafeRuntime()
     } else {
       // Should throw the specific error on an unsafe runtime.
-      #expect(throws: SQLiteError.unsupportedWALRuntime(versionNumber: version)) {
+      let error = SQLiteError.unsupportedWALRuntime(versionNumber: version)
+      #expect(throws: error) {
         try SQLiteRuntimeGate.assertWALSafeRuntime()
       }
     }

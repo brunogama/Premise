@@ -71,7 +71,10 @@ public extension Strategy where Value == Int64 {
     Strategy<Int64>(
       label: "int64(in: \(range))",
       draw: { data in
-        let raw = drawEdgeBiasedInteger(in: UInt64(0)...UInt64.max, using: &data)
+        let raw = drawEdgeBiasedInteger(
+          in: UInt64(0)...UInt64.max,
+          using: &data
+        )
         return offsetSigned64(raw, into: range)
       },
       shrink: { value in
@@ -99,91 +102,6 @@ public extension Strategy where Value == Int {
   static var nonZero: Strategy<Int> { .oneOf([.positive, .negative]) }
 }
 
-// MARK: - Unsigned integer strategies
-
-public extension Strategy where Value == UInt8 {
-  static var any: Strategy<UInt8> { integers(in: .min ... .max) }
-  static func integers(in range: ClosedRange<UInt8>) -> Strategy<UInt8> {
-    Strategy<UInt8>(
-      label: "uint8(in: \(range))",
-      draw: { data in
-        UInt8(
-          drawEdgeBiasedInteger(
-            in: UInt64(range.lowerBound)...UInt64(range.upperBound),
-            using: &data
-          )
-        )
-      },
-      shrink: { value in
-        guard value != range.lowerBound else { return [] }
-        return [range.lowerBound, 0].filter { range.contains($0) && $0 < value }
-      }
-    )
-  }
-}
-
-public extension Strategy where Value == UInt16 {
-  static var any: Strategy<UInt16> { integers(in: .min ... .max) }
-  static func integers(in range: ClosedRange<UInt16>) -> Strategy<UInt16> {
-    Strategy<UInt16>(
-      label: "uint16(in: \(range))",
-      draw: { data in
-        UInt16(
-          drawEdgeBiasedInteger(
-            in: UInt64(range.lowerBound)...UInt64(range.upperBound),
-            using: &data
-          )
-        )
-      },
-      shrink: { value in
-        guard value != range.lowerBound else { return [] }
-        return [range.lowerBound, 0].filter { range.contains($0) && $0 < value }
-      }
-    )
-  }
-}
-
-public extension Strategy where Value == UInt32 {
-  static var any: Strategy<UInt32> { integers(in: .min ... .max) }
-  static func integers(in range: ClosedRange<UInt32>) -> Strategy<UInt32> {
-    Strategy<UInt32>(
-      label: "uint32(in: \(range))",
-      draw: { data in
-        UInt32(
-          drawEdgeBiasedInteger(
-            in: UInt64(range.lowerBound)...UInt64(range.upperBound),
-            using: &data
-          )
-        )
-      },
-      shrink: { value in
-        guard value != range.lowerBound else { return [] }
-        return [range.lowerBound, 0].filter { range.contains($0) && $0 < value }
-      }
-    )
-  }
-}
-
-public extension Strategy where Value == UInt {
-  static var any: Strategy<UInt> { integers(in: .min ... .max) }
-  static func integers(in range: ClosedRange<UInt>) -> Strategy<UInt> {
-    Strategy<UInt>(
-      label: "uint(in: \(range))",
-      draw: { data in
-        UInt(
-          drawEdgeBiasedInteger(
-            in: UInt64(range.lowerBound)...UInt64(range.upperBound),
-            using: &data
-          )
-        )
-      },
-      shrink: { value in
-        guard value != range.lowerBound else { return [] }
-        return [range.lowerBound, 0].filter { range.contains($0) && $0 < value }
-      }
-    )
-  }
-}
 
 // MARK: - Float strategy
 
@@ -193,14 +111,16 @@ public extension Strategy where Value == Float {
     Strategy<Float>(
       label: "float(in: \(range))",
       draw: { data in
-        let d = drawEdgeBiasedFloat(
+        let number = drawEdgeBiasedFloat(
           in: Double(range.lowerBound)...Double(range.upperBound),
           using: &data
         )
-        return Float(d)
+        return Float(number)
       },
       shrink: { value in
-        let candidates: [Float] = [range.lowerBound, 0, (range.lowerBound + value) / 2]
+        let candidates: [Float] = [
+          range.lowerBound, 0, (range.lowerBound + value) / 2,
+        ]
         return candidates.filter { range.contains($0) && $0 < value }
       }
     )
@@ -273,105 +193,17 @@ public extension Strategy where Value == Double {
     )
   }
 
-  /// Edge-biased `Double` generation with opt-in exceptional values.
-  ///
-  /// Finite edge candidates are constrained to `range`. When enabled,
-  /// `NaN` and infinities are yielded independently of `range` because
-  /// `NaN` is not contained by any Swift range and infinities exercise
-  /// exceptional floating-point behavior outside finite bounds.
-  static func edgeCaseFloats(
-    in range: ClosedRange<Double>,
-    includeNaN: Bool = false,
-    includeInfinity: Bool = false,
-    includeDenormals: Bool = false,
-    epsilonAround pivot: Double? = nil
-  ) -> Strategy<Double> {
-    Strategy<Double>(
-      label: "edgeCaseFloats(in: \(range))",
-      draw: { data in
-        let candidates = doubleEdgeCandidates(
-          in: range,
-          includeNaN: includeNaN,
-          includeInfinity: includeInfinity,
-          includeDenormals: includeDenormals,
-          epsilonAround: pivot
-        )
-        let edgePick = data.drawInteger(in: 0...3)
-        if edgePick < 3, !candidates.isEmpty {
-          let index = data.drawInteger(in: 0...(candidates.count - 1))
-          return candidates[index]
-        }
-        return drawEdgeBiasedFloat(in: range, using: &data)
-      },
-      shrink: { value in
-        if value.isNaN || value.isInfinite {
-          return [0.0].filter { range.contains($0) }
-        }
-        let candidates = [0.0, range.lowerBound, value / 2]
-        return candidates.filter { range.contains($0) && $0 != value }
-      }
-    )
-  }
 }
 
 // MARK: - Private helpers
 
-private func offsetSigned64(_ raw: UInt64, into range: ClosedRange<Int64>) -> Int64 {
+private func offsetSigned64(
+  _ raw: UInt64,
+  into range: ClosedRange<Int64>
+) -> Int64 {
   let lower = range.lowerBound
   let upper = range.upperBound
   if lower == .min, upper == .max { return Int64(bitPattern: raw) }
   let span = UInt64(bitPattern: upper &- lower)
   return lower &+ Int64(bitPattern: raw % (span &+ 1))
-}
-
-private func doubleEdgeCandidates(
-  in range: ClosedRange<Double>,
-  includeNaN: Bool,
-  includeInfinity: Bool,
-  includeDenormals: Bool,
-  epsilonAround pivot: Double?
-) -> [Double] {
-  var candidates = finiteDoubleEdgeCandidates(in: range)
-  candidates.append(
-    contentsOf: exceptionalDoubleEdgeCandidates(
-      includeNaN: includeNaN,
-      includeInfinity: includeInfinity
-    )
-  )
-  if includeDenormals {
-    candidates.append(
-      contentsOf: [
-        Double.leastNonzeroMagnitude,
-        -Double.leastNonzeroMagnitude,
-      ].filter { range.contains($0) }
-    )
-  }
-  if let pivot {
-    candidates.append(
-      contentsOf: [
-        pivot,
-        pivot + Double.ulpOfOne,
-        pivot - Double.ulpOfOne,
-      ].filter { range.contains($0) }
-    )
-  }
-  return candidates
-}
-
-private func finiteDoubleEdgeCandidates(in range: ClosedRange<Double>) -> [Double] {
-  [range.lowerBound, range.upperBound, 0.0].filter { range.contains($0) }
-}
-
-private func exceptionalDoubleEdgeCandidates(
-  includeNaN: Bool,
-  includeInfinity: Bool
-) -> [Double] {
-  var candidates: [Double] = []
-  if includeNaN {
-    candidates.append(.nan)
-  }
-  if includeInfinity {
-    candidates.append(contentsOf: [.infinity, -.infinity])
-  }
-  return candidates
 }

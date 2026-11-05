@@ -13,7 +13,6 @@ permissions:
   contents: write
 
 env:
-  PREMISE_MACRO_SOURCE: "1"
   ARTIFACT_NAME: PremiseMacrosPlugin
 
 jobs:
@@ -22,6 +21,8 @@ jobs:
   # ---------------------------------------------------------------------------
   build-macro:
     name: Build ${{ matrix.platform }}
+    env:
+      PREMISE_MACRO_SOURCE: "1"
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container }}
     strategy:
@@ -252,7 +253,9 @@ jobs:
 
           **Checksum:** \`${CHECKSUM}\`
 
-          Users get this automatically — no need to compile swift-syntax.
+          Macros are absent by default. To use this binary, opt in explicitly:
+
+          \`PREMISE_MACRO_BINARY=1 PREMISE_MACRO_BINARY_CHECKSUM=$CHECKSUM swift build\`
 
           To build from source instead:
           \`\`\`bash

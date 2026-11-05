@@ -1,0 +1,4 @@
+@given(.integers(in: 0...100))
+func twoParams(a: Int, b: Int) {
+    #expect(a >= 0)
+}

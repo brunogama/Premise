@@ -1,0 +1,11 @@
+func configured(b: Bool) {
+    #expect(b || !b)
+}
+
+struct configured_Given {
+    @Test func test() async throws {
+        try await forAll(.bools, config: .fast) { (b) in
+            #expect(b || !b)
+        }
+    }
+}

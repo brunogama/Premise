@@ -32,13 +32,15 @@ func filterEnforcesThePredicate() throws {
 @Test("oneOf selects from the provided strategies")
 func oneOfSelectsFromTheProvidedStrategies() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 14, maxDraws: 8))
-  let value = try Strategy<Int>.oneOf([.just(1), .just(2), .just(3)]).draw(&data)
+  let value = try Strategy<Int>.oneOf([.just(1), .just(2), .just(3)])
+    .draw(&data)
   #expect([1, 2, 3].contains(value))
 }
 
 @Test("frequency selects one of the weighted strategies")
 func frequencySelectsOneOfTheWeightedStrategies() throws {
   var data = PremiseData(provider: PseudoRandomProvider(seed: 15, maxDraws: 8))
-  let value = try Strategy<Int>.frequency([(1, .just(10)), (3, .just(20))]).draw(&data)
+  let value = try Strategy<Int>.frequency([(1, .just(10)), (3, .just(20))])
+    .draw(&data)
   #expect([10, 20].contains(value))
 }

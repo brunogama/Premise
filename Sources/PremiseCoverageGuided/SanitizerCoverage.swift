@@ -28,9 +28,16 @@ public enum SanitizerCoverage {
     guard written > 0 else {
       return nil
     }
+    return makeMap(bytes: bytes, written: Int(written), edgeCount: edgeCount)
+  }
 
+  private static func makeMap(
+    bytes: [UInt8],
+    written: Int,
+    edgeCount: Int
+  ) -> CoverageMap {
     var map = CoverageMap(capacity: edgeCount)
-    for byteIndex in 0..<Int(written) {
+    for byteIndex in 0..<written {
       let byte = bytes[byteIndex]
       guard byte != 0 else { continue }
       for bit in 0..<8 where byte & UInt8(1 << bit) != 0 {
@@ -52,7 +59,9 @@ public extension CoverageTracker {
   /// Returns `nil` in normal, non-instrumented builds so callers can gracefully
   /// fall back to standard pseudo-random generation.
   @discardableResult
-  func recordCurrentSanitizerCoverage(trace: ChoiceTrace) async -> CoverageScore? {
+  func recordCurrentSanitizerCoverage(
+    trace: ChoiceTrace
+  ) async -> CoverageScore? {
     guard let snapshot = SanitizerCoverage.snapshot() else {
       return nil
     }

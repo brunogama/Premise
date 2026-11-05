@@ -14,6 +14,8 @@ public extension PrimitiveProvider {
     }
 
     guard count > 0 else { return [] }
-    return (0..<count).map { _ in UInt8(truncatingIfNeeded: drawBits(count: 8)) }
+    return (0..<count).map { _ in
+      UInt8(truncatingIfNeeded: drawBits(count: 8))
+    }
   }
 }

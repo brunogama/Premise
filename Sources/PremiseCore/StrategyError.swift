@@ -20,6 +20,7 @@ public enum StrategyError: Error, Sendable, CustomStringConvertible {
   /// A regex-backed string strategy received an unsupported or invalid pattern.
   case invalidRegex(label: String, reason: String)
 
+  /// A human-readable description of the generation error.
   public var description: String {
     switch self {
     case .filterExhausted(let label, let max):

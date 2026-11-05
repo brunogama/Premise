@@ -39,7 +39,6 @@ func operationSequenceStrategyShrinksByRemovingOperations() {
 @Test("Model checker runs operations against model and system")
 func modelCheckerRunsOperationsAgainstModelAndSystem() async throws {
   let operations: [CounterOperation] = [.insert(1), .insert(2), .remove(1)]
-
   try await checkOperationSequence(
     operations,
     initialModel: Set<Int>(),

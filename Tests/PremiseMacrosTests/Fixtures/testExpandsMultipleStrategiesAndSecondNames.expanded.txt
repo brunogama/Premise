@@ -1,0 +1,11 @@
+func combines(_ count: Int, text: String) {
+    #expect(count >= 0)
+}
+
+struct combines_Given {
+    @Test func test() async throws {
+        try await forAll(.integers(in: 0 ... 100), .ascii) { (count, text) in
+            #expect(count >= 0)
+        }
+    }
+}

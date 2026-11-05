@@ -18,7 +18,7 @@ func ghostwriterRendersFuzzNoCrashSkeleton() throws {
 
 @Test("Ghostwriter renders roundtrip skeleton")
 func ghostwriterRendersRoundtripSkeleton() throws {
-  let source = PremiseGhostwriter.roundtrip(
+  let source = try PremiseGhostwriter.roundtrip(
     moduleName: "ExampleApp",
     typeName: "Payload",
     strategyExpression: "Strategy<Payload>.payloads()",
@@ -27,13 +27,17 @@ func ghostwriterRendersRoundtripSkeleton() throws {
   )
 
   #expect(source.contains("let encoded = try JSONEncoder().encode(value)"))
-  #expect(source.contains("let decoded = try JSONDecoder().decode(Payload.self, from: encoded)"))
+  #expect(
+    source.contains(
+      "let decoded = try JSONDecoder().decode(Payload.self, from: encoded)"
+    )
+  )
   #expect(source.contains("#expect(decoded == value)"))
 }
 
 @Test("Ghostwriter renders equivalence skeleton")
 func ghostwriterRendersEquivalenceSkeleton() throws {
-  let source = PremiseGhostwriter.equivalence(
+  let source = try PremiseGhostwriter.equivalence(
     moduleName: "ExampleApp",
     typeName: "Payload",
     strategyExpression: "Strategy<Payload>.payloads()",
@@ -48,7 +52,7 @@ func ghostwriterRendersEquivalenceSkeleton() throws {
 
 @Test("Ghostwriter renders idempotence skeleton")
 func ghostwriterRendersIdempotenceSkeleton() throws {
-  let source = PremiseGhostwriter.idempotence(
+  let source = try PremiseGhostwriter.idempotence(
     moduleName: "ExampleApp",
     typeName: "Payload",
     strategyExpression: "Strategy<Payload>.payloads()",
@@ -62,7 +66,7 @@ func ghostwriterRendersIdempotenceSkeleton() throws {
 
 @Test("Ghostwriter renders binary operation laws skeleton")
 func ghostwriterRendersBinaryOperationLawsSkeleton() throws {
-  let source = PremiseGhostwriter.binaryOperationLaws(
+  let source = try PremiseGhostwriter.binaryOperationLaws(
     moduleName: "ExampleApp",
     typeName: "Payload",
     strategyExpression: "Strategy<Payload>.payloads()",
@@ -86,6 +90,58 @@ func ghostwriterReportsMissingRequiredExpressions() throws {
         typeName: "Payload",
         strategyExpression: "Strategy<Payload>.payloads()"
       )
+    )
+  }
+}
+
+@Test(
+  "Ghostwriter binary operation helper reports an empty operation expression"
+)
+func ghostwriterBinaryOperationHelperRejectsEmptyOperationExpression() {
+  #expect(throws: GhostwriterError.missingExpression("operationExpression")) {
+    _ = try PremiseGhostwriter.binaryOperationLaws(
+      moduleName: "ExampleApp",
+      typeName: "Payload",
+      strategyExpression: "strategy",
+      operationExpression: ""
+    )
+  }
+}
+
+@Test("Ghostwriter idempotence helper reports an empty subject expression")
+func ghostwriterIdempotenceHelperRejectsEmptySubjectExpression() {
+  #expect(throws: GhostwriterError.missingExpression("subjectExpression")) {
+    _ = try PremiseGhostwriter.idempotence(
+      moduleName: "ExampleApp",
+      typeName: "Payload",
+      strategyExpression: "strategy",
+      subjectExpression: ""
+    )
+  }
+}
+
+@Test("Ghostwriter equivalence helper reports an empty alternate expression")
+func ghostwriterEquivalenceHelperRejectsEmptyAlternateExpression() {
+  #expect(throws: GhostwriterError.missingExpression("alternateExpression")) {
+    _ = try PremiseGhostwriter.equivalence(
+      moduleName: "ExampleApp",
+      typeName: "Payload",
+      strategyExpression: "strategy",
+      subjectExpression: "new($0)",
+      alternateExpression: ""
+    )
+  }
+}
+
+@Test("Ghostwriter roundtrip helper reports an empty encode expression")
+func ghostwriterRoundtripHelperRejectsEmptyEncodeExpression() {
+  #expect(throws: GhostwriterError.missingExpression("encodeExpression")) {
+    _ = try PremiseGhostwriter.roundtrip(
+      moduleName: "ExampleApp",
+      typeName: "Payload",
+      strategyExpression: "Strategy<Payload>.payloads()",
+      encodeExpression: "",
+      decodeExpression: "decode($0)"
     )
   }
 }

@@ -6,7 +6,7 @@ import PremiseDatabase
 /// ``ParallelRunner`` distributes property runs across a Swift
 /// structured-concurrency task group while preserving deterministic
 /// seed-per-index mapping. Each logical run index derives its seed
-/// from the base seed using the same formula as ``Runner``, so
+/// from the base seed using the same formula as ``/PremiseCore/Runner``, so
 /// parallel and sequential execution produce identical results for
 /// the same seed.
 ///
@@ -66,7 +66,7 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
   /// Runs the property in parallel with deterministic seed distribution.
   ///
   /// Each logical run index `i` derives its provider seed as
-  /// `baseSeed + UInt64(i)`, matching the sequential ``Runner``
+  /// `baseSeed + UInt64(i)`, matching the sequential ``/PremiseCore/Runner``
   /// seed contract. Results are collected by index and the first
   /// failure (lowest index) is returned.
   ///
@@ -82,45 +82,62 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     _ property: @escaping @Sendable (Value) throws -> Void,
     replayTraces: [ChoiceTrace] = []
   ) async throws -> RunResult<Value> {
-    // Load persisted traces from the database when available.
-    var allReplayTraces = replayTraces
-    if let database {
-      let stored = try await database.loadTraces(for: propertyID)
-      allReplayTraces = stored + replayTraces
+    let allReplayTraces = try await loadReplayTraces(replayTraces)
+    if let failure = replayFailure(allReplayTraces, property: property) {
+      return .failure(failure.record, value: failure.value)
     }
 
-    // Replay phase: sequential, matching Runner semantics.
-    if config.replayEnabled {
-      for trace in allReplayTraces {
-        if let failure = runSingle(trace: trace, property: property) {
-          return .failure(failure.record, value: failure.value)
-        }
-      }
-    }
-
-    // Use a random seed when none is specified so each invocation
-    // independently explores the input space.  The seed is stored in
-    // the FailureRecord so failures are always reproducible.
     let baseSeed = config.seed ?? UInt64.random(in: .min ... .max)
-    let totalRuns = config.maxRuns
-
-    // For very small run counts, avoid task group overhead.
-    let result: RunResult<Value>
-    if totalRuns <= 1 {
-      result = runSequential(baseSeed: baseSeed, totalRuns: totalRuns, property: property)
-    } else {
-      result = await runParallel(baseSeed: baseSeed, totalRuns: totalRuns, property: property)
-    }
-
-    // Persist failures back to the shared database.
+    let result = await generate(baseSeed: baseSeed, property: property)
     if case .failure(let record, value: _) = result, let database {
       try await database.save(record)
     }
-
     return result
   }
 
+}
+
+private extension ParallelRunner {
   // MARK: - Private
+
+  private func loadReplayTraces(
+    _ replayTraces: [ChoiceTrace]
+  ) async throws -> [ChoiceTrace] {
+    guard let database else { return replayTraces }
+    return try await database.loadTraces(for: propertyID) + replayTraces
+  }
+
+  private func replayFailure(
+    _ traces: [ChoiceTrace],
+    property: @Sendable (Value) throws -> Void
+  ) -> IndexedFailure<Value>? {
+    guard config.replayEnabled else { return nil }
+    for trace in traces {
+      if let failure = runSingle(trace: trace, property: property) {
+        return failure
+      }
+    }
+    return nil
+  }
+
+  private func generate(
+    baseSeed: UInt64,
+    property: @escaping @Sendable (Value) throws -> Void
+  ) async -> RunResult<Value> {
+    let totalRuns = config.maxRuns
+    if totalRuns <= 1 {
+      return runSequential(
+        baseSeed: baseSeed,
+        totalRuns: totalRuns,
+        property: property
+      )
+    }
+    return await runParallel(
+      baseSeed: baseSeed,
+      totalRuns: totalRuns,
+      property: property
+    )
+  }
 
   /// Parallel fan-out with logical-index normalization.
   private func runParallel(
@@ -128,56 +145,51 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     totalRuns: Int,
     property: @escaping @Sendable (Value) throws -> Void
   ) async -> RunResult<Value> {
-    // Track the first (lowest-index) failure found.
-    // We use an actor to safely collect results across tasks.
-    let collector = ResultCollector<Value>(totalRuns: totalRuns)
+    let collector = ResultCollector<Value>()
+    await collectFailures(collector, baseSeed: baseSeed, property: property)
+    guard let failure = await collector.earliestFailure() else {
+      return .passed(runs: totalRuns)
+    }
+    return minimizedResult(
+      failure,
+      context: (baseSeed, failure.record.runCount),
+      property: property
+    )
+  }
 
+  private func collectFailures(
+    _ collector: ResultCollector<Value>,
+    baseSeed: UInt64,
+    property: @escaping @Sendable (Value) throws -> Void
+  ) async {
+    let totalRuns = config.maxRuns
     await withTaskGroup(of: Void.self) { group in
       let maxConcurrent = parallelConfig.maxConcurrentRuns ?? totalRuns
-
       for runIndex in 0..<totalRuns {
-        // Throttle if max concurrent runs is set.
-        if runIndex >= maxConcurrent {
-          await group.next()
-        }
-
-        let seedForIndex = baseSeed &+ UInt64(runIndex)
-        let maxDraws = config.maxDrawsPerRun
-        let capturedStrategy = strategy
-        let capturedPropertyID = propertyID
-
+        if runIndex >= maxConcurrent { await group.next() }
         group.addTask {
-          let provider = PseudoRandomProvider(
-            seed: seedForIndex,
-            maxDraws: maxDraws
-          )
-          let result = Self.executeSingle(
-            provider: provider,
-            strategy: capturedStrategy,
-            propertyID: capturedPropertyID,
+          if let failure = executeIndexed(
+            runIndex,
+            baseSeed: baseSeed,
             property: property
-          )
-          if let failure = result {
+          ) {
             await collector.recordFailure(at: runIndex, failure: failure)
           }
         }
       }
     }
+  }
 
-    if let earliest = await collector.earliestFailure() {
-      let minimized = minimizeTrace(
-        initialTrace: earliest.record.trace,
-        errorMessage: earliest.record.errorMessage,
-        initialValue: earliest.value,
-        runCount: earliest.record.runCount,
-        property: property,
-        seed: baseSeed,
-        statistics: earliest.record.statistics
-      )
-      return .failure(minimized.record, value: minimized.value)
-    }
-
-    return .passed(runs: totalRuns)
+  private func executeIndexed(
+    _ runIndex: Int,
+    baseSeed: UInt64,
+    property: @Sendable (Value) throws -> Void
+  ) -> IndexedFailure<Value>? {
+    let provider = PseudoRandomProvider(
+      seed: baseSeed &+ UInt64(runIndex),
+      maxDraws: config.maxDrawsPerRun
+    )
+    return executeSingle(provider: provider, property: property)
   }
 
   /// Sequential fallback for small run counts.
@@ -187,61 +199,46 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     property: @escaping @Sendable (Value) throws -> Void
   ) -> RunResult<Value> {
     for runIndex in 0..<totalRuns {
-      let seedForIndex = baseSeed &+ UInt64(runIndex)
-      let provider = PseudoRandomProvider(
-        seed: seedForIndex,
-        maxDraws: config.maxDrawsPerRun
-      )
-      if let failure = Self.executeSingle(
-        provider: provider,
-        strategy: strategy,
-        propertyID: propertyID,
+      if let failure = executeIndexed(
+        runIndex,
+        baseSeed: baseSeed,
         property: property
       ) {
-        let minimized = minimizeTrace(
-          initialTrace: failure.record.trace,
-          errorMessage: failure.record.errorMessage,
-          initialValue: failure.value,
-          runCount: runIndex + 1,
-          property: property,
-          seed: baseSeed,
-          statistics: failure.record.statistics
+        return minimizedResult(
+          failure,
+          context: (baseSeed, runIndex + 1),
+          property: property
         )
-        return .failure(minimized.record, value: minimized.value)
       }
     }
     return .passed(runs: totalRuns)
   }
 
+}
+
+private extension ParallelRunner {
   // MARK: - Minimisation
 
-  /// Runs ``ShrinkMachine`` on `initialTrace` and returns the smallest
-  /// failing counterexample together with an updated ``FailureRecord``.
-  private func minimizeTrace(
-    initialTrace: ChoiceTrace,
-    errorMessage: String,
-    initialValue: Value,
-    runCount: Int,
-    property: @escaping @Sendable (Value) throws -> Void,
-    seed: UInt64?,
-    statistics: RunStatistics
-  ) -> (record: FailureRecord, value: Value) {
-    // Delegate to a Runner for shrinking — Runner already has the
-    // full ShrinkMachine integration.
+  private func minimizedResult(
+    _ failure: IndexedFailure<Value>,
+    context: (seed: UInt64, runCount: Int),
+    property: @escaping @Sendable (Value) throws -> Void
+  ) -> RunResult<Value> {
     let runner = Runner(
       strategy: strategy,
       config: config,
       propertyID: propertyID
     )
-    return runner.minimizeTrace(
-      initialTrace: initialTrace,
-      errorMessage: errorMessage,
-      initialValue: initialValue,
-      runCount: runCount,
+    let minimized = runner.minimizeTrace(
+      initialTrace: failure.record.trace,
+      errorMessage: failure.record.errorMessage,
+      initialValue: failure.value,
+      runCount: context.runCount,
       property: property,
-      seed: seed,
-      statistics: statistics
+      seed: context.seed,
+      statistics: failure.record.statistics
     )
+    return .failure(minimized.record, value: minimized.value)
   }
 
   /// Replays a single trace against the property.
@@ -250,19 +247,12 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
     property: @Sendable (Value) throws -> Void
   ) -> IndexedFailure<Value>? {
     let provider = ReplayProvider(trace: trace)
-    return Self.executeSingle(
-      provider: provider,
-      strategy: strategy,
-      propertyID: propertyID,
-      property: property
-    )
+    return executeSingle(provider: provider, property: property)
   }
 
   /// Executes a single run with the given provider.
-  private static func executeSingle(
+  private func executeSingle(
     provider: some PrimitiveProvider,
-    strategy: Strategy<Value>,
-    propertyID: PropertyIdentity,
     property: @Sendable (Value) throws -> Void
   ) -> IndexedFailure<Value>? {
     var data = PremiseData(provider: provider)
@@ -273,48 +263,24 @@ public struct ParallelRunner<Value: Sendable>: Sendable {
       try property(value)
       return nil
     } catch {
-      let record = FailureRecord(
-        propertyID: propertyID,
-        trace: data.snapshot(),
-        errorMessage: String(describing: error),
-        runCount: 1,
-        shrinkCount: 0,
-        statistics: data.statistics
-      )
-      guard let drawnValue else {
-        return nil
-      }
-      return IndexedFailure(record: record, value: drawnValue)
+      return makeFailure(error, data: &data, value: drawnValue)
     }
   }
-}
 
-/// Failure record paired with the drawn value for result normalization.
-struct IndexedFailure<Value: Sendable>: Sendable {
-  let record: FailureRecord
-  let value: Value
-}
-
-/// Actor that collects failures from parallel tasks and tracks the
-/// earliest (lowest-index) failure for deterministic result ordering.
-private actor ResultCollector<Value: Sendable> {
-  private let totalRuns: Int
-  private var earliestIndex: Int?
-  private var earliestResult: IndexedFailure<Value>?
-
-  init(totalRuns: Int) {
-    self.totalRuns = totalRuns
-  }
-
-  func recordFailure(at index: Int, failure: IndexedFailure<Value>) {
-    if let existing = earliestIndex, index >= existing {
-      return
-    }
-    earliestIndex = index
-    earliestResult = failure
-  }
-
-  func earliestFailure() -> IndexedFailure<Value>? {
-    earliestResult
+  private func makeFailure(
+    _ error: any Error,
+    data: inout PremiseData,
+    value: Value?
+  ) -> IndexedFailure<Value>? {
+    let record = FailureRecord(
+      propertyID: propertyID,
+      trace: data.snapshot(),
+      errorMessage: String(describing: error),
+      runCount: 1,
+      shrinkCount: 0,
+      statistics: data.statistics
+    )
+    guard let value else { return nil }
+    return IndexedFailure(record: record, value: value)
   }
 }

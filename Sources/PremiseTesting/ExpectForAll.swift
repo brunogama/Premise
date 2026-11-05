@@ -1,12 +1,16 @@
-// `expectForAll` mirrors `forAll` source-location and example plumbing.
-// swiftlint:disable function_parameter_count
 #if canImport(Testing)
 import PremiseCore
 
-/// Error thrown when an ``expectForAll`` predicate returns `false`.
-public struct PropertyPredicateFailed: Error, Sendable, CustomStringConvertible {
-  public init() {}
+/// Error thrown when an ``/PremiseTesting/expectForAll(_:config:explicitExamples:examples:fileID:filePath:line:column:function:_:)-78qky`` predicate returns `false`.
+public struct PropertyPredicateFailed:
+  Error, Sendable, CustomStringConvertible
+{
+  /// Creates an error indicating that a predicate returned false.
+  public init() {
+    // This error has no state.
+  }
 
+  /// A description of the predicate failure.
   public var description: String {
     "Predicate returned false"
   }
@@ -14,6 +18,8 @@ public struct PropertyPredicateFailed: Error, Sendable, CustomStringConvertible 
 
 /// Runs a Boolean predicate property through the Swift Testing adapter.
 public func expectForAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the synchronous predicate API and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -35,7 +41,7 @@ public func expectForAll<Value: Sendable>(
     line: line,
     column: column,
     function: function
-  ) { (value: Value) throws -> Void in
+  ) { (value: Value) throws in
     guard try predicate(value) else {
       throw PropertyPredicateFailed()
     }
@@ -44,6 +50,8 @@ public func expectForAll<Value: Sendable>(
 
 /// Runs an async Boolean predicate property through the Swift Testing adapter.
 public func expectForAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the async predicate API and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -65,7 +73,7 @@ public func expectForAll<Value: Sendable>(
     line: line,
     column: column,
     function: function
-  ) { (value: Value) async throws -> Void in
+  ) { (value: Value) async throws in
     guard try await predicate(value) else {
       throw PropertyPredicateFailed()
     }
@@ -74,6 +82,8 @@ public func expectForAll<Value: Sendable>(
 
 /// Runs a data-aware Boolean predicate property through the Swift Testing adapter.
 public func expectForAll<Value: Sendable>(
+  // swiftlint:disable:previous function_parameter_count
+  // Preserve the data-aware predicate API and caller-captured source locations.
   _ strategy: Strategy<Value>,
   config: PropertyConfig = .default,
   explicitExamples: [Value] = [],
@@ -95,11 +105,10 @@ public func expectForAll<Value: Sendable>(
     line: line,
     column: column,
     function: function
-  ) { (value: Value, data: inout PremiseData) throws -> Void in
+  ) { (value: Value, data: inout PremiseData) throws in
     guard try predicate(value, &data) else {
       throw PropertyPredicateFailed()
     }
   }
 }
 #endif
-// swiftlint:enable function_parameter_count

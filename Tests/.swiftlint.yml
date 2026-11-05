@@ -1,0 +1,24 @@
+parent_config: ../.swiftlint.yml
+
+# Test scenarios often need longer setup and descriptive generated input names.
+line_length:
+  warning: 100
+  error: 100
+  ignores_urls: true
+  ignores_function_declarations: false
+  ignores_comments: true
+  ignores_interpolated_strings: true
+function_body_length:
+  warning: 40
+  error: 40
+type_body_length:
+  warning: 150
+  error: 200
+
+custom_rules:
+  prefer_struct:
+    name: "Prefer Value Semantics"
+    regex: '(?m)^\s*(?:\w+\s+)*class\b'
+    excluded: 'Tests/PremiseXCTestIntegrationTests/.*'
+    message: "Prefer a struct unless identity or inheritance is required."
+    severity: warning

@@ -1,0 +1,5 @@
+parent_config: ../../../.swiftlint.yml
+# The three-strategy zip overload returns and shrinks a triple.
+large_tuple:
+  warning: 3
+  error: 3

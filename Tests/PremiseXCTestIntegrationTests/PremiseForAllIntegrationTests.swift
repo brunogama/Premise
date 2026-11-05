@@ -3,6 +3,8 @@ import XCTest
 @testable import PremiseCore
 @testable import PremiseXCTest
 
+// XCTest integration requires XCTestCase inheritance.
+// swiftlint:disable:next prefer_struct
 final class PremiseForAllIntegrationTests: XCTestCase {
 
   func testPassingProperty() async throws {
@@ -32,10 +34,11 @@ final class PremiseForAllIntegrationTests: XCTestCase {
     let strategy = Strategy<Int>.integers(in: 1...10)
 
     XCTExpectFailure("premise_forAll should report a counterexample") {
-      $0.compactDescription.contains("Minimal counterexample")
+      $0.compactDescription.contains("Minimal counterexample: 1")
     }
 
-    try await premise_forAll(strategy, config: isolatedFailureStorage()) { value in
+    let config = isolatedFailureStorage()
+    try await premise_forAll(strategy, config: config) { value in
       guard value > 5 else {
         throw PremiseTestError(message: "value \(value) is not > 5")
       }
@@ -61,7 +64,9 @@ final class PremiseForAllIntegrationTests: XCTestCase {
 
     try await premise_forAll(
       Strategy<Int>.just(99),
-      config: isolatedFailureStorage(PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])),
+      config: isolatedFailureStorage(
+        PropertyConfig(maxRuns: 10, seed: 1).phases([.explicit])
+      ),
       explicitExamples: [3]
     ) { value in
       if value == 3 {
